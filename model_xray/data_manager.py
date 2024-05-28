@@ -2,7 +2,11 @@ import os
 from pathlib import Path
 from typing import Union
 
-from config import DATA_DIR
+import numpy as np
+
+from config import DATA_DIR, CACHE_DIR
+from model_xray.utils.model_utils import extract_weights_keras, extract_weights_pytorch
+from model_xray.options import *
 
 import luigi
 
@@ -25,22 +29,25 @@ class PathManager():
         mc_dir_path.mkdir(parents=True, exist_ok=True)
         return mc_dir_path
 
-    def get_zwa_path(self, model_collection_name: str) -> Path:
+    def get_mcwa_path(self, model_collection_name: str) -> Path:
         mc_dir_path = self.get_mc_dir_path(model_collection_name)
-        zwa_path = mc_dir_path.joinpath("zwa.h5")
+        zwa_path = mc_dir_path.joinpath("mcwa.h5")
         return zwa_path
 
 pm = PathManager()
 
-class ZooWeights(luigi.Task):
+class MCWeights(luigi.Task):
     model_collection_name = luigi.OptionalStrParameter()
     def output(self):
-        return luigi.LocalTarget(pm.get_zwa_path(self.model_collection_name))
+        return luigi.LocalTarget(pm.get_mcwa_path(self.model_collection_name))
 
     def run(self):
-        def cnn_zoos_pretrained_weights():
-            for cnn_zoo in model_names:
-                cnn_zoo_dir_path = get_zoo_path(cnn_zoo)
+        model_zoo_names = model_collections[self.model_collection_name]
+        
+        def small_cnn_zoos_pretrained_weights():
+            import torch
+            for cnn_zoo_name in model_zoo_names:
+                cnn_zoo_dir_path = pm.get_mc_dir_path(cnn_zoo_name)
                 dataset_path = os.path.join(cnn_zoo_dir_path, 'dataset.pt')
 
                 dataset = torch.load(dataset_path)
@@ -52,32 +59,30 @@ class ZooWeights(luigi.Task):
                 all_weights = torch.cat((trainset, testset, valset), 0)
                 all_weights = all_weights.numpy()
 
-                yield (cnn_zoo, all_weights)
-
-        model_names = model_collections[zoo_name]
+                yield (cnn_zoo_name, all_weights)
 
         def keras_pretrained_weights(require_dtype=np.float32, n_w_bounds=(0, 10_000_000)):
-            for model_name in model_names:
-                model = ret_model_by_name(model_name, "keras")
+            for model_zoo_name in model_zoo_names:
+                model = ret_model_by_name(model_zoo_name, "keras")
 
                 w = extract_weights_keras(model)
-                assert w.dtype == require_dtype, f"{model_name} weights are not float32"
-                assert n_w_bounds[0] <= len(w) < n_w_bounds[1], f"{model_name} weights bigger than 10M"
+                assert w.dtype == require_dtype, f"{model_zoo_name} weights are not float32"
+                assert n_w_bounds[0] <= len(w) < n_w_bounds[1], f"{model_zoo_name} weights bigger than 10M"
 
-                yield (model_name, np.array([w]))
+                yield (model_zoo_name, np.array([w]))
 
         def hf_pretrained_weights(hf_cls: Union[AutoModel, AutoModelForCausalLM, AutoModelForTokenClassification],
                                 require_dtype=torch.float16,
                                 n_w_bounds=(0, 500_000_000)):
-            for model_name in model_names:
-                model = hf_cls.from_pretrained(model_name, cache_dir=CACHE_DIR, torch_dtype=require_dtype)
+            for model_zoo_name in model_zoo_names:
+                model = hf_cls.from_pretrained(model_zoo_name, cache_dir=CACHE_DIR, torch_dtype=require_dtype)
 
                 w = extract_weights_pytorch(model)
-                assert w.dtype == require_dtype, f"{model_name} weights are not {require_dtype}"
-                assert n_w_bounds[0] <= len(w) < n_w_bounds[1], f"{model_name} weights bigger than {n_w_bounds[0]}"
+                assert w.dtype == require_dtype, f"{model_zoo_name} weights are not {require_dtype}"
+                assert n_w_bounds[0] <= len(w) < n_w_bounds[1], f"{model_zoo_name} weights bigger than {n_w_bounds[0]}"
 
-                model_name = model_name.replace('/', '_')
-                yield (model_name, np.array([w]))
+                model_zoo_name = model_zoo_name.replace('/', '_')
+                yield (model_zoo_name, np.array([w]))
 
         if zoo_name == "famous_le_10m":
             gen = keras_pretrained_weights(n_w_bounds=(0, 10_000_000))
@@ -85,7 +90,7 @@ class ZooWeights(luigi.Task):
             gen = keras_pretrained_weights(n_w_bounds=(10_000_000, 100_000_000))
 
         elif zoo_name == "cnn_zoos":
-            gen = cnn_zoos_pretrained_weights()
+            gen = small_cnn_zoos_pretrained_weights()
         elif zoo_name == "llms_le_500m_f16":
             gen = hf_pretrained_weights(AutoModelForCausalLM, )
         elif zoo_name == "llms_bert":

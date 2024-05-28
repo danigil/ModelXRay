@@ -41,11 +41,3 @@ os.environ['HF_HOME'] = CACHE_DIR
 """
 
 CREATE_IF_NOT_EXISTS: bool = False
-
-# Validation
-VALIDATE_INPUTS: bool = True
-VALIDATION_TERMINATE_ON_FAIL: bool = True
-
-VALIDATE_VALIDATION_ITEMS_DICT: bool = True
-
-VALIDATE_MODEL_INPUTS: bool = True
