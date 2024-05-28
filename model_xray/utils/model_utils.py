@@ -1,6 +1,8 @@
 from typing import Literal
 import numpy as np
 
+from model_xray.path_manager import pm
+
 def extract_weights(model, lib:Literal['torch', 'keras']) -> np.ndarray:
     def extract_weights_pytorch(model):
         ws = [w.cpu().detach().numpy().flatten() for w in model.parameters()]
@@ -32,8 +34,8 @@ def ret_pretrained_model_by_name(model_name, lib:Literal['torch', 'keras']):
 
     def ret_torch_model_by_name(model_name):
         if model_name in ('cifar10', 'mnist', 'stl10', 'svhn'):
-            from ghrp.model_definitions.def_net import NNmodule
-            zoo_dir = get_zoo_path(model_name)
+            from model_xray.external_code.ghrp.model_definitions.def_net import NNmodule
+            zoo_dir = pm.get_mc_dir_path(model_name)
             PATH_ROOT = Path(zoo_dir)
             config_model_path = PATH_ROOT.joinpath('config_zoo.json')
             config_model = json.load(config_model_path.open('r'))
