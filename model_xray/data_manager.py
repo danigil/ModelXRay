@@ -5,36 +5,13 @@ from typing import Union
 import numpy as np
 
 from config import DATA_DIR, CACHE_DIR
-from model_xray.utils.model_utils import extract_weights_keras, extract_weights_pytorch
+from model_xray.utils.model_utils import extract_weights, ret_pretrained_model_by_name
 from model_xray.options import *
+from model_xray.path_manager import pm
 
 import luigi
 
-
-class PathManager():
-    def __init__(self, data_dir: Union[None, Path] = None):
-        assert data_dir is None or isinstance(data_dir, Path), "PathManager: data_dir must be None or a Path object."
-
-        self.data_dir = data_dir if data_dir is not None else DATA_DIR
-        self.model_collections_dir = self.data_dir.joinpath("model_collections")
-        self.datasets_dir = self.data_dir.joinpath("datasets")
-
-        self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.model_collections_dir.mkdir(parents=True, exist_ok=True)
-        self.datasets_dir.mkdir(parents=True, exist_ok=True)
-
-
-    def get_mc_dir_path(self, model_collection_name: str) -> Path:
-        mc_dir_path = self.model_collections_dir.joinpath(model_collection_name)
-        mc_dir_path.mkdir(parents=True, exist_ok=True)
-        return mc_dir_path
-
-    def get_mcwa_path(self, model_collection_name: str) -> Path:
-        mc_dir_path = self.get_mc_dir_path(model_collection_name)
-        zwa_path = mc_dir_path.joinpath("mcwa.h5")
-        return zwa_path
-
-pm = PathManager()
+import h5py
 
 class MCWeights(luigi.Task):
     model_collection_name = luigi.OptionalStrParameter()
@@ -63,9 +40,9 @@ class MCWeights(luigi.Task):
 
         def keras_pretrained_weights(require_dtype=np.float32, n_w_bounds=(0, 10_000_000)):
             for model_zoo_name in model_zoo_names:
-                model = ret_model_by_name(model_zoo_name, "keras")
+                model = ret_pretrained_model_by_name(model_zoo_name, "keras")
 
-                w = extract_weights_keras(model)
+                w = extract_weights(model, 'keras')
                 assert w.dtype == require_dtype, f"{model_zoo_name} weights are not float32"
                 assert n_w_bounds[0] <= len(w) < n_w_bounds[1], f"{model_zoo_name} weights bigger than 10M"
 
@@ -77,28 +54,29 @@ class MCWeights(luigi.Task):
             for model_zoo_name in model_zoo_names:
                 model = hf_cls.from_pretrained(model_zoo_name, cache_dir=CACHE_DIR, torch_dtype=require_dtype)
 
-                w = extract_weights_pytorch(model)
+                w = extract_weights(model, 'torch')
                 assert w.dtype == require_dtype, f"{model_zoo_name} weights are not {require_dtype}"
                 assert n_w_bounds[0] <= len(w) < n_w_bounds[1], f"{model_zoo_name} weights bigger than {n_w_bounds[0]}"
 
                 model_zoo_name = model_zoo_name.replace('/', '_')
                 yield (model_zoo_name, np.array([w]))
 
-        if zoo_name == "famous_le_10m":
+        if self.model_collection_name == "famous_le_10m":
             gen = keras_pretrained_weights(n_w_bounds=(0, 10_000_000))
-        elif zoo_name == "famous_le_100m":
+        elif self.model_collection_name == "famous_le_100m":
             gen = keras_pretrained_weights(n_w_bounds=(10_000_000, 100_000_000))
-
-        elif zoo_name == "cnn_zoos":
+        elif self.model_collection_name == "cnn_zoos":
             gen = small_cnn_zoos_pretrained_weights()
-        elif zoo_name == "llms_le_500m_f16":
+        elif self.model_collection_name == "llms_le_500m_f16":
             gen = hf_pretrained_weights(AutoModelForCausalLM, )
-        elif zoo_name == "llms_bert":
+        elif self.model_collection_name == "llms_bert":
             gen = hf_pretrained_weights(AutoModel, )
-        elif zoo_name == "llms_bert_conll03":
+        elif self.model_collection_name == "llms_bert_conll03":
             gen = hf_pretrained_weights(AutoModelForTokenClassification, )
         else:
-            raise Exception(f"Unknown zoo model name {zoo_name}")
+            raise Exception(f"Unknown model collection name {self.model_collection_name}")
+
+        save_path = pm.get_mcwa_path(self.model_collection_name)
 
         with h5py.File(save_path, mode='w') as f:
             for (model_name, model_weights) in gen:
