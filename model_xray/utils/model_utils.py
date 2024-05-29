@@ -5,6 +5,7 @@ import json
 import numpy as np
 
 from model_xray.path_manager import pm
+from model_xray.options import small_cnn_zoos
 
 def extract_weights(model, lib:Literal['torch', 'keras']) -> np.ndarray:
     def extract_weights_pytorch(model):
@@ -36,9 +37,9 @@ def ret_pretrained_model_by_name(model_name, lib:Literal['torch', 'keras']):
         return ret_class()
 
     def ret_torch_model_by_name(model_name):
-        if model_name in ('cifar10', 'mnist', 'stl10', 'svhn'):
+        if model_name in small_cnn_zoos:
             from model_xray.external_code.ghrp.model_definitions.def_net import NNmodule
-            zoo_dir = pm.get_mc_dir_path(model_name)
+            zoo_dir = pm.get_small_cnn_zoo_dir_path(model_name)
             PATH_ROOT = Path(zoo_dir)
             config_model_path = PATH_ROOT.joinpath('config_zoo.json')
             config_model = json.load(config_model_path.open('r'))
