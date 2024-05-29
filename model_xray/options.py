@@ -105,7 +105,7 @@ llms_bert_conll03 = {
 }
 
 model_collections = {
-    "cnn_zoos": small_cnn_zoos,
+    "small_cnn_zoos": small_cnn_zoos,
     "famous_le_10m": famous_le_10m_zoos,
     "famous_le_100m": famous_le_100m_zoos,
     "llms_le_500m_f16": llms_le_500m_f16,
@@ -117,7 +117,7 @@ model_collections = {
 mal_map = {
     "famous_le_10m": "050ef",
     "famous_le_100m": "malware_292mb",
-    "cnn_zoos": "malware_12584bytes",
+    "small_cnn_zoos": "malware_12584bytes",
 
     "llms_le_500m_f16": None,
     "llms_bert": None,
@@ -127,7 +127,7 @@ mal_map = {
 img_map = {
     "famous_le_10m": "grayscale_fourpart",
     "famous_le_100m": "grayscale_fourpart",
-    "cnn_zoos": "grayscale_fourpart",
+    "small_cnn_zoos": "grayscale_fourpart",
 
     "llms_le_500m_f16": "grayscale_lastbyte",
     "llms_bert": "grayscale_lastbyte",
@@ -135,7 +135,7 @@ img_map = {
 }
 
 dataset_split = {
-    'cnn_zoos': ({
+    'small_cnn_zoos': ({
                     "mnist",
                     "cifar10",
                     "svhn",
@@ -243,7 +243,9 @@ def get_default_params(zoo_name: str, request: Iterable[Literal['malware_name', 
 zoos = set()
 zoos.update(*model_collections.values())
 
-SUPPORTED_MCS = Literal["cnn_zoos", "famous_le_10m", "famous_le_100m", "llms_le_500m_f16", "llms_bert", "llms_bert_conll03"]
+SUPPORTED_SCZS = Literal['cifar10', 'mnist', 'svhn', 'stl10']
+
+SUPPORTED_MCS = Literal["small_cnn_zoos", "famous_le_10m", "famous_le_100m", "llms_le_500m_f16", "llms_bert", "llms_bert_conll03"]
 
 # SUPPORTED_FEATURES = Literal["weights", "grads"]
 

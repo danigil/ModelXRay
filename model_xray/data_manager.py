@@ -13,6 +13,9 @@ import luigi
 
 import h5py
 
+import torch
+from transformers import AutoModelForCausalLM, AutoModel, AutoModelForTokenClassification
+
 class MCWeights(luigi.Task):
     model_collection_name = luigi.OptionalStrParameter()
     def output(self):
@@ -22,9 +25,8 @@ class MCWeights(luigi.Task):
         model_zoo_names = model_collections[self.model_collection_name]
         
         def small_cnn_zoos_pretrained_weights():
-            import torch
             for cnn_zoo_name in model_zoo_names:
-                cnn_zoo_dir_path = pm.get_mc_dir_path(cnn_zoo_name)
+                cnn_zoo_dir_path = pm.get_small_cnn_zoo_dir_path(cnn_zoo_name)
                 dataset_path = os.path.join(cnn_zoo_dir_path, 'dataset.pt')
 
                 dataset = torch.load(dataset_path)
@@ -76,8 +78,6 @@ class MCWeights(luigi.Task):
         else:
             raise Exception(f"Unknown model collection name {self.model_collection_name}")
 
-        save_path = pm.get_mcwa_path(self.model_collection_name)
-
-        with h5py.File(save_path, mode='w') as f:
+        with h5py.File(self.output().open('w'), mode='w') as f:
             for (model_name, model_weights) in gen:
                 f.create_dataset(model_name, data=model_weights, compression='gzip')
