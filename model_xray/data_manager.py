@@ -4,7 +4,7 @@ from typing import Union
 
 import numpy as np
 
-from config import DATA_DIR, CACHE_DIR
+from model_xray.config import CACHE_DIR
 from model_xray.utils.model_utils import extract_weights, ret_pretrained_model_by_name
 from model_xray.options import *
 from model_xray.path_manager import pm
@@ -78,7 +78,7 @@ class MCWeights(luigi.Task):
         else:
             raise Exception(f"Unknown model collection name {self.model_collection_name}")
 
-        with h5py.File(self.output().open('w'), mode='w') as f:
+        with h5py.File(self.output().path, mode='w') as f:
             for (model_name, model_weights) in gen:
                 f.create_dataset(model_name, data=model_weights, compression='gzip')
 

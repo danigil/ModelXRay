@@ -8,7 +8,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 assert ROOT_DIR.exists() and ROOT_DIR.is_dir()
 
 DATA_DIR_DEFAULT = ROOT_DIR.joinpath("data")
-DATA_DIR = "/mnt/exdisk1/danigil/AI_Model_Steganalysis/data"
+DATA_DIR = "/mnt/exdisk1/danigil/ModelXRay/data"
 
 
 # DATASETS_DIR = DATA_DIR.joinpath("datasets")
