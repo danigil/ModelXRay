@@ -81,3 +81,7 @@ class MCWeights(luigi.Task):
         with h5py.File(self.output().open('w'), mode='w') as f:
             for (model_name, model_weights) in gen:
                 f.create_dataset(model_name, data=model_weights, compression='gzip')
+
+if __name__=='__main__':
+    mcw_task = MCWeights(model_collection_name='famous_le_10m')
+    mcw_task.run()

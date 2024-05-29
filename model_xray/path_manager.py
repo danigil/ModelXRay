@@ -2,7 +2,8 @@ from pathlib import Path
 from typing import Union
 
 from config import DATA_DIR
-from model_xray.options import  SUPPORTED_SCZS
+from model_xray.options import SUPPORTED_SCZS
+
 
 class PathManager():
     def __init__(self, data_dir: Union[None, Path] = None):
@@ -19,7 +20,7 @@ class PathManager():
         self.model_collections_dir.mkdir(parents=True, exist_ok=True)
         self.datasets_dir.mkdir(parents=True, exist_ok=True)
 
-    def get_small_cnn_zoo_dir_path(self, small_cnn_zoo_name:SUPPORTED_SCZS):
+    def get_small_cnn_zoo_dir_path(self, small_cnn_zoo_name: SUPPORTED_SCZS):
         small_cnn_zoo_path = self.small_cnn_zoos_dir.joinpath(small_cnn_zoo_name)
         return small_cnn_zoo_path
 
@@ -32,5 +33,6 @@ class PathManager():
         mc_dir_path = self.get_mc_dir_path(model_collection_name)
         zwa_path = mc_dir_path.joinpath("mcwa.h5")
         return zwa_path
+
 
 pm = PathManager()
