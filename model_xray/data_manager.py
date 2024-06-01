@@ -16,13 +16,17 @@ import h5py
 import torch
 from transformers import AutoModelForCausalLM, AutoModel, AutoModelForTokenClassification
 
-class H5ArchiveTask(luigi.Task):
-    pass
+class H5ArchiveTarget(luigi.LocalTarget):
+    def __init__(self, path=None, format=None, is_tmp=False):
+        super().__init__(path=path, format=format, is_tmp=is_tmp)
+    
+    def open(self, mode:Literal['r', 'w', 'a']) -> h5py.File:
+        return h5py.File(self.path, mode=mode)
 
 class MCWeights(luigi.Task):
     model_collection_name = luigi.OptionalStrParameter()
     def output(self):
-        return luigi.LocalTarget(pm.get_mcwa_path(self.model_collection_name))
+        return H5ArchiveTarget(pm.get_mcwa_path(self.model_collection_name))
 
     def run(self):
         model_zoo_names = model_collections[self.model_collection_name]
@@ -81,7 +85,7 @@ class MCWeights(luigi.Task):
         else:
             raise Exception(f"Unknown model collection name {self.model_collection_name}")
 
-        with h5py.File(self.output().path, mode='w') as f:
+        with self.output().open('w') as f:
             for (model_name, model_weights) in gen:
                 f.create_dataset(model_name, data=model_weights, compression='gzip')
 
@@ -92,7 +96,7 @@ class MCBinWeights(luigi.Task):
         return MCWeights(model_collection_name=self.model_collection_name)
     
     def output(self):
-        return luigi.LocalTarget(pm.get_mcbwa_path(self.model_collection_name))
+        return H5ArchiveTarget(pm.get_mcbwa_path(self.model_collection_name))
     
     def run(self):
         pass
@@ -100,4 +104,7 @@ class MCBinWeights(luigi.Task):
 
 if __name__=='__main__':
     mcw_task = MCWeights(model_collection_name='famous_le_10m')
-    mcw_task.run()
+    # mcw_task.run()
+    with mcw_task.output().open('r') as f:
+        print(f.keys())
+        
