@@ -33,6 +33,11 @@ class PathManager():
         mc_dir_path = self.get_mc_dir_path(model_collection_name)
         zwa_path = mc_dir_path.joinpath("mcwa.h5")
         return zwa_path
+    
+    def get_mcbwa_path(self, model_collection_name: SUPPORTED_MCS) -> Path:
+        mc_dir_path = self.get_mc_dir_path(model_collection_name)
+        zwa_path = mc_dir_path.joinpath("mcbwa.h5")
+        return zwa_path
 
 
 pm = PathManager()

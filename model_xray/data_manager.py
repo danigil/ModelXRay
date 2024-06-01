@@ -16,6 +16,9 @@ import h5py
 import torch
 from transformers import AutoModelForCausalLM, AutoModel, AutoModelForTokenClassification
 
+class H5ArchiveTask(luigi.Task):
+    pass
+
 class MCWeights(luigi.Task):
     model_collection_name = luigi.OptionalStrParameter()
     def output(self):
@@ -81,6 +84,19 @@ class MCWeights(luigi.Task):
         with h5py.File(self.output().path, mode='w') as f:
             for (model_name, model_weights) in gen:
                 f.create_dataset(model_name, data=model_weights, compression='gzip')
+
+class MCBinWeights(luigi.Task):
+    model_collection_name = luigi.OptionalStrParameter()
+    
+    def requires(self):
+        return MCWeights(model_collection_name=self.model_collection_name)
+    
+    def output(self):
+        return luigi.LocalTarget(pm.get_mcbwa_path(self.model_collection_name))
+    
+    def run(self):
+        pass
+        
 
 if __name__=='__main__':
     mcw_task = MCWeights(model_collection_name='famous_le_10m')
