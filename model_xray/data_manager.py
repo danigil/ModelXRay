@@ -6,6 +6,8 @@ import numpy as np
 
 from model_xray.config import CACHE_DIR
 from model_xray.utils.model_utils import extract_weights, ret_pretrained_model_by_name
+from model_xray.utils.mal_embedding_utils import mcwa_to_bytes_arr
+from model_xray.utils.logging_utils import request_logger, log_it
 from model_xray.options import *
 from model_xray.path_manager import pm
 
@@ -28,6 +30,7 @@ class MCWeights(luigi.Task):
     def output(self):
         return H5ArchiveTarget(pm.get_mcwa_path(self.model_collection_name))
 
+    @log_it()
     def run(self):
         model_zoo_names = model_collections[self.model_collection_name]
         
@@ -85,9 +88,9 @@ class MCWeights(luigi.Task):
         else:
             raise Exception(f"Unknown model collection name {self.model_collection_name}")
 
-        with self.output().open('w') as f:
+        with self.output().open('w') as mcwa:
             for (model_name, model_weights) in gen:
-                f.create_dataset(model_name, data=model_weights, compression='gzip')
+                mcwa.create_dataset(model_name, data=model_weights, compression='gzip')
 
 class MCBinWeights(luigi.Task):
     model_collection_name = luigi.OptionalStrParameter()
@@ -98,13 +101,22 @@ class MCBinWeights(luigi.Task):
     def output(self):
         return H5ArchiveTarget(pm.get_mcbwa_path(self.model_collection_name))
     
+    @log_it()
     def run(self):
-        pass
+        with self.input().open('r') as mcwa, self.output().open('w') as mcbwa:
+            for model_name in mcwa.keys():
+                model_zoo_weights = np.array(mcwa[model_name][:])
+                mcbwa.create_dataset(model_name, data=mcwa_to_bytes_arr(model_zoo_weights), compression='gzip')
         
 
 if __name__=='__main__':
-    mcw_task = MCWeights(model_collection_name='famous_le_10m')
-    # mcw_task.run()
-    with mcw_task.output().open('r') as f:
-        print(f.keys())
+    luigi.build([MCBinWeights(model_collection_name='famous_le_100m')], workers=1, local_scheduler=True)
+    
+    mcbw_task = MCBinWeights(model_collection_name='famous_le_100m')
+    with mcbw_task.output().open('r') as f:
+        for model_name in f.keys():
+            print(model_name)
+            print(f[model_name].shape, f[model_name].dtype)
+    
+    
         
