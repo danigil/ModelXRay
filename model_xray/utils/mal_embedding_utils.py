@@ -1,6 +1,6 @@
 import copy
 import sys
-from typing import Tuple
+from typing import Callable, Dict, Tuple
 import numpy as np
 import numpy.typing as npt
 
@@ -23,7 +23,7 @@ def bytes_arr_to_mcwa(mcwa: np.ndarray, dtype=np.uint8, shape=None):
 
     return np.frombuffer(np.flip(mcwa, axis=-1).tobytes(order='C'), dtype=dtype_new).reshape(newshape)
 
-from model_xray.config_classes import PayloadType, XLSBAttackConfig
+from model_xray.config_classes import EmbedType, PayloadType, XLSBAttackConfig
 
 from bitstring import BitArray, Array
 from random import getrandbits
@@ -203,3 +203,7 @@ def x_lsb_extract(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig) -> by
     # bits = BitArray(f'0b{bits.bin}')
 
     return bits.tobytes()
+
+embed_type_map: Dict[EmbedType, Callable] = {
+    EmbedType.X_LSB_ATTACK_FILL: x_lsb_attack
+}

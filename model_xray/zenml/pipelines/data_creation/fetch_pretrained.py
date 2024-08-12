@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 from zenml import ArtifactConfig, pipeline, step, get_step_context
 
 from typing import Union
@@ -55,7 +56,7 @@ def extract_weights(
         model_repo: ModelRepos
     ) -> (
     Annotated[
-        np.ndarray,
+        npt.NDArray,
         ArtifactConfig(
             name="extracted_weights",
         ),
@@ -86,7 +87,7 @@ def extract_weights(
 
 
 @pipeline
-def fetch_pretrained_model_and_extract_weights(model_repo: ModelRepos, pretrained_model_name: str):
+def fetch_pretrained_model_and_extract_weights(model_repo: ModelRepos, pretrained_model_name: str) -> npt.NDArray:
     model = fetch_pretrained(model_repo=model_repo, pretrained_model_name=pretrained_model_name)
     w = extract_weights(model=model, model_repo=model_repo)
 

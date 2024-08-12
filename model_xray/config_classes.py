@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Union
 
+import hashlib
+
 class EmbedType(StrEnum):
     X_LSB_ATTACK_FILL = 'x_lsb_attack_fill'
 
@@ -10,7 +12,7 @@ class PayloadType(StrEnum):
     BINARY_FILE = 'binary_file'
     PYTHON_BYTES = 'python_bytes'
 
-@dataclass
+@dataclass(repr=False)
 class XLSBAttackConfig:
     x: int
     fill: bool = True
@@ -18,6 +20,23 @@ class XLSBAttackConfig:
     payload_bytes: Union[None, bytes] = None
     payload_type: PayloadType = PayloadType.RANDOM
     payload_filepath: Union[None, str] = None
+
+    def __repr__(self):
+        repr_str = f'XLSBAttackConfig(x={self.x}, fill={self.fill}, msb={self.msb}, payload_type={self.payload_type}'
+        if self.payload_type == PayloadType.PYTHON_BYTES:
+            repr_str += f', payload_bytes_md5={hashlib.md5(self.payload_bytes).hexdigest()}'
+        elif self.payload_type == PayloadType.BINARY_FILE:
+            repr_str += f', payload_filepath={self.payload_filepath}'
+
+    def to_dict(self):
+        return {
+            'x': self.x,
+            'fill': self.fill,
+            'msb': self.msb,
+            'payload_bytes_md5': hashlib.md5(self.payload_bytes).hexdigest() if self.payload_type == PayloadType.PYTHON_BYTES else None,
+            'payload_type': self.payload_type,
+            'payload_filepath': self.payload_filepath
+        }
 
 @dataclass
 class EmbedPayloadConfig:
