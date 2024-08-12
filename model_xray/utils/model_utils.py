@@ -30,11 +30,15 @@ def extract_weights(model, lib:Literal['torch', 'keras']) -> np.ndarray:
 def ret_pretrained_model_by_name(model_name, lib:Literal['torch', 'keras']):
     def ret_keras_model_by_name(model_name):
         import tensorflow.keras.applications
+        import tensorflow.keras
         ret_class = getattr(tensorflow.keras.applications, model_name, None)
         if not ret_class:
             raise Exception(f"ret_keras_model_by_name | model_name {model_name} not found")
 
-        return ret_class()
+        
+        model = ret_class()
+        return model
+        # return model.super()
 
     def ret_torch_model_by_name(model_name):
         if model_name in small_cnn_zoos:
