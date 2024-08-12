@@ -15,6 +15,7 @@ from transformers import TFPreTrainedModel as HFTFPreTrainedModel
 from model_xray.zenml.pipelines.data_creation.data_classes import ModelRepos
 from model_xray.utils.model_utils import ret_pretrained_model_by_name
 from model_xray.utils.model_utils import extract_weights as extract_weights_util
+from model_xray.options import model_collections
 
 @step
 def fetch_pretrained(model_repo: ModelRepos, pretrained_model_name: str) -> (
@@ -85,9 +86,14 @@ def extract_weights(
 
 
 @pipeline
-def fetch_pretrained_models(model_repo: ModelRepos, pretrained_model_name: str):
+def fetch_pretrained_model_and_extract_weights(model_repo: ModelRepos, pretrained_model_name: str):
     model = fetch_pretrained(model_repo=model_repo, pretrained_model_name=pretrained_model_name)
     w = extract_weights(model=model, model_repo=model_repo)
 
+    return w
+
 if __name__ == "__main__":
-    fetch_pretrained_models(model_repo=ModelRepos.KERAS, pretrained_model_name="MobileNet")
+    model_names = model_collections['famous_le_10m']
+
+    for model_name in model_names:
+        fetch_pretrained_model_and_extract_weights(model_repo=ModelRepos.KERAS, pretrained_model_name=model_name)
