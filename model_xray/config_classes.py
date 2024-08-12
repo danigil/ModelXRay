@@ -14,6 +14,7 @@ class PayloadType(StrEnum):
 class XLSBAttackConfig:
     x: int
     fill: bool = True
+    msb: bool = False
     payload_bytes: Union[None, bytes] = None
     payload_type: PayloadType = PayloadType.RANDOM
     payload_filepath: Union[None, str] = None
