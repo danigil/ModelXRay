@@ -36,6 +36,8 @@ def fetch_pretrained(model_repo: ModelRepos, pretrained_model_name: str) -> (
         tags=["pretrained_model", model_repo.value.lower()]
     )
 
+    print("Adding metadata and tags to the output artifact")
+
     model = ret_pretrained_model_by_name(model_name = pretrained_model_name, lib=model_repo.value)
     
     return model
