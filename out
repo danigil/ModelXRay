@@ -1,0 +1,38 @@
+ConvNeXtBase
+(1, 88591464, 4) uint8
+ConvNeXtSmall
+(1, 50223688, 4) uint8
+ConvNeXtTiny
+(1, 28589128, 4) uint8
+DenseNet169
+(1, 14307880, 4) uint8
+DenseNet201
+(1, 20242984, 4) uint8
+EfficientNetV2B2
+(1, 10178374, 4) uint8
+EfficientNetV2B3
+(1, 14467622, 4) uint8
+EfficientNetV2M
+(1, 54431388, 4) uint8
+EfficientNetV2S
+(1, 21612360, 4) uint8
+InceptionResNetV2
+(1, 55873736, 4) uint8
+InceptionV3
+(1, 23851784, 4) uint8
+NASNetLarge
+(1, 88949818, 4) uint8
+ResNet101
+(1, 44707176, 4) uint8
+ResNet101V2
+(1, 44675560, 4) uint8
+ResNet152
+(1, 60419944, 4) uint8
+ResNet152V2
+(1, 60380648, 4) uint8
+ResNet50
+(1, 25636712, 4) uint8
+ResNet50V2
+(1, 25613800, 4) uint8
+Xception
+(1, 22910480, 4) uint8
