@@ -6,7 +6,7 @@ on:
       - 'new_version'
     
     paths:
-      - '**'
+      - 'model_xray/**'
 
 jobs:
   run-tests:
