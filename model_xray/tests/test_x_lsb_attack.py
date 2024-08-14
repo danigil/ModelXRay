@@ -2,7 +2,6 @@ import itertools
 import math
 import os
 import numpy as np
-from bitstring import Dtype
 
 from model_xray.config_classes import PayloadType, XLSBAttackConfig
 from model_xray.utils.mal_embedding_utils import _x_lsb_attack_numpy, _x_lsb_attack_numpy_bin, x_lsb_extract
@@ -53,7 +52,7 @@ def test_x_lsb_attack_random(
 
     for dtype, n_w in itertools.product(dtypes, n_ws):
         dtype_str = dtype.__name__
-        n_bits = Dtype(dtype_str).length
+        n_bits = dtype.itemsize * 8
 
         for x in range(1, n_bits-1):
             capacity = x*n_w

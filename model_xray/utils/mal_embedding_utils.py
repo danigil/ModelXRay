@@ -1,95 +1,10 @@
-import copy
-import sys
-from typing import Callable, Dict, Tuple
+from typing import Callable, Dict
 import numpy as np
-import numpy.typing as npt
 
 from model_xray.utils.general_utils import ndarray_to_bytes_arr, bytes_arr_to_ndarray
 from model_xray.config_classes import EmbedType, PayloadType, XLSBAttackConfig, XLSBExtractConfig
 
-from bitstring import BitArray, Array
-from random import getrandbits
 import math
-
-# def get_n_randbits(n: int) -> BitArray:
-#     randint = getrandbits(n)
-
-#     return BitArray(uint=randint, length=n)
-
-class Array_w_npslice(Array):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def deepcopy(self):
-        return Array_w_npslice(copy.deepcopy(self.dtype), BitArray(copy.deepcopy(self.data.tobytes())))
-        
-    def shape(self):
-        # print("Array_w_slice shape: (", len(self), self.itemsize, ")")
-        return (len(self), self.itemsize)
-
-    def _parse_slices(self, slice_0, slice_1):
-        self_shape = self.shape()
-        slice_0_new = [slice_0.start, slice_0.stop, slice_0.step]
-        slice_1_new = [slice_1.start, slice_1.stop, slice_1.step]
-
-        if slice_0.start is None:
-            slice_0_new[0] = 0
-        if slice_0.stop is None:
-            slice_0_new[1] = self_shape[0]
-        if slice_0.step is None:
-            slice_0_new[2] = 1
-    
-        if slice_1.start is None:
-            slice_1_new[0] = 0
-        if slice_1.stop is None:
-            slice_1_new[1] = self_shape[1]
-        if slice_1.step is None:
-            slice_1_new[2] = 1
-
-        slice_0 = slice(*slice_0_new)
-        slice_1 = slice(*slice_1_new)
-        return slice_0, slice_1
-
-    def __getitem__(self, key: Tuple[slice, slice]):
-        slice_0, slice_1=self._parse_slices(*key)
-        self_shape = self.shape()
-
-        assert slice_0.stop - slice_0.start <= len(self)
-        assert slice_1.stop - slice_1.start <= self.itemsize
-
-        d = BitArray()
-        for i in range(slice_0.start, slice_0.stop, slice_0.step):
-            d.append(self.data[i*self_shape[1]+slice_1.start:i*self_shape[1]+slice_1.stop])
-
-        ret = Array(f'bin{slice_1.stop-slice_1.start}')
-        ret.data = d
-
-        return ret
-
-        # lindex = slice_0.start * self_shape[1]+slice_1.start
-        # rindex = slice_0.stop * self_shape[1]+slice_1.stop
-
-        # return Array(f'bin{slice_1.stop-slice_1.start}',self.data[lindex:rindex])
-
-    def __setitem__(self, key: Tuple[slice, slice], value: Array):
-        if 'bin' not in value.dtype.name:
-            raise ValueError("Value must be a binary array")
-
-        slice_0, slice_1=self._parse_slices(*key)
-        self_shape = self.shape()
-
-        if slice_0.stop - slice_0.start != len(value):
-            raise ValueError("Shape dim0 mismatch")
-
-        if slice_1.stop - slice_1.start != value.itemsize:
-            raise ValueError("Shape dim1 mismatch")
-
-        for i, offset in enumerate(range(slice_0.start, slice_0.stop)):
-            # self.data[offset:offset+1:1] = f'0b{value[i]}'
-            lindex = offset * self_shape[1]+slice_1.start
-            # print("_setitem lindex: ", lindex)
-            self.data.overwrite(f'0b{value[i]}',lindex)
-
 
 def x_lsb_attack(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
     if x_lsb_attack_config.x % 8 != 0:
@@ -172,6 +87,7 @@ def _x_lsb_attack_numpy(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig,
 
     return bytes_arr_to_ndarray(host_as_bytearr, dtype=host.dtype)
 
+"""
 def _x_lsb_attack_bitstring(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
     if inplace:
         host_curr = host
@@ -309,6 +225,7 @@ def x_lsb_extract_old(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig) -
     # bits = BitArray(f'0b{bits.bin}')
 
     return bits.tobytes()
+"""
 
 def x_lsb_extract(host: np.ndarray, x_lsb_extract_config: XLSBExtractConfig) -> bytes:
     host_bytes = ndarray_to_bytes_arr(host)

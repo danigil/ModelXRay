@@ -1,11 +1,7 @@
-import itertools
-import math
-import os
 import numpy as np
-from bitstring import Dtype
 
-from model_xray.config_classes import PayloadType, XLSBAttackConfig, XLSBExtractConfig
-from model_xray.utils.mal_embedding_utils import _x_lsb_attack_numpy, _x_lsb_attack_numpy_bin, x_lsb_extract
+from model_xray.config_classes import XLSBExtractConfig
+from model_xray.utils.mal_embedding_utils import x_lsb_extract
 
 rng = np.random.default_rng()
 
