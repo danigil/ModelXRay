@@ -52,7 +52,7 @@ def test_x_lsb_attack_random(
 
     for dtype, n_w in itertools.product(dtypes, n_ws):
         dtype_str = dtype.__name__
-        n_bits = dtype.itemsize * 8
+        n_bits = np.dtype(dtype).itemsize * 8
 
         for x in range(1, n_bits-1):
             capacity = x*n_w
