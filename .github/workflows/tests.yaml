@@ -6,8 +6,9 @@ on:
       - 'new_version'
     
     paths:
-      - 'model_xray/utils/*.py'
-      - 'model_xray/tests/*.py'
+      - 'model_xray/utils/image_rep_utils.py'
+      - 'model_xray/utils/mal_embedding_utils.py'
+      - 'model_xray/tests/test*.py'
 
 jobs:
   run-tests:
