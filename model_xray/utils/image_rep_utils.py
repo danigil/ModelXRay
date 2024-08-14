@@ -70,20 +70,6 @@ def _grayscale_lastmbytes(data: np.ndarray, config: ImageRepConfig) -> np.ndarra
     
     return result
 
-    # n = n_models
-    # s = closest_square
-    # d = closest_square_sqrt
-
-    # last_bytes_padded_reshaped = last_bytes_padded_reshaped.reshape(n, s, s, d, d)
-    
-    # # Transpose to (n, s, d, s, d)
-    # last_bytes_padded_reshaped_transposed = last_bytes_padded_reshaped.transpose(0, 1, 3, 2, 4)
-    
-    # # Reshape to final shape (n, d*s, d*s)
-    # result = last_bytes_padded_reshaped_transposed.reshape(n, d*s, d*s)
-
-    # return result
-
 def _grayscale_fourpart(data: npt.NDArray[np.float32]):
     assert data.dtype == np.float32 or data.dtype.itemsize==4, f"grayscale_fourpart image rep expects 4-byte long data, got {data.dtype.itemsize}-byte long data"
     
