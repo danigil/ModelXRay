@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - 'new_version'
+    
+    paths:
+      - 'model_xray/*'
 
 jobs:
   run-tests:
