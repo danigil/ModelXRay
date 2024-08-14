@@ -2,7 +2,8 @@ name: tests
 
 on:
   push:
-
+    branches:
+      - 'new_version'
 
 jobs:
   run-tests:
