@@ -1,9 +1,9 @@
-name: tests
+name: CI
 
 on:
   push:
     branches:
-      - new_version
+      - 'new_version'
     paths:
       - 'model_xray/tests/test*.py'
       - 'model_xray/utils/image_rep_utils.py'
