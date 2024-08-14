@@ -1,0 +1,42 @@
+name: tests
+
+on:
+  push:
+    branches:
+      - new_version
+    paths:
+      - 'model_xray/tests/test*.py'
+      - 'model_xray/utils/image_rep_utils.py'
+      - 'model_xray/utils/mal_embeddings_utils.py'
+
+
+jobs:
+  run-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version:
+          - "3.11"
+
+    name: Test
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: python -m pip install pytest numpy
+
+      - name: Run tests
+        run: pytest
+
+  # another-job:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - run: echo "This job runs on every push"
