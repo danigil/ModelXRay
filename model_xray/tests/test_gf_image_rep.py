@@ -7,6 +7,7 @@ dt_float32_be = np.dtype('>f4')
 
 dt_float32_ne = np.dtype('=f4')
 
+
 def test_gf_simple():
     expected_end_result = np.array([[
         [61, 251,],
