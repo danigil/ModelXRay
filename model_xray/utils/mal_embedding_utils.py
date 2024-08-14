@@ -5,7 +5,7 @@ import numpy as np
 import numpy.typing as npt
 
 from model_xray.utils.general_utils import ndarray_to_bytes_arr, bytes_arr_to_ndarray
-from model_xray.config_classes import EmbedType, PayloadType, XLSBAttackConfig
+from model_xray.config_classes import EmbedType, PayloadType, XLSBAttackConfig, XLSBExtractConfig
 
 from bitstring import BitArray, Array
 from random import getrandbits
@@ -310,29 +310,35 @@ def x_lsb_extract_old(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig) -
 
     return bits.tobytes()
 
-def x_lsb_extract(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig) -> bytes:
+def x_lsb_extract(host: np.ndarray, x_lsb_extract_config: XLSBExtractConfig) -> bytes:
     host_bytes = ndarray_to_bytes_arr(host)
-    msb = x_lsb_attack_config.msb
-    if x_lsb_attack_config.x % 8 == 0:
+    msb = x_lsb_extract_config.msb
 
-        n_bytes_to_read_in_each_weight = x_lsb_attack_config.x//8
+    if x_lsb_extract_config.fill:
+        end = None
+    else:
+        end = x_lsb_extract_config.n_bytes
+
+    if x_lsb_extract_config.x % 8 == 0:
+
+        n_bytes_to_read_in_each_weight = x_lsb_extract_config.x//8
 
         if msb:
             ret = host_bytes[..., :n_bytes_to_read_in_each_weight]
         else:
             ret = host_bytes[..., -n_bytes_to_read_in_each_weight:]
 
-        return ret.tobytes()
+        return ret.tobytes()[:end]
     else:
         if msb:
-            host_last_x_bits = np.unpackbits(host_bytes, axis=-1, count=None, bitorder='big')[..., :x_lsb_attack_config.x].flatten()
+            host_last_x_bits = np.unpackbits(host_bytes, axis=-1, count=None, bitorder='big')[..., :x_lsb_extract_config.x].flatten()
         else:
-            host_last_x_bits = np.unpackbits(host_bytes, axis=-1, count=None, bitorder='big')[..., -x_lsb_attack_config.x:].flatten()
+            host_last_x_bits = np.unpackbits(host_bytes, axis=-1, count=None, bitorder='big')[..., -x_lsb_extract_config.x:].flatten()
 
         if len(host_last_x_bits) % 8 != 0:
             host_last_x_bits = np.pad(host_last_x_bits, (0, 8 - len(host_last_x_bits) % 8))
 
-        return np.packbits(host_last_x_bits).tobytes()
+        return np.packbits(host_last_x_bits).tobytes()[:end]
 
 
 

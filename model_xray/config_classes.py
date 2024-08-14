@@ -41,6 +41,14 @@ class XLSBAttackConfig:
             'payload_filepath': self.payload_filepath
         }
 
+@dataclass(repr=False)
+class XLSBExtractConfig:
+    x: int
+    n_bytes: int = None
+    fill: bool = True
+    msb: bool = False
+    
+
 @dataclass
 class EmbedPayloadConfig:
     embed_type: EmbedType = EmbedType.X_LSB_ATTACK_FILL
