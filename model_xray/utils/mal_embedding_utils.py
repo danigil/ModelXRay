@@ -42,15 +42,7 @@ def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackCon
 
     mal_bits = np.unpackbits(mal_bytes, bitorder='big')[:capacity].reshape((n_w, x_lsb_attack_config.x))
 
-    # print("host_bytes_unpacked.shape: ", host_bytes_unpacked.shape, "mal_bits.shape: ", mal_bits.shape)
-
-    # print("host_bytes_unpacked: ", host_bytes_unpacked)
-    # print("mal_bits: ", mal_bits)
-
     stacked = np.hstack((host_bytes_unpacked, mal_bits))
-
-    # print("stacked.shape: ", stacked.shape)
-    # print("stacked: ", stacked)
 
     host_bytes_packed = np.packbits(stacked, axis=-1, bitorder='big')
 
