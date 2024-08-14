@@ -12,7 +12,6 @@ def x_lsb_attack(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplac
     else:
         return _x_lsb_attack_numpy(host, x_lsb_attack_config, inplace=inplace)    
 
-
 def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
     host_bytes = ndarray_to_bytes_arr(host)
 
