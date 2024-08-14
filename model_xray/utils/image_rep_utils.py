@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.typing as npt
 
-from model_xray.utils.general_utils import ndarray_to_bytes_arr, bytes_arr_to_ndarray
+from model_xray.utils.general_utils import ndarray_to_bytes_arr
 
 from model_xray.config_classes import ImageRepConfig, ImageType, GrayscaleLastMBytesConfig
 

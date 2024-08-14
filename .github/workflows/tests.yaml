@@ -2,6 +2,8 @@ name: tests
 
 on:
   push:
+    branches:
+      - new_version
     paths:
       - 'tests/test*.py'
       - 'utils/image_rep_utils.py'
