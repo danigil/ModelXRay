@@ -4,6 +4,9 @@ from typing import Union
 
 import hashlib
 
+"""
+    Attack CFGs
+"""
 class EmbedType(StrEnum):
     X_LSB_ATTACK_FILL = 'x_lsb_attack_fill'
 
@@ -41,4 +44,29 @@ class XLSBAttackConfig:
 @dataclass
 class EmbedPayloadConfig:
     embed_type: EmbedType = EmbedType.X_LSB_ATTACK_FILL
-    embed_proc_config: Union[XLSBAttackConfig] = None
+    embed_proc_config: Union[XLSBAttackConfig, None] = None
+
+"""
+    Image Representation CFGs
+"""
+
+class ImageType(StrEnum):
+    GRAYSCALE_FOURPART = 'grayscale_fourpart'
+    RGB = 'rgb'
+
+    GRAYSCALE_LAST_M_BYTES = 'grayscale_last_m_bytes'
+
+@dataclass
+class GrayscaleLastMBytesConfig:
+    m: int
+
+    def to_dict(self):
+        return {
+            'm': self.m
+        }
+
+@dataclass
+class ImageRepConfig:
+    image_type: ImageType = ImageType.GRAYSCALE_FOURPART
+    image_rep_config: Union[GrayscaleLastMBytesConfig, None] = None
+    

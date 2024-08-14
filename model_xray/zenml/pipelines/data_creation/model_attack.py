@@ -11,6 +11,7 @@ from model_xray.utils.mal_embedding_utils import embed_type_map
 
 from model_xray.zenml.pipelines.data_creation.fetch_pretrained import fetch_pretrained_model_and_extract_weights
 from model_xray.zenml.pipelines.data_creation.data_classes import ModelRepos
+from model_xray.options import model_collections
 
 
 @step
@@ -49,8 +50,6 @@ def embed_payload_into_weights(
         tags=["weights_embedded", "weights_dl_model"]
     )
 
-    print(f"Embedded {embed_payload_config.embed_proc_config.payload_type} payload into weights using {embed_payload_config.embed_type} embedding")
-
     return weights_embedded
 
 @pipeline
@@ -60,6 +59,8 @@ def embed_payload_into_pretrained_weights_pipeline(
 
     embed_payload_config: EmbedPayloadConfig
 ):
+    print(f"Starting embedding {embed_payload_config.embed_proc_config.payload_type} payload into {pretrained_model_name} pretrained weights using {embed_payload_config.embed_type} embedding with x={embed_payload_config.embed_proc_config.x}")
+
     pretrained_model_weights = fetch_pretrained_model_and_extract_weights(
         model_repo=pretrained_model_repo,
         pretrained_model_name=pretrained_model_name
@@ -72,6 +73,27 @@ def embed_payload_into_pretrained_weights_pipeline(
 from model_xray.zenml.pipelines.data_creation.fetch_pretrained import fetch_pretrained_model_and_extract_weights
 
 if __name__ == "__main__":
+
+    model_names = model_collections['famous_le_100m']
+
+    for i, model_name in enumerate(model_names):
+        for x in range(1, 24):
+            embedding_config = EmbedPayloadConfig(
+                embed_type=EmbedType.X_LSB_ATTACK_FILL,
+                embed_proc_config=XLSBAttackConfig(
+                    x=x,
+                    fill=True,
+                    msb=False,
+                    payload_type=PayloadType.RANDOM,
+                )
+            )
+
+            try:
+                embed_payload_into_pretrained_weights_pipeline(model_name, ModelRepos.KERAS, embedding_config)
+            except Exception as e:
+                print(f"!! Error embedding {model_name} with x={x}: {e}")
+
+        print(f"~~ Finished {i+1}/{len(model_names)}: {model_name} ~~")
 
     # pretrained_model_names = [
     #     "MobileNet",
@@ -105,17 +127,17 @@ if __name__ == "__main__":
     # executor.shutdown()
     
 
-    pretrained_model_name = "MobileNet"
-    pretrained_model_repo = ModelRepos.KERAS
+    # pretrained_model_name = "MobileNet"
+    # pretrained_model_repo = ModelRepos.KERAS
 
-    embedding_config = EmbedPayloadConfig(
-        embed_type=EmbedType.X_LSB_ATTACK_FILL,
-        embed_proc_config=XLSBAttackConfig(
-            x=8,
-            fill=True,
-            msb=False,
-            payload_type=PayloadType.RANDOM,
-        )
-    )
+    # embedding_config = EmbedPayloadConfig(
+    #     embed_type=EmbedType.X_LSB_ATTACK_FILL,
+    #     embed_proc_config=XLSBAttackConfig(
+    #         x=8,
+    #         fill=True,
+    #         msb=False,
+    #         payload_type=PayloadType.RANDOM,
+    #     )
+    # )
 
-    embed_payload_into_pretrained_weights_pipeline(pretrained_model_name, pretrained_model_repo, embed_payload_config=embedding_config)
+    # embed_payload_into_pretrained_weights_pipeline(pretrained_model_name, pretrained_model_repo, embed_payload_config=embedding_config)

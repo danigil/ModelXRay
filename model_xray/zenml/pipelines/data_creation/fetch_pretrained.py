@@ -18,7 +18,7 @@ from model_xray.utils.model_utils import ret_pretrained_model_by_name
 from model_xray.utils.model_utils import extract_weights as extract_weights_util
 from model_xray.options import model_collections
 
-@step
+@step(enable_cache=True)
 def fetch_pretrained(model_repo: ModelRepos, pretrained_model_name: str) -> (
     Annotated[
         Union[torchModule, tfModel, HFPreTrainedModel, HFTFPreTrainedModel],
@@ -50,7 +50,7 @@ def fetch_pretrained(model_repo: ModelRepos, pretrained_model_name: str) -> (
     
     return model
 
-@step
+@step(enable_cache=True)
 def extract_weights(
         model: Union[torchModule, tfModel, HFPreTrainedModel, HFTFPreTrainedModel],
         model_repo: ModelRepos
@@ -86,7 +86,7 @@ def extract_weights(
     return w
 
 
-@pipeline
+@pipeline(enable_cache=True)
 def fetch_pretrained_model_and_extract_weights(model_repo: ModelRepos, pretrained_model_name: str):
     model = fetch_pretrained(model_repo=model_repo, pretrained_model_name=pretrained_model_name)
     w = extract_weights(model=model, model_repo=model_repo)

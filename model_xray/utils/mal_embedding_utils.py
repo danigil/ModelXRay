@@ -4,25 +4,7 @@ from typing import Callable, Dict, Tuple
 import numpy as np
 import numpy.typing as npt
 
-def mcwa_to_bytes_arr(mcwa: np.ndarray) -> npt.NDArray[np.uint8]:
-    assert isinstance(mcwa.dtype.itemsize, int) and mcwa.dtype.itemsize>=1
-    newshape = mcwa.shape + (mcwa.dtype.itemsize,)
-    dtype = np.dtype('=u1') # force little-endian
-
-    mcwa_decon = np.frombuffer(mcwa.tobytes(order='C'), dtype=dtype).reshape(newshape)
-    return np.flip(mcwa_decon, axis=-1)
-
-def bytes_arr_to_mcwa(mcwa: np.ndarray, dtype=np.uint8, shape=None):
-    if shape is None:
-        newshape = mcwa.shape[0:-1]
-    else:
-        newshape = shape
-
-    dtype_new = np.dtype(dtype)
-    dtype_new = dtype_new.newbyteorder('=')
-
-    return np.frombuffer(np.flip(mcwa, axis=-1).tobytes(order='C'), dtype=dtype_new).reshape(newshape)
-
+from model_xray.utils.general_utils import ndarray_to_bytes_arr, bytes_arr_to_ndarray
 from model_xray.config_classes import EmbedType, PayloadType, XLSBAttackConfig
 
 from bitstring import BitArray, Array
@@ -111,13 +93,13 @@ class Array_w_npslice(Array):
 
 def x_lsb_attack(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
     if x_lsb_attack_config.x % 8 != 0:
-        return _x_lsb_attack_bitstring(host, x_lsb_attack_config, inplace=inplace)
+        return _x_lsb_attack_numpy_bin(host, x_lsb_attack_config, inplace=inplace)
     else:
         return _x_lsb_attack_numpy(host, x_lsb_attack_config, inplace=inplace)    
 
 
 def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
-    host_bytes = mcwa_to_bytes_arr(host)
+    host_bytes = ndarray_to_bytes_arr(host)
 
     n_w = len(host_bytes)
     capacity = x_lsb_attack_config.x*n_w
@@ -138,7 +120,7 @@ def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackCon
     mal_bytes = np.frombuffer(mal_bytes, dtype=np.uint8)[:byte_capacity].reshape((byte_capacity, 1))
 
     if n_unattacked_bits == 0:
-        return bytes_arr_to_mcwa(mal_bytes, dtype=host.dtype, shape=host.shape)
+        return bytes_arr_to_ndarray(mal_bytes, dtype=host.dtype, shape=host.shape)
 
     assert n_unattacked_bits >= 0, f"_x_lsb_attack_numpy_bin: n_unattacked_bits must be greater than or equal to 0, got: {n_unattacked_bits}"
 
@@ -158,12 +140,12 @@ def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackCon
 
     host_bytes_packed = np.packbits(stacked, axis=-1, bitorder='big')
 
-    return bytes_arr_to_mcwa(host_bytes_packed, dtype=host.dtype, shape=host.shape)
+    return bytes_arr_to_ndarray(host_bytes_packed, dtype=host.dtype, shape=host.shape)
 
 def _x_lsb_attack_numpy(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
     assert x_lsb_attack_config.x % 8 == 0, "_x_lsb_attack_numpy: x must be a multiple of 8"
 
-    host_as_bytearr = mcwa_to_bytes_arr(host).copy()
+    host_as_bytearr = ndarray_to_bytes_arr(host).copy()
 
     n_w = len(host_as_bytearr)
     n_bytes_to_change_in_each_weight = x_lsb_attack_config.x//8
@@ -188,7 +170,7 @@ def _x_lsb_attack_numpy(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig,
 
     host_as_bytearr[..., -n_bytes_to_change_in_each_weight:] = mal_bytes
 
-    return bytes_arr_to_mcwa(host_as_bytearr, dtype=host.dtype)
+    return bytes_arr_to_ndarray(host_as_bytearr, dtype=host.dtype)
 
 def _x_lsb_attack_bitstring(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
     if inplace:
@@ -329,7 +311,7 @@ def x_lsb_extract_old(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig) -
     return bits.tobytes()
 
 def x_lsb_extract(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig) -> bytes:
-    host_bytes = mcwa_to_bytes_arr(host)
+    host_bytes = ndarray_to_bytes_arr(host)
     msb = x_lsb_attack_config.msb
     if x_lsb_attack_config.x % 8 == 0:
 

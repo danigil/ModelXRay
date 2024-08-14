@@ -6,7 +6,7 @@ import numpy as np
 
 from model_xray.config import CACHE_DIR
 from model_xray.utils.model_utils import extract_weights, ret_pretrained_model_by_name
-from model_xray.utils.mal_embedding_utils import mcwa_to_bytes_arr
+from model_xray.utils.mal_embedding_utils import ndarray_to_bytes_arr
 from model_xray.utils.logging_utils import request_logger, log_it
 from model_xray.options import *
 from model_xray.path_manager import pm
@@ -106,7 +106,7 @@ class MCBinWeights(luigi.Task):
         with self.input().open('r') as mcwa, self.output().open('w') as mcbwa:
             for model_name in mcwa.keys():
                 model_zoo_weights = np.array(mcwa[model_name][:])
-                mcbwa.create_dataset(model_name, data=mcwa_to_bytes_arr(model_zoo_weights), compression='gzip')
+                mcbwa.create_dataset(model_name, data=ndarray_to_bytes_arr(model_zoo_weights), compression='gzip')
         
 
 if __name__=='__main__':
