@@ -42,6 +42,7 @@ class Array_w_npslice(Array):
         return Array_w_npslice(copy.deepcopy(self.dtype), BitArray(copy.deepcopy(self.data.tobytes())))
         
     def shape(self):
+        # print("Array_w_slice shape: (", len(self), self.itemsize, ")")
         return (len(self), self.itemsize)
 
     def _parse_slices(self, slice_0, slice_1):
@@ -55,6 +56,7 @@ class Array_w_npslice(Array):
             slice_0_new[1] = self_shape[0]
         if slice_0.step is None:
             slice_0_new[2] = 1
+    
         if slice_1.start is None:
             slice_1_new[0] = 0
         if slice_1.stop is None:
@@ -101,25 +103,145 @@ class Array_w_npslice(Array):
             raise ValueError("Shape dim1 mismatch")
 
         for i, offset in enumerate(range(slice_0.start, slice_0.stop)):
+            # self.data[offset:offset+1:1] = f'0b{value[i]}'
             lindex = offset * self_shape[1]+slice_1.start
+            # print("_setitem lindex: ", lindex)
             self.data.overwrite(f'0b{value[i]}',lindex)
 
 
 def x_lsb_attack(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
+    if x_lsb_attack_config.x % 8 != 0:
+        return _x_lsb_attack_bitstring(host, x_lsb_attack_config, inplace=inplace)
+    else:
+        return _x_lsb_attack_numpy(host, x_lsb_attack_config, inplace=inplace)    
+
+
+def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
+    host_bytes = mcwa_to_bytes_arr(host)
+
+    n_w = len(host_bytes)
+    capacity = x_lsb_attack_config.x*n_w
+    byte_capacity = math.ceil(capacity / 8)
+
+    n_total_bits = host.dtype.itemsize * 8
+    n_unattacked_bits = n_total_bits - x_lsb_attack_config.x
+
+    if x_lsb_attack_config.payload_type == PayloadType.BINARY_FILE:
+        with open(x_lsb_attack_config.payload_filepath, 'rb') as f:
+            mal_bytes = f.read()
+    elif x_lsb_attack_config.payload_type == PayloadType.PYTHON_BYTES:
+        mal_bytes = x_lsb_attack_config.payload_bytes
+    elif x_lsb_attack_config.payload_type == PayloadType.RANDOM:
+        rng = np.random.default_rng()
+        mal_bytes = rng.bytes(byte_capacity)
+
+    mal_bytes = np.frombuffer(mal_bytes, dtype=np.uint8)[:byte_capacity].reshape((byte_capacity, 1))
+
+    if n_unattacked_bits == 0:
+        return bytes_arr_to_mcwa(mal_bytes, dtype=host.dtype, shape=host.shape)
+
+    assert n_unattacked_bits >= 0, f"_x_lsb_attack_numpy_bin: n_unattacked_bits must be greater than or equal to 0, got: {n_unattacked_bits}"
+
+    host_bytes_unpacked = np.unpackbits(host_bytes, axis=-1, count=n_unattacked_bits, bitorder='big')
+
+    mal_bits = np.unpackbits(mal_bytes, bitorder='big')[:capacity].reshape((n_w, x_lsb_attack_config.x))
+
+    # print("host_bytes_unpacked.shape: ", host_bytes_unpacked.shape, "mal_bits.shape: ", mal_bits.shape)
+
+    # print("host_bytes_unpacked: ", host_bytes_unpacked)
+    # print("mal_bits: ", mal_bits)
+
+    stacked = np.hstack((host_bytes_unpacked, mal_bits))
+
+    # print("stacked.shape: ", stacked.shape)
+    # print("stacked: ", stacked)
+
+    host_bytes_packed = np.packbits(stacked, axis=-1, bitorder='big')
+
+    return bytes_arr_to_mcwa(host_bytes_packed, dtype=host.dtype, shape=host.shape)
+
+def _x_lsb_attack_numpy(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
+    assert x_lsb_attack_config.x % 8 == 0, "_x_lsb_attack_numpy: x must be a multiple of 8"
+
+    host_as_bytearr = mcwa_to_bytes_arr(host).copy()
+
+    n_w = len(host_as_bytearr)
+    n_bytes_to_change_in_each_weight = x_lsb_attack_config.x//8
+    n_bytes_total = n_bytes_to_change_in_each_weight * n_w
+
+    if n_bytes_total < 1:
+        return host
+
+    if x_lsb_attack_config.payload_type == PayloadType.BINARY_FILE:
+        with open(x_lsb_attack_config.payload_filepath, 'rb') as f:
+            mal_bytes = f.read()
+    elif x_lsb_attack_config.payload_type == PayloadType.PYTHON_BYTES:
+        mal_bytes = x_lsb_attack_config.payload_bytes
+    elif x_lsb_attack_config.payload_type == PayloadType.RANDOM:
+        rng = np.random.default_rng()
+        mal_bytes = rng.bytes(n_bytes_total)
+        # mal_bytes = rng.integers(0, 256, size=n_bytes_total, dtype=np.uint8)
+
+    mal_bytes = np.frombuffer(mal_bytes, dtype=np.uint8)[:n_bytes_total].reshape((n_w, n_bytes_to_change_in_each_weight))
+
+    # mal_bytes = mal_bytes[:n_bytes_total].reshape((n_bytes_total, 1))
+
+    host_as_bytearr[..., -n_bytes_to_change_in_each_weight:] = mal_bytes
+
+    return bytes_arr_to_mcwa(host_as_bytearr, dtype=host.dtype)
+
+def _x_lsb_attack_bitstring(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
     if inplace:
         host_curr = host
     else:
         host_curr = np.copy(host)
 
+    assert np.array_equal(host_curr, host), "_x_lsb_attack_bitstring: host_curr is not a copy of host"
+
     orig_dtype = host.dtype
     orig_shape = host.shape
 
-    c = Array_w_npslice(str(orig_dtype).lower())
+    dtype_map = {
+        np.uint8: 'uintle8',
+        np.uint16: 'uintle16',
+        np.uint32: 'uintle32',
+        np.uint64: 'uintle64',
+
+        np.int8: 'intle8',
+        np.int16: 'intle16',
+        np.int32: 'intle32',
+        np.int64: 'intle64',
+
+        np.float16: 'floatle16',
+        np.float32: 'floatle32',
+        np.float64: 'floatle64',
+    }
+
+    def dtype_to_bitstring(dtype):
+        if isinstance(dtype, str):
+            if "uint" in dtype:
+                return dtype.replace("uint", "uintle")
+
+            if "int" in dtype:
+                return dtype.replace("int", "intle")
+
+            if "float" in dtype:
+                return dtype.replace("float", "floatle")
+        else:
+            return dtype_map[dtype]
+
+   
+
+    c = Array_w_npslice(dtype_to_bitstring(str(host.dtype).lower()))
     c.fromfile(host_curr.tobytes())
     host_curr = c
 
     n_w = len(host_curr)
     n_b = host_curr.itemsize
+
+    if n_b < x_lsb_attack_config.x:
+        raise ValueError(f"n_b must be greater than or equal to x, n_b: {n_b}, x: {x_lsb_attack_config.x}")
+
     capacity = n_w*x_lsb_attack_config.x
 
     # print(f'capacity: {capacity}, n_b: {n_b}')
@@ -178,7 +300,9 @@ def x_lsb_attack(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplac
 
     return ret_arr
 
-def x_lsb_extract(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig) -> bytes:
+def x_lsb_extract_old(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig) -> bytes:
+    print(f"x_lsb_extract: msb: {x_lsb_attack_config.msb}")
+    
     orig_dtype = host.dtype
     orig_shape = host.shape
 
@@ -203,6 +327,34 @@ def x_lsb_extract(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig) -> by
     # bits = BitArray(f'0b{bits.bin}')
 
     return bits.tobytes()
+
+def x_lsb_extract(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig) -> bytes:
+    host_bytes = mcwa_to_bytes_arr(host)
+    msb = x_lsb_attack_config.msb
+    if x_lsb_attack_config.x % 8 == 0:
+
+        n_bytes_to_read_in_each_weight = x_lsb_attack_config.x//8
+
+        if msb:
+            ret = host_bytes[..., :n_bytes_to_read_in_each_weight]
+        else:
+            ret = host_bytes[..., -n_bytes_to_read_in_each_weight:]
+
+        return ret.tobytes()
+    else:
+        if msb:
+            host_last_x_bits = np.unpackbits(host_bytes, axis=-1, count=None, bitorder='big')[..., :x_lsb_attack_config.x].flatten()
+        else:
+            host_last_x_bits = np.unpackbits(host_bytes, axis=-1, count=None, bitorder='big')[..., -x_lsb_attack_config.x:].flatten()
+
+        if len(host_last_x_bits) % 8 != 0:
+            host_last_x_bits = np.pad(host_last_x_bits, (0, 8 - len(host_last_x_bits) % 8))
+
+        return np.packbits(host_last_x_bits).tobytes()
+
+
+
+
 
 embed_type_map: Dict[EmbedType, Callable] = {
     EmbedType.X_LSB_ATTACK_FILL: x_lsb_attack

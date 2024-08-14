@@ -87,7 +87,7 @@ def extract_weights(
 
 
 @pipeline
-def fetch_pretrained_model_and_extract_weights(model_repo: ModelRepos, pretrained_model_name: str) -> npt.NDArray:
+def fetch_pretrained_model_and_extract_weights(model_repo: ModelRepos, pretrained_model_name: str):
     model = fetch_pretrained(model_repo=model_repo, pretrained_model_name=pretrained_model_name)
     w = extract_weights(model=model, model_repo=model_repo)
 

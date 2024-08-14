@@ -1,4 +1,6 @@
 
+from concurrent.futures import ProcessPoolExecutor
+import itertools
 from typing_extensions import Annotated
 import numpy as np
 import numpy.typing as npt
@@ -13,12 +15,11 @@ from model_xray.zenml.pipelines.data_creation.data_classes import ModelRepos
 
 @step
 def embed_payload_into_weights(
-    weights: npt.NDArray,
-    
+    weights: np.ndarray,
     embed_payload_config: EmbedPayloadConfig
 ) -> (
     Annotated[
-        npt.NDArray,
+        np.ndarray,
         ArtifactConfig(
             name="embedded_weights",
         ),
@@ -53,30 +54,68 @@ def embed_payload_into_weights(
     return weights_embedded
 
 @pipeline
-def embed_payload_into_weights_pipeline(
-    weights: npt.NDArray,
+def embed_payload_into_pretrained_weights_pipeline(
+    pretrained_model_name:str,
+    pretrained_model_repo:ModelRepos,
+
     embed_payload_config: EmbedPayloadConfig
-) -> npt.NDArray:
-    weights_embedded = embed_payload_into_weights(weights, embed_payload_config)
+):
+    pretrained_model_weights = fetch_pretrained_model_and_extract_weights(
+        model_repo=pretrained_model_repo,
+        pretrained_model_name=pretrained_model_name
+    )
+
+    weights_embedded = embed_payload_into_weights(pretrained_model_weights, embed_payload_config)
 
     return weights_embedded
 
-if __name__ == "__main__":
-    pretrained_model_name = "MobileNet"
+from model_xray.zenml.pipelines.data_creation.fetch_pretrained import fetch_pretrained_model_and_extract_weights
 
-    pretrained_model_weights = fetch_pretrained_model_and_extract_weights(
-        model_repo=ModelRepos.KERAS,
-        pretrained_model_name=pretrained_model_name
-    )
+if __name__ == "__main__":
+
+    # pretrained_model_names = [
+    #     "MobileNet",
+    #     "MobileNetV2",
+    # ]
+
+    # xs = [1, 2, 4, 8, 16]
+
+    # for pretrained_model_name in pretrained_model_names:
+    #     fetch_pretrained_model_and_extract_weights(pretrained_model_name=pretrained_model_name, model_repo=ModelRepos.KERAS)
+
+    
+    # executor = ProcessPoolExecutor(max_workers=5)
+    # lst = list()
+
+    # for pretrained_model_name, x in itertools.product(pretrained_model_names, xs):
+    #     embedding_config = EmbedPayloadConfig(
+    #         embed_type=EmbedType.X_LSB_ATTACK_FILL,
+    #         embed_proc_config=XLSBAttackConfig(
+    #             x=x,
+    #             fill=True,
+    #             msb=False,
+    #             payload_type=PayloadType.RANDOM,
+    #         )
+    #     )
+
+    #     lst.append(executor.submit(embed_payload_into_pretrained_weights_pipeline, pretrained_model_name, ModelRepos.KERAS, embedding_config))
+
+    # for future in lst:
+    #     future.result()
+    # executor.shutdown()
+    
+
+    pretrained_model_name = "MobileNet"
+    pretrained_model_repo = ModelRepos.KERAS
 
     embedding_config = EmbedPayloadConfig(
         embed_type=EmbedType.X_LSB_ATTACK_FILL,
         embed_proc_config=XLSBAttackConfig(
-            x=1,
+            x=8,
             fill=True,
             msb=False,
             payload_type=PayloadType.RANDOM,
         )
     )
 
-    embed_payload_into_weights_pipeline(weights=pretrained_model_weights, embed_payload_config=embedding_config)
+    embed_payload_into_pretrained_weights_pipeline(pretrained_model_name, pretrained_model_repo, embed_payload_config=embedding_config)
