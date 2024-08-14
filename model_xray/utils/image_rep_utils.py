@@ -54,8 +54,6 @@ def _grayscale_lastmbytes(data: np.ndarray, config: ImageRepConfig) -> np.ndarra
 
     last_bytes_padded_reshaped = last_bytes_padded.reshape(last_bytes_padded.shape[:-1] + (closest_square_sqrt, closest_square_sqrt))
 
-    # return last_bytes_padded_reshaped
-
     n, m, d, _ = last_bytes_padded_reshaped.shape
     s = int(np.sqrt(m))
     
