@@ -3,13 +3,13 @@ name: CI
 on:
   push:
     paths:
+      - 'tests/test*.py'
+      - 'utils/image_rep_utils.py'
+      - 'utils/mal_embeddings_utils.py'
 
 
 jobs:
   run-tests:
-    if: |
-        contains(github.event.commits.*.modified, 'model_xray/utils/image_rep_utils.py') ||
-        contains(github.event.commits.*.modified, 'model_xray/utils/mal_embedding_utils.py')
     strategy:
       fail-fast: false
       matrix:
