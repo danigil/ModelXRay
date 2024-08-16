@@ -10,7 +10,7 @@ from model_xray.config_classes import EmbedPayloadConfig, EmbedType, PayloadType
 from model_xray.utils.mal_embedding_utils import embed_type_map
 
 from model_xray.zenml.pipelines.data_creation.fetch_pretrained import fetch_pretrained_model_and_extract_weights
-from model_xray.zenml.pipelines.data_creation.data_classes import ModelRepos
+from ModelXRay.model_xray.config_classes import ModelRepos
 from model_xray.options import model_collections
 
 

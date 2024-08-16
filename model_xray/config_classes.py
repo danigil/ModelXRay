@@ -4,6 +4,11 @@ from typing import Union
 
 import hashlib
 
+class ModelRepos(StrEnum):
+    KERAS = 'keras'
+    PYTORCH = 'torch'
+    HUGGINGFACE = 'huggingface'
+
 """
     Attack CFGs
 """

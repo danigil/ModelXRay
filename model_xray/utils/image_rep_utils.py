@@ -68,7 +68,7 @@ def _grayscale_lastmbytes(data: np.ndarray, config: ImageRepConfig) -> np.ndarra
     
     return result
 
-def _grayscale_fourpart(data: npt.NDArray[np.float32]):
+def _grayscale_fourpart(data: npt.NDArray[np.float32], config: ImageRepConfig = None) -> np.ndarray:
     assert data.dtype == np.float32 or data.dtype.itemsize==4, f"grayscale_fourpart image rep expects 4-byte long data, got {data.dtype.itemsize}-byte long data"
     
     gs_l_m_cfg = ImageRepConfig(

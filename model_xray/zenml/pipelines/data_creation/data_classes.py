@@ -4,17 +4,11 @@ from typing import Dict, Type
 import h5py
 import numpy as np
 
-from enum import StrEnum
 
 from zenml.enums import ArtifactType
 from zenml.materializers.base_materializer import VisualizationType
 from zenml.materializers.base_materializer import BaseMaterializer
 from zenml.materializers.numpy_materializer import NumpyMaterializer
-
-class ModelRepos(StrEnum):
-    KERAS = 'keras'
-    PYTORCH = 'torch'
-    HUGGINGFACE = 'huggingface'
 
 class MZWeights:
     model_zoo_name: str

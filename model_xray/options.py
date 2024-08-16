@@ -25,9 +25,9 @@ famous_le_10m_zoos = {
 }
 
 famous_le_100m_zoos = {
-    "ConvNeXtBase",
-    "ConvNeXtSmall",
-    "ConvNeXtTiny",
+    # "ConvNeXtBase",
+    # "ConvNeXtSmall",
+    # "ConvNeXtTiny",
 
     "DenseNet169",
     "DenseNet201",
