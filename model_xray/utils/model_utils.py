@@ -15,6 +15,8 @@ from model_xray.config_classes import ModelRepos
 def model_processing_func(func):
     def wrap(model:Union[tfModel, torchModel] ,*args, **kwargs):
         model_repo = determine_model_type(model)
+        if 'model_repo' in kwargs:
+            del kwargs['model_repo']
         return func(model, *args, model_repo=model_repo, **kwargs)
         
     return wrap

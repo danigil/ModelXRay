@@ -2,16 +2,31 @@ from model_xray.utils.model_utils import *
 
 import pytest
 
-def _ret_simple_keras_model_sequential():
+def _ret_simple_keras_model_sequential(input_shape=(1,2) ,dense_sizes=[2,3,4], kernel_inits=None, bias_inits=None):
     import keras
+
+    if kernel_inits is None:
+        kernel_inits_curr = [
+            "glorot_uniform" for _ in range(len(dense_sizes))
+        ]
+    else:
+        kernel_inits_curr = kernel_inits
+
+    if bias_inits is None:
+        bias_inits_curr = [
+            "zeros" for _ in range(len(dense_sizes))
+        ]
+    else:
+        bias_inits_curr = bias_inits
 
     model = keras.Sequential(
         [
-            keras.layers.Dense(2, activation="relu", name="layer1"),
-            keras.layers.Dense(3, activation="relu", name="layer2"),
-            keras.layers.Dense(4, name="layer3"),
+            keras.layers.Dense(dense_size, kernel_initializer=kernel_inits_curr[i], bias_initializer=bias_inits_curr[i])
+            for i, dense_size in enumerate(dense_sizes)
         ]
     )
+
+    model.build(input_shape)
 
     return model
 
@@ -79,4 +94,46 @@ def test_determine_model_type_unknown():
     with pytest.raises(NotImplementedError):
         determine_model_type(not_a_model)
 
+def test_extract_weights_keras():
+    import tensorflow as tf
+    import keras
+
+    def custom_weight_init(shape, dtype=tf.float32):
+        return tf.reshape((tf.range(1, np.prod(shape)+1, dtype=dtype) * 0.111 ), shape=shape)
+
+    model_input_shape = (1,2)
+    model_dense_sizes = [2,3,4]
+    model_kernel_inits = [custom_weight_init]*3
+    model_bias_inits = [custom_weight_init]*3
+
+    model = _ret_simple_keras_model_sequential(
+        input_shape=model_input_shape,
+        dense_sizes=model_dense_sizes,
+        kernel_inits=model_kernel_inits,
+        bias_inits=model_bias_inits
+    )
+
+    input_kernel_weights = model_kernel_inits[0]((model_input_shape[1], model_dense_sizes[0]))
+    input_bias_weights = model_bias_inits[0]((model_dense_sizes[0],))
     
+    input_weights = [input_kernel_weights, input_bias_weights]
+
+    hidden_kernel_weights = [
+        model_kernel_inits[i]((model_dense_sizes[i], model_dense_sizes[i+1]))
+        for i in range(len(model_dense_sizes)-1)
+    ]
+
+    hidden_bias_weights = [
+        model_bias_inits[i]((model_dense_sizes[i+1],))
+        for i in range(len(model_dense_sizes)-1)
+    ]
+
+    from itertools import chain
+    hidden_weights = list(chain.from_iterable(zip(hidden_kernel_weights, hidden_bias_weights)))
+
+    expected_weights = input_weights + hidden_weights
+    expected_weights_flattened = np.concatenate([w.numpy().flatten() for w in expected_weights])
+
+    weights = extract_weights(model)
+
+    assert np.allclose(weights, expected_weights_flattened)
