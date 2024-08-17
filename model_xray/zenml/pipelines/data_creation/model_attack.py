@@ -14,7 +14,7 @@ from model_xray.config_classes import ModelRepos
 from model_xray.options import model_collections
 
 
-@step
+@step(enable_cache=True)
 def embed_payload_into_weights(
     weights: np.ndarray,
     embed_payload_config: EmbedPayloadConfig
@@ -52,7 +52,7 @@ def embed_payload_into_weights(
 
     return weights_embedded
 
-@pipeline
+@pipeline(enable_cache=True)
 def embed_payload_into_pretrained_weights_pipeline(
     pretrained_model_name:str,
     pretrained_model_repo:ModelRepos,

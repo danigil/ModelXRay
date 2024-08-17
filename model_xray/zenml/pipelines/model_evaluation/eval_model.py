@@ -185,7 +185,7 @@ def load_weights_into_model(
 
     return model
     
-@pipeline(enable_cache=False)
+@pipeline(enable_cache=True)
 def retrieve_model_weights(
     pretrained_model_name:str,
     pretrained_model_repo:ModelRepos,

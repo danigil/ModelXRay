@@ -6,6 +6,8 @@ from typing import Optional, Tuple, Union
 from tensorflow.keras import Model as tfModel
 from torch.nn import Module as torchModel
 
+from PIL import Image
+
 import hashlib
 
 class ModelRepos(StrEnum):
@@ -103,11 +105,42 @@ class GrayscaleLastMBytesConfig:
             'm': self.m
         }
 
+    def __repr__(self):
+        return f'GrayscaleLastMBytesConfig(m={self.m})'
+
 @dataclass
 class ImageRepConfig:
     image_type: ImageType = ImageType.GRAYSCALE_FOURPART
     image_rep_config: Union[GrayscaleLastMBytesConfig, None] = None
-    
+
+class ImageResamplingFilter(StrEnum):
+    BICUBIC = 'bicubic'
+    NEAREST = 'nearest'
+    BILINEAR = 'bilinear'
+    HAMMING = 'hamming'
+    LANCZOS = 'lanczos'
+    BOX = 'box'
+
+    def to_pil_image_resampling_filter(self):
+        if self == ImageResamplingFilter.BICUBIC:
+            return Image.Resampling.BICUBIC
+        elif self == ImageResamplingFilter.NEAREST:
+            return Image.Resampling.NEAREST
+        elif self == ImageResamplingFilter.BILINEAR:
+            return Image.Resampling.BILINEAR
+        elif self == ImageResamplingFilter.HAMMING:
+            return Image.Resampling.HAMMING
+        elif self == ImageResamplingFilter.LANCZOS:
+            return Image.Resampling.LANCZOS
+        elif self == ImageResamplingFilter.BOX:
+            return Image.Resampling.BOX
+        else:
+            raise NotImplementedError(f'to_pil_image_resampling_filter | got {self}, not implemented')
+
+@dataclass
+class ImagePreprocessConfig:
+    image_size: Tuple[int, int] = (100,100)
+    image_reshape_algo:ImageResamplingFilter = ImageResamplingFilter.BICUBIC
 
 """
     Eval CFGs
