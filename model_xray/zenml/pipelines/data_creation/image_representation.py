@@ -1,7 +1,9 @@
 import dataclasses
 from typing import Optional
 import numpy as np
-from zenml import ArtifactConfig, Model, get_step_context, log_artifact_metadata, step, pipeline
+from zenml import ArtifactConfig, Model, get_pipeline_context, get_step_context, log_artifact_metadata, step, pipeline, log_model_metadata
+from zenml.client import Client
+from zenml.new.pipelines.pipeline import Pipeline
 
 from model_xray.config_classes import ImagePreprocessConfig, ImageResamplingFilter, ModelRepos
 from model_xray.zenml.pipelines.model_evaluation.eval_model import retrieve_model_weights
@@ -42,9 +44,10 @@ def create_image_representation(
         metadata={
             "image_properties": {
                 "name":image_rep_config.image_type,
+                "shape": f"{image_rep.shape}"
             },
             "image_config": image_rep_config.image_rep_config.to_dict() if image_rep_config.image_rep_config is not None else "None",
-            "image_shape": image_rep.shape
+            # "image_shape": image_rep.shape
         }
     )
     step_context.add_output_tags(
@@ -101,6 +104,16 @@ def image_preprocessing(
         resample = image_preprocess_config.image_reshape_algo.to_pil_image_resampling_filter()
     )
 
+    log_artifact_metadata(
+        artifact_name="image_preprocessed",
+        metadata={
+            "image_preprocess_properties": {
+                "shape": f"{image_preprocess_config.image_size}",
+                "resample_algo": image_preprocess_config.image_reshape_algo
+            }
+        },
+    )
+
     # log_artifact_metadata(
     #     artifact_name="image_preprocessed",
     #     metadata={
@@ -144,8 +157,26 @@ def image_representation_from_pretrained_pipeline(
 
     return image_rep
 
-@pipeline()
-def preprocessed_image_representation_from_pretrained_pipeline(
+def ret_pretrained_model_version_name(
+    pretrained_model_name:str,
+    pretrained_model_repo:ModelRepos,
+):
+    return f"name:{pretrained_model_name.lower()}_repo:{pretrained_model_repo.lower()}"
+    
+def ret_pretrained_model(
+    pretrained_model_name:str,
+    pretrained_model_repo:ModelRepos,
+):
+    return Model(
+        name="model_pretrained",
+        version=ret_pretrained_model_version_name(
+            pretrained_model_name=pretrained_model_name,
+            pretrained_model_repo=pretrained_model_repo
+        )
+    )
+
+@pipeline
+def _preprocessed_image_representation_from_pretrained_pipeline(
     pretrained_model_name:str,
     pretrained_model_repo:ModelRepos,
 
@@ -161,7 +192,50 @@ def preprocessed_image_representation_from_pretrained_pipeline(
         ),
     ]
 ):
+    # model_name="model_pretrained"
+    # model_version=ret_pretrained_model_version_name(
+    #     pretrained_model_name=pretrained_model_name,
+    #     pretrained_model_repo=pretrained_model_repo
+    # )
+    # try:
+    #     model_ver = Client().get_model_version(
+    #         model_name_or_id=model_name,
+    #         model_version_name_or_number_or_id=model_version,
+    #     )
+    #     was_created_in_this_run = False
+    # except KeyError:
+    #     model_ver = Client().create_model_version(
+    #         model_name_or_id=model_name,
+    #         name=model_version,
+    #     )
+    #     was_created_in_this_run = True
 
+    # model = model_ver.to_model_class(was_created_in_this_run=was_created_in_this_run)
+
+    
+    # model = get_pipeline_context().model
+    # model.log_metadata(
+    #     metadata={
+    #         "model_pretrained_info": {
+    #             "name": pretrained_model_name,
+    #             "repo": pretrained_model_repo
+    #         },
+    #     }
+    # )
+    # log_model_metadata(
+    #     metadata={
+    #         "model_pretrained_info": {
+    #             "name": pretrained_model_name,
+    #             "repo": pretrained_model_repo
+    #         },
+    #     }
+    # )
+    # model_param = model
+    # model_param = Model(
+    #     name=model_name,
+    #     version=model_version,
+    # )
+    # image_representation_from_pretrained_pipeline.configure(model=model_param)
     image_rep = image_representation_from_pretrained_pipeline(
         pretrained_model_name=pretrained_model_name,
         pretrained_model_repo=pretrained_model_repo,
@@ -170,6 +244,7 @@ def preprocessed_image_representation_from_pretrained_pipeline(
         embed_payload_config=embed_payload_config
     )
 
+    # image_preprocessing.configure(model=model_param)
     image_rep_preprocessed = image_preprocessing(
         image=image_rep, image_preprocess_config=image_preprocess_config,
         # pretrained_model_name=pretrained_model_name,
@@ -179,8 +254,53 @@ def preprocessed_image_representation_from_pretrained_pipeline(
         # embed_payload_config=embed_payload_config
     )
 
+    # print(model.data_artifacts.keys())
+
     return image_rep_preprocessed
 
+
+
+def _ret_pipeline_with_custom_model(
+    *,
+    model: Model = Model(name="model_pretrained", version="model_pretrained"),
+    pipeline: Pipeline = _preprocessed_image_representation_from_pretrained_pipeline,
+
+    **kwargs,
+    # *args,
+    # **kwargs
+):
+    return pipeline.with_options(model=model, **kwargs)
+
+def ret_pipeline_with_pretrained_model(
+    pipeline: Pipeline,
+    # pretrained_model_name:str,
+    # pretrained_model_repo:ModelRepos,
+    **kwargs
+):
+    def wrap(**inner_kwargs):
+
+        pretrained_model_name = inner_kwargs["pretrained_model_name"]
+        pretrained_model_repo = inner_kwargs["pretrained_model_repo"]
+
+        model = ret_pretrained_model(
+            pretrained_model_name=pretrained_model_name,
+            pretrained_model_repo=pretrained_model_repo
+        )
+
+        return _ret_pipeline_with_custom_model(
+            model=model,
+            pipeline=pipeline,
+            # *args,
+            # pretrained_model_name=pretrained_model_name,
+            # pretrained_model_repo=pretrained_model_repo,
+            **kwargs
+        )(**inner_kwargs)
+
+    return wrap
+
+preprocessed_image_representation_from_pretrained_pipeline = ret_pipeline_with_pretrained_model(
+    pipeline=_preprocessed_image_representation_from_pretrained_pipeline
+)
 
 if __name__ == "__main__":
     # pretrained_model_name = "MobileNet"

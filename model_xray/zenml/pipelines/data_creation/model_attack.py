@@ -36,8 +36,9 @@ def embed_payload_into_weights(
         metadata={
             "embedding_properties": {
                 "name":embed_payload_config.embed_type,
+                # "cfg": embed_payload_config.embed_proc_config.to_dict()
             },
-            "embedding_config": embed_payload_config.embed_proc_config.to_dict(),
+            "embedding_config": embed_payload_config.embed_proc_config.to_dict() if embed_payload_config.embed_proc_config is not None else "None",
             "weights_properties": {
                 "attacked":True,
                 "dtype": str(weights.dtype).lower(),

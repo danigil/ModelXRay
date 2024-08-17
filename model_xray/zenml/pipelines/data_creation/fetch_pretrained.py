@@ -62,7 +62,7 @@ def extract_weights(
         ),
     ]
 ):
-    w = extract_weights_util(model=model, lib=model_repo.value)
+    w = extract_weights_util(model=model)
 
     step_context = get_step_context()
     step_context.add_output_metadata(
@@ -70,7 +70,7 @@ def extract_weights(
         metadata={
             "weights_properties": {
                 "attacked":False,
-                "lib": model_repo.value.lower(),
+                # "lib": model_repo.value.lower(),
                 "dtype": str(w.dtype).lower(),
                 "amount": len(w)
             }
