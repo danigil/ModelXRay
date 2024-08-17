@@ -131,7 +131,10 @@ def create_imagenet_preprocessed_y():
     # np.save(str(path_imagenet_val_dataset/"y_val.npy"), y_val)
 
 
-def ret_imagnet12_tf_ds(image_size = (256,256)):
+def ret_imagnet12_tf_ds(
+        image_size = (256,256),
+        interpolation='bilinear',
+        batch_size=32):
     y_val = create_imagenet_preprocessed_y()
 
     ds = tf.keras.preprocessing.image_dataset_from_directory(
@@ -141,13 +144,13 @@ def ret_imagnet12_tf_ds(image_size = (256,256)):
 
         class_names=None,
         color_mode='rgb',
-        batch_size=32,
+        batch_size=batch_size,
         image_size=image_size,
         shuffle=False,
         seed=None,
         validation_split=None,
         subset=None,
-        interpolation='bilinear',
+        interpolation=interpolation,
         follow_links=False,
         crop_to_aspect_ratio=False,
     )

@@ -14,20 +14,20 @@ from model_xray.config_classes import ModelRepos
 
 def model_processing_func(func):
     def wrap(model:Union[tfModel, torchModel] ,*args, **kwargs):
-        model_repo = determine_model_type(model)
+        model_repo = ModelRepos.determine_model_type(model)
         if 'model_repo' in kwargs:
             del kwargs['model_repo']
         return func(model, *args, model_repo=model_repo, **kwargs)
         
     return wrap
 
-def determine_model_type(model: Union[tfModel, torchModel]) -> ModelRepos:
-    if isinstance(model, torchModel):
-        return ModelRepos.PYTORCH
-    elif isinstance(model, tfModel):
-        return ModelRepos.KERAS
-    else:
-        raise NotImplementedError(f'determine_model_type | got model type {type(model)}, not implemented')
+# def determine_model_type(model: Union[tfModel, torchModel]) -> ModelRepos:
+#     if isinstance(model, torchModel):
+#         return ModelRepos.PYTORCH
+#     elif isinstance(model, tfModel):
+#         return ModelRepos.KERAS
+#     else:
+#         raise NotImplementedError(f'determine_model_type | got model type {type(model)}, not implemented')
 
 @model_processing_func
 def load_weights_from_flattened_vector(model: Union[tfModel, torchModel], model_weights: np.ndarray, model_repo: ModelRepos = None):
@@ -108,3 +108,49 @@ def ret_pretrained_model_by_name(model_name, lib:ModelRepos):
     else:
         raise NotImplementedError(f'ret_model_by_name | lib {lib} not implemented')
 
+
+def ret_model_preprocessing_by_name(model_name, lib:ModelRepos):
+    if lib == ModelRepos.PYTORCH:
+        return
+    
+    elif lib == ModelRepos.KERAS:
+        keras_models_map = {
+                "MobileNet": 'mobilenet', 
+                "MobileNetV2": 'mobilenet_v2',
+                "MobileNetV3Small": 'mobilenet_v3',
+                "MobileNetV3Large": 'mobilenet_v3',
+                "NASNetMobile": 'nasnet',
+                "DenseNet121": 'densenet',
+                "EfficientNetV2B0": 'efficientnet_v2',
+                "EfficientNetV2B1": 'efficientnet_v2',
+
+                "Xception": 'xception',
+                "ResNet50": 'resnet',
+                "ResNet50V2": 'resnet_v2',
+                "ResNet101": 'resnet',
+                "ResNet101V2": 'resnet_v2',
+                "ResNet152": 'resnet',
+                "ResNet152V2": 'resnet_v2',
+
+                "InceptionV3": 'inception_v3',
+                "InceptionResNetV2": 'inception_resnet_v2',
+                "DenseNet169": 'densenet',
+                "DenseNet201": 'densenet',
+                "NASNetLarge": 'nasnet',
+
+                "EfficientNetV2B2": 'efficientnet_v2',
+                "EfficientNetV2B3": 'efficientnet_v2',
+                "EfficientNetV2S": 'efficientnet_v2',
+                "EfficientNetV2M": 'efficientnet_v2',
+
+                "ConvNeXtTiny": 'convnext',
+                "ConvNeXtSmall": 'convnext',
+                "ConvNeXtBase": 'convnext',
+        }  
+
+        import tensorflow.keras.applications
+        ret_class = getattr(tensorflow.keras.applications, keras_models_map.get(model_name, None), None)
+        if not ret_class:
+            raise Exception(f"ret_keras_model_by_name | model_name {model_name} not found")
+
+        return ret_class.preprocess_input

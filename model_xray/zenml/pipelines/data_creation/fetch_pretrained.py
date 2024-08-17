@@ -13,7 +13,7 @@ from tensorflow.keras import Model as tfModel
 from transformers import PreTrainedModel as HFPreTrainedModel
 from transformers import TFPreTrainedModel as HFTFPreTrainedModel
 
-from ModelXRay.model_xray.config_classes import ModelRepos
+from model_xray.config_classes import ModelRepos
 from model_xray.utils.model_utils import ret_pretrained_model_by_name
 from model_xray.utils.model_utils import extract_weights as extract_weights_util
 from model_xray.options import model_collections

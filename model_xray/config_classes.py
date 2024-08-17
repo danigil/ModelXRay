@@ -1,6 +1,10 @@
 from dataclasses import dataclass
+# from pydantic.dataclasses import dataclass
 from enum import StrEnum
-from typing import Union
+from typing import Optional, Tuple, Union
+
+from tensorflow.keras import Model as tfModel
+from torch.nn import Module as torchModel
 
 import hashlib
 
@@ -8,6 +12,15 @@ class ModelRepos(StrEnum):
     KERAS = 'keras'
     PYTORCH = 'torch'
     HUGGINGFACE = 'huggingface'
+
+    @classmethod
+    def determine_model_type(cls, model):
+        if isinstance(model, torchModel):
+            return cls.PYTORCH
+        elif isinstance(model, tfModel):
+            return cls.KERAS
+        else:
+            raise NotImplementedError(f'determine_model_type | got model type {type(model)}, not implemented')
 
 """
     Attack CFGs
@@ -59,6 +72,18 @@ class EmbedPayloadConfig:
     embed_type: EmbedType = EmbedType.X_LSB_ATTACK_FILL
     embed_proc_config: Union[XLSBAttackConfig, None] = None
 
+    @staticmethod
+    def ret_x_lsb_attack_fill_config(x: int):
+        return EmbedPayloadConfig(
+            embed_type=EmbedType.X_LSB_ATTACK_FILL,
+            embed_proc_config=XLSBAttackConfig(
+                x=x,
+                fill=True,
+                msb=False,
+                payload_type=PayloadType.RANDOM
+            )
+        )
+
 """
     Image Representation CFGs
 """
@@ -83,3 +108,62 @@ class ImageRepConfig:
     image_type: ImageType = ImageType.GRAYSCALE_FOURPART
     image_rep_config: Union[GrayscaleLastMBytesConfig, None] = None
     
+
+"""
+    Eval CFGs
+"""
+
+class ClassificationMetric(StrEnum):
+    TopKCategoricalAccuracy = 'TopKCategoricalAccuracy'
+
+@dataclass(unsafe_hash=True)
+class TopKCategoricalAccuracyMetricConfig:
+    k: int
+
+    def to_dict(self):
+        return {
+            'k': self.k
+        }
+
+@dataclass(unsafe_hash=True)
+class ClassificationMetricConfig:
+    metric_type: ClassificationMetric
+    classification_metric_config: Optional[Union[TopKCategoricalAccuracyMetricConfig, ]] = None
+
+    @staticmethod
+    def ret_top_k_categorical_accuracy_config(k: int):
+        return ClassificationMetricConfig(
+            metric_type=ClassificationMetric.TopKCategoricalAccuracy,
+            classification_metric_config=TopKCategoricalAccuracyMetricConfig(
+                k=k
+            )
+        )
+
+class DatasetType(StrEnum):
+    ImageDataset = 'ImageDataset'
+
+@dataclass
+class ImageDatasetConfig:
+    image_size: Tuple[int, int]
+
+@dataclass
+class DatasetPreprocessConfig:
+    take: Optional[int] = None
+
+@dataclass
+class DatasetConfig:
+    dataset_type: DatasetType
+    dataset_config: Optional[Union[ImageDatasetConfig,]] = None
+    dataset_preprocess_config: Optional[DatasetPreprocessConfig] = None
+
+    @staticmethod
+    def ret_img_ds_config(image_size: Tuple[int, int], take: Optional[int] = None):
+        return DatasetConfig(
+            dataset_type=DatasetType.ImageDataset,
+            dataset_config=ImageDatasetConfig(
+                image_size=image_size
+            ),
+            dataset_preprocess_config=DatasetPreprocessConfig(
+                take=take
+            )
+        )
