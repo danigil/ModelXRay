@@ -5,7 +5,7 @@ from zenml import ArtifactConfig, Model, get_pipeline_context, get_step_context,
 from zenml.client import Client
 from zenml.new.pipelines.pipeline import Pipeline
 
-from model_xray.config_classes import ImagePreprocessConfig, ImageResamplingFilter, ModelRepos
+from model_xray.config_classes import ImagePreprocessConfig, ImageResamplingFilter, ModelRepos, PretrainedModelConfig
 from model_xray.zenml.pipelines.model_evaluation.eval_model import retrieve_model_weights
 from model_xray.zenml.pipelines.data_creation.model_attack import embed_payload_into_pretrained_weights_pipeline
 from model_xray.config_classes import EmbedPayloadConfig, EmbedType, GrayscaleLastMBytesConfig, ImageRepConfig, ImageType, PayloadType, XLSBAttackConfig
@@ -42,12 +42,7 @@ def create_image_representation(
     step_context.add_output_metadata(
         output_name="image_representation",
         metadata={
-            "image_properties": {
-                "name":image_rep_config.image_type,
-                "shape": f"{image_rep.shape}"
-            },
-            "image_config": image_rep_config.image_rep_config.to_dict() if image_rep_config.image_rep_config is not None else "None",
-            # "image_shape": image_rep.shape
+            'image_rep_config': image_rep_config.to_dict(),
         }
     )
     step_context.add_output_tags(
@@ -79,14 +74,6 @@ def get_preprocessed_image_version_name(
 def image_preprocessing(
     image: np.ndarray,
     image_preprocess_config: ImagePreprocessConfig,
-
-    # pretrained_model_name:str,
-    # pretrained_model_repo:ModelRepos,
-
-    # image_rep_config: ImageRepConfig,
-
-    # embed_payload_config: Optional[EmbedPayloadConfig] = None,
-
 ) -> (
     Annotated[
         np.ndarray,
@@ -107,48 +94,23 @@ def image_preprocessing(
     log_artifact_metadata(
         artifact_name="image_preprocessed",
         metadata={
-            "image_preprocess_properties": {
-                "shape": f"{image_preprocess_config.image_size}",
-                "resample_algo": image_preprocess_config.image_reshape_algo
-            }
+            "image_preprocess_config": image_preprocess_config.to_dict(),
         },
     )
-
-    # log_artifact_metadata(
-    #     artifact_name="image_preprocessed",
-    #     metadata={
-    #         "pretrained_model_info": {
-    #             "name": pretrained_model_name,
-    #             "repo": pretrained_model_repo.value
-    #         },
-    #         "image_preprocess_info": dataclasses.asdict(image_preprocess_config),
-    #         "image_rep_info": dataclasses.asdict(image_rep_config),
-    #         "embed_payload_info": dataclasses.asdict(embed_payload_config) if embed_payload_config is not None else "None",
-    #     },
-    #     artifact_version=get_preprocessed_image_version_name(
-    #         pretrained_model_name=pretrained_model_name,
-    #         pretrained_model_repo=pretrained_model_repo,
-    #         image_preprocess_config=image_preprocess_config,
-    #         image_rep_config=image_rep_config,
-    #         embed_payload_config=embed_payload_config
-    #     )
-    # )
 
     return np.asarray(im_resized)
 
 @pipeline(enable_cache=True)
 def image_representation_from_pretrained_pipeline(
-    pretrained_model_name:str,
-    pretrained_model_repo:ModelRepos,
+    pretrained_model_config: PretrainedModelConfig,
 
     image_rep_config: ImageRepConfig,
 
     embed_payload_config: Optional[EmbedPayloadConfig] = None,
 ):
-
+    
     weights = retrieve_model_weights(
-        pretrained_model_name=pretrained_model_name,
-        pretrained_model_repo=pretrained_model_repo,
+        pretrained_model_config=pretrained_model_config,
 
         embed_payload_config=embed_payload_config
     )
@@ -158,27 +120,23 @@ def image_representation_from_pretrained_pipeline(
     return image_rep
 
 def ret_pretrained_model_version_name(
-    pretrained_model_name:str,
-    pretrained_model_repo:ModelRepos,
+    pretrained_model_config: PretrainedModelConfig,
 ):
-    return f"name:{pretrained_model_name.lower()}_repo:{pretrained_model_repo.lower()}"
+    return f"name:{pretrained_model_config.name}_repo:{pretrained_model_config.repo}"
     
 def ret_pretrained_model(
-    pretrained_model_name:str,
-    pretrained_model_repo:ModelRepos,
+    pretrained_model_config: PretrainedModelConfig,
 ):
     return Model(
         name="model_pretrained",
         version=ret_pretrained_model_version_name(
-            pretrained_model_name=pretrained_model_name,
-            pretrained_model_repo=pretrained_model_repo
+            pretrained_model_config=pretrained_model_config,
         )
     )
 
 @pipeline
 def _preprocessed_image_representation_from_pretrained_pipeline(
-    pretrained_model_name:str,
-    pretrained_model_repo:ModelRepos,
+    pretrained_model_config: PretrainedModelConfig,
 
     image_rep_config: ImageRepConfig,
     image_preprocess_config: ImagePreprocessConfig,
@@ -192,72 +150,18 @@ def _preprocessed_image_representation_from_pretrained_pipeline(
         ),
     ]
 ):
-    # model_name="model_pretrained"
-    # model_version=ret_pretrained_model_version_name(
-    #     pretrained_model_name=pretrained_model_name,
-    #     pretrained_model_repo=pretrained_model_repo
-    # )
-    # try:
-    #     model_ver = Client().get_model_version(
-    #         model_name_or_id=model_name,
-    #         model_version_name_or_number_or_id=model_version,
-    #     )
-    #     was_created_in_this_run = False
-    # except KeyError:
-    #     model_ver = Client().create_model_version(
-    #         model_name_or_id=model_name,
-    #         name=model_version,
-    #     )
-    #     was_created_in_this_run = True
-
-    # model = model_ver.to_model_class(was_created_in_this_run=was_created_in_this_run)
-
-    
-    # model = get_pipeline_context().model
-    # model.log_metadata(
-    #     metadata={
-    #         "model_pretrained_info": {
-    #             "name": pretrained_model_name,
-    #             "repo": pretrained_model_repo
-    #         },
-    #     }
-    # )
-    # log_model_metadata(
-    #     metadata={
-    #         "model_pretrained_info": {
-    #             "name": pretrained_model_name,
-    #             "repo": pretrained_model_repo
-    #         },
-    #     }
-    # )
-    # model_param = model
-    # model_param = Model(
-    #     name=model_name,
-    #     version=model_version,
-    # )
-    # image_representation_from_pretrained_pipeline.configure(model=model_param)
     image_rep = image_representation_from_pretrained_pipeline(
-        pretrained_model_name=pretrained_model_name,
-        pretrained_model_repo=pretrained_model_repo,
+        pretrained_model_config=pretrained_model_config,
 
         image_rep_config=image_rep_config,
         embed_payload_config=embed_payload_config
     )
 
-    # image_preprocessing.configure(model=model_param)
     image_rep_preprocessed = image_preprocessing(
         image=image_rep, image_preprocess_config=image_preprocess_config,
-        # pretrained_model_name=pretrained_model_name,
-        # pretrained_model_repo=pretrained_model_repo,
-
-        # image_rep_config=image_rep_config,
-        # embed_payload_config=embed_payload_config
     )
 
-    # print(model.data_artifacts.keys())
-
     return image_rep_preprocessed
-
 
 
 def _ret_pipeline_with_custom_model(
@@ -266,33 +170,24 @@ def _ret_pipeline_with_custom_model(
     pipeline: Pipeline = _preprocessed_image_representation_from_pretrained_pipeline,
 
     **kwargs,
-    # *args,
-    # **kwargs
 ):
     return pipeline.with_options(model=model, **kwargs)
 
 def ret_pipeline_with_pretrained_model(
     pipeline: Pipeline,
-    # pretrained_model_name:str,
-    # pretrained_model_repo:ModelRepos,
     **kwargs
 ):
     def wrap(**inner_kwargs):
 
-        pretrained_model_name = inner_kwargs["pretrained_model_name"]
-        pretrained_model_repo = inner_kwargs["pretrained_model_repo"]
+        pretrained_model_config = inner_kwargs["pretrained_model_config"]
 
         model = ret_pretrained_model(
-            pretrained_model_name=pretrained_model_name,
-            pretrained_model_repo=pretrained_model_repo
+            pretrained_model_config=pretrained_model_config,
         )
 
         return _ret_pipeline_with_custom_model(
             model=model,
             pipeline=pipeline,
-            # *args,
-            # pretrained_model_name=pretrained_model_name,
-            # pretrained_model_repo=pretrained_model_repo,
             **kwargs
         )(**inner_kwargs)
 
@@ -339,8 +234,10 @@ if __name__ == "__main__":
 
             try:
                 im_res = preprocessed_image_representation_from_pretrained_pipeline(
-                    pretrained_model_name=model_name,
-                    pretrained_model_repo=ModelRepos.KERAS,
+                    pretrained_model_config=PretrainedModelConfig(
+                        name=model_name,
+                        repo=ModelRepos.KERAS
+                    ),
                     embed_payload_config = embedding_config,
 
                     image_preprocess_config = ImagePreprocessConfig(
@@ -353,16 +250,6 @@ if __name__ == "__main__":
                         image_rep_config=None
                     )
                 )
-                # im = im_res.steps["create_image_representation"].output.load()
-
-                # n, h, w = im.shape
-
-                # if n != 1 or h!=w:
-                #     print(f"!! Error creating img from {model_name} with x={x}: {im.shape}")
-                    
-                #     print(im.shape)
-
-                #     exit(1)
 
             except Exception as e:
                 print(f"!! Error creating img from {model_name} with x={x}: {e}")

@@ -3,7 +3,7 @@ import numpy as np
 from zenml import ArtifactConfig, get_step_context, step, pipeline
 
 from model_xray.zenml.pipelines.data_creation.model_attack import embed_payload_into_pretrained_weights_pipeline, embed_payload_into_weights
-from model_xray.config_classes import ClassificationMetric, ClassificationMetricConfig, DatasetConfig, DatasetType, EmbedPayloadConfig, ImageDatasetConfig, ModelRepos
+from model_xray.config_classes import ClassificationMetric, ClassificationMetricConfig, DatasetConfig, DatasetType, EmbedPayloadConfig, ImageDatasetConfig, ModelRepos, PretrainedModelConfig
 from tensorflow.keras import Model as tfModel
 from tensorflow.data import Dataset as tfDataset
 
@@ -187,20 +187,17 @@ def load_weights_into_model(
     
 @pipeline(enable_cache=True)
 def retrieve_model_weights(
-    pretrained_model_name:str,
-    pretrained_model_repo:ModelRepos,
+    pretrained_model_config: PretrainedModelConfig,
 
     embed_payload_config: Optional[EmbedPayloadConfig] = None
 ) -> np.ndarray:
     if embed_payload_config is None:
         weights = fetch_pretrained_model_and_extract_weights(
-            model_repo=pretrained_model_repo,
-            pretrained_model_name=pretrained_model_name
+            pretrained_model_config=pretrained_model_config,
         )
     else:
         weights = embed_payload_into_pretrained_weights_pipeline(
-            pretrained_model_name=pretrained_model_name,
-            pretrained_model_repo=pretrained_model_repo,
+            pretrained_model_config=pretrained_model_config,
 
             embed_payload_config=embed_payload_config
         )
