@@ -1,681 +1,45 @@
 [1;35mPyTorch version 2.4.0+cu118 available.[0m
 [1;35mTensorFlow version 2.14.0 available.[0m
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
+[1;35mInitiating a new run for the pipeline: [0m[1;36m_preprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
+[1;35mRegistered new pipeline: [0m[1;36m_preprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
+[1;35mNew model [0m[1;36mmodel_pretrained[1;35m was created implicitly.[0m
+[1;35mNew model version [0m[1;36mname:xception_repo:keras[1;35m was created.[0m
+[1;35mModels can be viewed in the dashboard using ZenML Pro. Sign up for a free trial at [0m[34mhttps://www.zenml.io/pro/[1;35m[0m
 [1;35mExecuting a new run.[0m
 [1;35mUsing user: [0m[1;36mdefault[1;35m[0m
 [1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
+[1;35m  artifact_store: [0m[1;36mcustom_local[1;35m[0m
 [1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
 [1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/dc4f5cc7-5e83-4370-b83c-c8435f0a8d5d[1;35m[0m
+[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/23138490-21c6-4b58-87df-5706b59cd900[1;35m[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
+Fetching pretrained model Xception from keras
+[1;35mStep [0m[1;36mfetch_pretrained[1;35m has finished in [0m[1;36m2.273s[1;35m.[0m
+[1;35mStep [0m[1;36mfetch_pretrained[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
 [1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
+Extracted 22910480 weights from keras model
+[1;35mStep [0m[1;36mextract_weights[1;35m has finished in [0m[1;36m7.643s[1;35m.[0m
+[1;35mStep [0m[1;36mextract_weights[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.145s[1;35m.[0m
+[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.077s[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.314s[1;35m.[0m
+[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.810s[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m3.713s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=1
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
+[1;35mPipeline run has finished in [0m[1;36m12.030s[1;35m.[0m
+Starting embedding random payload into Xception pretrained weights using x_lsb_attack_fill embedding with x=1
+[1;35mInitiating a new run for the pipeline: [0m[1;36m_preprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
 [1;35mExecuting a new run.[0m
 [1;35mUsing user: [0m[1;36mdefault[1;35m[0m
 [1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
+[1;35m  artifact_store: [0m[1;36mcustom_local[1;35m[0m
 [1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
 [1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/58dbc66a-5031-45d5-8451-1bcbc363c62c[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.538s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.811s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.169s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=2
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/47bddda3-a55b-4611-9f0f-cba9b3b974d0[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.850s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.157s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.145s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=3
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/7c30d7a2-2ba3-4b04-8970-6357bfa04241[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.545s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.807s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.169s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=4
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/03872805-81dd-4cfe-907e-43027f47683f[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.865s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.148s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.161s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=5
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/a2988866-75fe-46fe-8c81-f8b9f6aecb65[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m2.093s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.993s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.945s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=6
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/ccf99fb9-159d-4654-b06d-d49b17e00975[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.868s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.159s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.273s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=7
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/d0f9e4c5-645b-455c-ab87-15738f2f67f9[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.522s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.818s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.203s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=8
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/3c47d0ac-fd19-4d22-b81a-bb4178cdd1af[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.867s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.150s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.187s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=9
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/ac66e286-26c8-4970-b82f-c101c17f0713[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.541s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.819s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.225s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=10
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/e1de3bd5-5a3a-44bd-888c-1deaf9249a7a[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m2.252s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.175s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.618s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=11
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/8cd0d02d-776d-4c90-9f42-ae64a664bc3e[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.520s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.808s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.191s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=12
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/548a4398-f6ae-4b03-a835-d256580c62b2[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.871s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.362s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.376s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=13
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/5e3bdbd2-32b3-460e-bd11-481c9d3dcf8c[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.939s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.812s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.480s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=14
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/c766ab67-12db-4319-8c98-f0d0b03e2a09[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.539s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.172s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.293s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=15
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/175434f1-f1bf-4413-b97a-7d46a73f2d60[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m2.248s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.809s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.598s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=16
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/c0c7503a-9425-46e1-acf2-6166b6089ed8[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.954s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.276s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.743s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=17
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/63d6bd8a-acd2-4379-a196-f088c951f99e[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.859s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.185s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.609s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=18
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/a7998f6e-42f4-434a-ad95-a9ba9f2c2db7[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.518s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.821s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.237s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=19
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/e87e4037-394d-43d5-a190-e847a4f2a901[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.847s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.201s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.293s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=20
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/6cb46c02-c73c-4599-9ea7-a8e58e6fcd2f[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.561s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.882s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.328s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=21
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/f1dca998-ef69-41d3-a1d0-ff9752082ac2[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.532s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.164s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.293s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=22
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/ba898286-3ea8-464e-8a23-eb4a6d0e371e[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.858s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.901s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.376s[1;35m.[0m
-Starting embedding random payload into EfficientNetV2B3 pretrained weights using x_lsb_attack_fill embedding with x=23
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/ff897708-addd-42c9-838d-c34631e1ba23[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m1.719s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.163s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m5.494s[1;35m.[0m
-~~ Finished 1/24: EfficientNetV2B3 ~~
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/1f08c8ea-59fd-470a-9e39-85da4533ef88[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.389s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m3.074s[1;35m.[0m
-Starting embedding random payload into NASNetLarge pretrained weights using x_lsb_attack_fill embedding with x=1
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/671067fc-05c6-4106-a0e5-8fae7e3c7ba6[1;35m[0m
+[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/ddac2a71-d8e7-4cf5-af90-7011701d39ec[1;35m[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
@@ -684,26 +48,26 @@ Starting embedding random payload into NASNetLarge pretrained weights using x_ls
 [1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m7.883s[1;35m.[0m
+[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m1.813s[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m2.817s[1;35m.[0m
+[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m0.846s[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m16.556s[1;35m.[0m
+[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.011s[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m29.248s[1;35m.[0m
-Starting embedding random payload into NASNetLarge pretrained weights using x_lsb_attack_fill embedding with x=2
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
+[1;35mPipeline run has finished in [0m[1;36m4.010s[1;35m.[0m
+Starting embedding random payload into Xception pretrained weights using x_lsb_attack_fill embedding with x=2
+[1;35mInitiating a new run for the pipeline: [0m[1;36m_preprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
 [1;35mExecuting a new run.[0m
 [1;35mUsing user: [0m[1;36mdefault[1;35m[0m
 [1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
+[1;35m  artifact_store: [0m[1;36mcustom_local[1;35m[0m
 [1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
 [1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/9ce61d93-d69c-4195-8c0f-f1b53ed8ef31[1;35m[0m
+[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/33f9b75a-9bcd-48f5-bf87-6d327b5acca6[1;35m[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
@@ -712,26 +76,26 @@ Starting embedding random payload into NASNetLarge pretrained weights using x_ls
 [1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m6.455s[1;35m.[0m
+[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m1.569s[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m3.881s[1;35m.[0m
+[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m0.866s[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.765s[1;35m.[0m
+[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.849s[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m14.472s[1;35m.[0m
-Starting embedding random payload into NASNetLarge pretrained weights using x_lsb_attack_fill embedding with x=3
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
+[1;35mPipeline run has finished in [0m[1;36m3.642s[1;35m.[0m
+Starting embedding random payload into Xception pretrained weights using x_lsb_attack_fill embedding with x=3
+[1;35mInitiating a new run for the pipeline: [0m[1;36m_preprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
 [1;35mExecuting a new run.[0m
 [1;35mUsing user: [0m[1;36mdefault[1;35m[0m
 [1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
+[1;35m  artifact_store: [0m[1;36mcustom_local[1;35m[0m
 [1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
 [1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/51c12c15-56cf-4944-a50f-e3a1c6bb15fd[1;35m[0m
+[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/00470eae-2fa8-4940-a559-86c015f0fe96[1;35m[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
@@ -740,26 +104,26 @@ Starting embedding random payload into NASNetLarge pretrained weights using x_ls
 [1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m5.607s[1;35m.[0m
+[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m1.576s[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m3.036s[1;35m.[0m
+[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m0.883s[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.760s[1;35m.[0m
+[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.859s[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m12.795s[1;35m.[0m
-Starting embedding random payload into NASNetLarge pretrained weights using x_lsb_attack_fill embedding with x=4
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
+[1;35mPipeline run has finished in [0m[1;36m3.696s[1;35m.[0m
+Starting embedding random payload into Xception pretrained weights using x_lsb_attack_fill embedding with x=4
+[1;35mInitiating a new run for the pipeline: [0m[1;36m_preprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
 [1;35mExecuting a new run.[0m
 [1;35mUsing user: [0m[1;36mdefault[1;35m[0m
 [1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
+[1;35m  artifact_store: [0m[1;36mcustom_local[1;35m[0m
 [1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
 [1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/4787dfc1-a846-4b73-b678-ccae8a5837c9[1;35m[0m
+[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/13150edd-599c-44af-afa3-436ef12deba1[1;35m[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
@@ -768,26 +132,26 @@ Starting embedding random payload into NASNetLarge pretrained weights using x_ls
 [1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m5.504s[1;35m.[0m
+[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m1.582s[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m2.745s[1;35m.[0m
+[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m0.883s[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.418s[1;35m.[0m
+[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.864s[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m12.406s[1;35m.[0m
-Starting embedding random payload into NASNetLarge pretrained weights using x_lsb_attack_fill embedding with x=5
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
+[1;35mPipeline run has finished in [0m[1;36m3.730s[1;35m.[0m
+Starting embedding random payload into Xception pretrained weights using x_lsb_attack_fill embedding with x=5
+[1;35mInitiating a new run for the pipeline: [0m[1;36m_preprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
 [1;35mExecuting a new run.[0m
 [1;35mUsing user: [0m[1;36mdefault[1;35m[0m
 [1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
+[1;35m  artifact_store: [0m[1;36mcustom_local[1;35m[0m
 [1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
 [1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/39b22d08-538a-48f1-a689-145b274d7c1a[1;35m[0m
+[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/9a29d23e-e597-49b9-8938-9d7ece0e3c6a[1;35m[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
@@ -796,26 +160,26 @@ Starting embedding random payload into NASNetLarge pretrained weights using x_ls
 [1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m5.885s[1;35m.[0m
+[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m1.588s[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m2.732s[1;35m.[0m
+[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m0.925s[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.774s[1;35m.[0m
+[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m0.885s[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m12.436s[1;35m.[0m
-Starting embedding random payload into NASNetLarge pretrained weights using x_lsb_attack_fill embedding with x=6
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
+[1;35mPipeline run has finished in [0m[1;36m3.809s[1;35m.[0m
+Starting embedding random payload into Xception pretrained weights using x_lsb_attack_fill embedding with x=6
+[1;35mInitiating a new run for the pipeline: [0m[1;36m_preprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
 [1;35mExecuting a new run.[0m
 [1;35mUsing user: [0m[1;36mdefault[1;35m[0m
 [1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
+[1;35m  artifact_store: [0m[1;36mcustom_local[1;35m[0m
 [1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
 [1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/e450968e-b82c-4708-a1c2-a03e1faf8186[1;35m[0m
+[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/c2fcc3b9-c1de-4e04-96a4-b55891564d40[1;35m[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
@@ -824,26 +188,26 @@ Starting embedding random payload into NASNetLarge pretrained weights using x_ls
 [1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m7.626s[1;35m.[0m
+[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m1.598s[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m2.772s[1;35m.[0m
+[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m0.904s[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.988s[1;35m.[0m
+[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.073s[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m14.773s[1;35m.[0m
-Starting embedding random payload into NASNetLarge pretrained weights using x_lsb_attack_fill embedding with x=7
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
+[1;35mPipeline run has finished in [0m[1;36m4.274s[1;35m.[0m
+Starting embedding random payload into Xception pretrained weights using x_lsb_attack_fill embedding with x=7
+[1;35mInitiating a new run for the pipeline: [0m[1;36m_preprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
 [1;35mExecuting a new run.[0m
 [1;35mUsing user: [0m[1;36mdefault[1;35m[0m
 [1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
+[1;35m  artifact_store: [0m[1;36mcustom_local[1;35m[0m
 [1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
 [1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/9f3f0655-7ffe-4fc5-a3c2-b515e11cf927[1;35m[0m
+[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/f2861a86-5044-46dd-93cf-53b55505a87e[1;35m[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
 [1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
@@ -852,382 +216,11 @@ Starting embedding random payload into NASNetLarge pretrained weights using x_ls
 [1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m5.945s[1;35m.[0m
+[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m1.597s[1;35m.[0m
 [1;35mStep [0m[1;36membed_payload_into_weights[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m3.102s[1;35m.[0m
+[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m0.937s[1;35m.[0m
 [1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
 [1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
 [1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.785s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m13.232s[1;35m.[0m
-Starting embedding random payload into NASNetLarge pretrained weights using x_lsb_attack_fill embedding with x=8
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/424595bc-7cb0-4589-aa35-c360b04172a8[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m3.310s[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m3.069s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.416s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m10.217s[1;35m.[0m
-Starting embedding random payload into NASNetLarge pretrained weights using x_lsb_attack_fill embedding with x=9
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/fb9d7637-4fef-4730-a34c-a3c666f20c09[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m6.276s[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m2.727s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.422s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m12.841s[1;35m.[0m
-Starting embedding random payload into NASNetLarge pretrained weights using x_lsb_attack_fill embedding with x=10
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/a18f8985-a6b3-4576-b016-04eddbf7c8e7[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m6.237s[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has finished in [0m[1;36m2.732s[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mimage_preprocessing[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has started.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m has finished in [0m[1;36m1.801s[1;35m.[0m
-[1;35mStep [0m[1;36mimage_preprocessing[1;35m completed successfully.[0m
-[1;35mPipeline run has finished in [0m[1;36m12.815s[1;35m.[0m
-Starting embedding random payload into NASNetLarge pretrained weights using x_lsb_attack_fill embedding with x=11
-[1;35mInitiating a new run for the pipeline: [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline[1;35m.[0m
-[1;35mExecuting a new run.[0m
-[1;35mUsing user: [0m[1;36mdefault[1;35m[0m
-[1;35mUsing stack: [0m[1;36mcustom-stack[1;35m[0m
-[1;35m  experiment_tracker: [0m[1;36mmlflow_experiment_tracker[1;35m[0m
-[1;35m  orchestrator: [0m[1;36mdefault[1;35m[0m
-[1;35m  artifact_store: [0m[1;36mcustom_artifact_store_local[1;35m[0m
-[1;35mDashboard URL: [0m[34mhttp://127.0.0.1:8237/runs/560b19eb-7e4d-4834-90c9-fa88456091e8[1;35m[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mfetch_pretrained[1;35m.[0m
-[1;35mStep [0m[1;36mfetch_pretrained[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mextract_weights[1;35m.[0m
-[1;35mUsing cached version of [0m[1;36mextract_weights[1;35m.[0m
-[1;35mStep [0m[1;36mextract_weights[1;35m has started.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36membed_payload_into_weights[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has started.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m has finished in [0m[1;36m7.805s[1;35m.[0m
-[1;35mStep [0m[1;36membed_payload_into_weights[1;35m completed successfully.[0m
-[1;35mCaching [0m[1;36menabled[1;35m explicitly for [0m[1;36mcreate_image_representation[1;35m.[0m
-[1;35mStep [0m[1;36mcreate_image_representation[1;35m has started.[0m
-[31mFailed to run step [0m[1;36mcreate_image_representation[31m after 1 retries. Exiting.[0m
-[31m[0m
-Traceback (most recent call last):
-  File "/home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orchestrators/step_launcher.py", line 268, in launch
-    self._run_step(
-  File "/home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orchestrators/step_launcher.py", line 476, in _run_step
-    self._run_step_without_step_operator(
-  File "/home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orchestrators/step_launcher.py", line 560, in _run_step_without_step_operator
-    runner.run(
-  File "/home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orchestrators/step_runner.py", line 252, in run
-    output_artifact_ids = self._store_output_artifacts(
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orchestrators/step_runner.py", line 624, in _store_output_artifacts
-    artifact = save_artifact(
-               ^^^^^^^^^^^^^^
-  File "/home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/artifacts/utils.py", line 206, in save_artifact
-    artifact_metadata = materializer_object.extract_full_metadata(data)
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/materializers/base_materializer.py", line 270, in extract_full_metadata
-    custom_metadata = self.extract_metadata(data)
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/materializers/numpy_materializer.py", line 188, in extract_metadata
-    return self._extract_numeric_metadata(arr)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/materializers/numpy_materializer.py", line 214, in _extract_numeric_metadata
-    "std": np.std(arr).item(),
-           ^^^^^^^^^^^
-  File "/home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/numpy/core/fromnumeric.py", line 3645, in std
-    return _methods._std(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/numpy/core/_methods.py", line 206, in _std
-    ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/numpy/core/_methods.py", line 173, in _var
-    x = asanyarray(arr - arrmean)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^
-KeyboardInterrupt
-[31mPipeline run [0m[1;36mpreprocessed_image_representation_from_pretrained_pipeline-2024_08_17-17_18_00_842324[31m failed.[0m
-╭───────────────────── Traceback (most recent call last) ──────────────────────╮
-│ in _run_module_as_main:198                                                   │
-│ in _run_code:88                                                              │
-│                                                                              │
-│ /home/danielg/danigil/ModelXRay/model_xray/zenml/pipelines/data_creation/ima │
-│ ge_representation.py:160 in <module>                                         │
-│                                                                              │
-│   157 │   │   │   │   embedding_config = EmbedPayloadConfig.ret_x_lsb_attack │
-│   158 │   │   │                                                              │
-│   159 │   │   │   try:                                                       │
-│ ❱ 160 │   │   │   │   im_res = preprocessed_image_representation_from_pretra │
-│   161 │   │   │   │   │   pretrained_model_name=model_name,                  │
-│   162 │   │   │   │   │   pretrained_model_repo=ModelRepos.KERAS,            │
-│   163 │   │   │   │   │   embed_payload_config = embedding_config,           │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/new/p │
-│ ipelines/pipeline.py:1378 in __call__                                        │
-│                                                                              │
-│   1375 │   │   │   return self.entrypoint(*args, **kwargs)                   │
-│   1376 │   │                                                                 │
-│   1377 │   │   self.prepare(*args, **kwargs)                                 │
-│ ❱ 1378 │   │   return self._run(**self._run_args)                            │
-│   1379 │                                                                     │
-│   1380 │   def _call_entrypoint(self, *args: Any, **kwargs: Any) -> None:    │
-│   1381 │   │   """Calls the pipeline entrypoint function with the given argu │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/new/p │
-│ ipelines/pipeline.py:764 in _run                                             │
-│                                                                              │
-│    761 │   │   │   │   │   │   "`zenml up`."                                 │
-│    762 │   │   │   │   │   )                                                 │
-│    763 │   │   │                                                             │
-│ ❱  764 │   │   │   deploy_pipeline(                                          │
-│    765 │   │   │   │   deployment=deployment_model, stack=stack, placeholder │
-│    766 │   │   │   )                                                         │
-│    767 │   │   │   if run:                                                   │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/new/p │
-│ ipelines/run_utils.py:144 in deploy_pipeline                                 │
-│                                                                              │
-│   141 │   previous_value = constants.SHOULD_PREVENT_PIPELINE_EXECUTION       │
-│   142 │   constants.SHOULD_PREVENT_PIPELINE_EXECUTION = True                 │
-│   143 │   try:                                                               │
-│ ❱ 144 │   │   stack.deploy_pipeline(deployment=deployment)                   │
-│   145 │   except Exception as e:                                             │
-│   146 │   │   if (                                                           │
-│   147 │   │   │   placeholder_run                                            │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/stack │
-│ /stack.py:853 in deploy_pipeline                                             │
-│                                                                              │
-│    850 │   │   Returns:                                                      │
-│    851 │   │   │   The return value of the call to `orchestrator.run_pipelin │
-│    852 │   │   """                                                           │
-│ ❱  853 │   │   return self.orchestrator.run(deployment=deployment, stack=sel │
-│    854 │                                                                     │
-│    855 │   def _get_active_components_for_step(                              │
-│    856 │   │   self, step_config: "StepConfiguration"                        │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orche │
-│ strators/base_orchestrator.py:178 in run                                     │
-│                                                                              │
-│   175 │   │   environment = get_config_environment_vars(deployment=deploymen │
-│   176 │   │                                                                  │
-│   177 │   │   try:                                                           │
-│ ❱ 178 │   │   │   result = self.prepare_or_run_pipeline(                     │
-│   179 │   │   │   │   deployment=deployment, stack=stack, environment=enviro │
-│   180 │   │   │   )                                                          │
-│   181 │   │   finally:                                                       │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orche │
-│ strators/local/local_orchestrator.py:78 in prepare_or_run_pipeline           │
-│                                                                              │
-│    75 │   │   │   │   │   step_name,                                         │
-│    76 │   │   │   │   )                                                      │
-│    77 │   │   │                                                              │
-│ ❱  78 │   │   │   self.run_step(                                             │
-│    79 │   │   │   │   step=step,                                             │
-│    80 │   │   │   )                                                          │
-│    81                                                                        │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orche │
-│ strators/base_orchestrator.py:198 in run_step                                │
-│                                                                              │
-│   195 │   │   │   step=step,                                                 │
-│   196 │   │   │   orchestrator_run_id=self.get_orchestrator_run_id(),        │
-│   197 │   │   )                                                              │
-│ ❱ 198 │   │   launcher.launch()                                              │
-│   199 │                                                                      │
-│   200 │   @staticmethod                                                      │
-│   201 │   def requires_resources_in_orchestration_environment(               │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orche │
-│ strators/step_launcher.py:268 in launch                                      │
-│                                                                              │
-│   265 │   │   │   │   │   │   │   │   │   return None                        │
-│   266 │   │   │   │   │   │   │   │                                          │
-│   267 │   │   │   │   │   │   │   │   force_write_logs = _bypass             │
-│ ❱ 268 │   │   │   │   │   │   │   self._run_step(                            │
-│   269 │   │   │   │   │   │   │   │   pipeline_run=pipeline_run,             │
-│   270 │   │   │   │   │   │   │   │   step_run=step_run_response,            │
-│   271 │   │   │   │   │   │   │   │   last_retry=last_retry,                 │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orche │
-│ strators/step_launcher.py:476 in _run_step                                   │
-│                                                                              │
-│   473 │   │   │   │   │   last_retry=last_retry,                             │
-│   474 │   │   │   │   )                                                      │
-│   475 │   │   │   else:                                                      │
-│ ❱ 476 │   │   │   │   self._run_step_without_step_operator(                  │
-│   477 │   │   │   │   │   pipeline_run=pipeline_run,                         │
-│   478 │   │   │   │   │   step_run=step_run,                                 │
-│   479 │   │   │   │   │   step_run_info=step_run_info,                       │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orche │
-│ strators/step_launcher.py:560 in _run_step_without_step_operator             │
-│                                                                              │
-│   557 │   │   if last_retry:                                                 │
-│   558 │   │   │   os.environ[ENV_ZENML_IGNORE_FAILURE_HOOK] = "false"        │
-│   559 │   │   runner = StepRunner(step=self._step, stack=self._stack)        │
-│ ❱ 560 │   │   runner.run(                                                    │
-│   561 │   │   │   pipeline_run=pipeline_run,                                 │
-│   562 │   │   │   step_run=step_run,                                         │
-│   563 │   │   │   input_artifacts=input_artifacts,                           │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orche │
-│ strators/step_runner.py:252 in run                                           │
-│                                                                              │
-│   249 │   │   │   │   │   │   │   is_enabled_on_step=step_run_info.config.en │
-│   250 │   │   │   │   │   │   │   is_enabled_on_pipeline=step_run_info.pipel │
-│   251 │   │   │   │   │   │   )                                              │
-│ ❱ 252 │   │   │   │   │   │   output_artifact_ids = self._store_output_artif │
-│   253 │   │   │   │   │   │   │   output_data=output_data,                   │
-│   254 │   │   │   │   │   │   │   output_artifact_uris=output_artifact_uris, │
-│   255 │   │   │   │   │   │   │   output_materializers=output_materializers, │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/orche │
-│ strators/step_runner.py:624 in _store_output_artifacts                       │
-│                                                                              │
-│   621 │   │   │   # Get full set of tags                                     │
-│   622 │   │   │   tags = step_context.get_output_tags(output_name)           │
-│   623 │   │   │                                                              │
-│ ❱ 624 │   │   │   artifact = save_artifact(                                  │
-│   625 │   │   │   │   name=artifact_name,                                    │
-│   626 │   │   │   │   data=return_value,                                     │
-│   627 │   │   │   │   materializer=materializer_class,                       │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/artif │
-│ acts/utils.py:206 in save_artifact                                           │
-│                                                                              │
-│   203 │   artifact_metadata: Dict[str, "MetadataType"] = {}                  │
-│   204 │   if extract_metadata:                                               │
-│   205 │   │   try:                                                           │
-│ ❱ 206 │   │   │   artifact_metadata = materializer_object.extract_full_metad │
-│   207 │   │   │   artifact_metadata.update(user_metadata or {})              │
-│   208 │   │   except Exception as e:                                         │
-│   209 │   │   │   logger.warning(                                            │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/mater │
-│ ializers/base_materializer.py:270 in extract_full_metadata                   │
-│                                                                              │
-│   267 │   │   │   A dictionary of metadata.                                  │
-│   268 │   │   """                                                            │
-│   269 │   │   base_metadata = self._extract_base_metadata(data)              │
-│ ❱ 270 │   │   custom_metadata = self.extract_metadata(data)                  │
-│   271 │   │   return {**base_metadata, **custom_metadata}                    │
-│   272 │                                                                      │
-│   273 │   def _extract_base_metadata(self, data: Any) -> Dict[str, "Metadata │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/mater │
-│ ializers/numpy_materializer.py:188 in extract_metadata                       │
-│                                                                              │
-│   185 │   │   │   The extracted metadata as a dictionary.                    │
-│   186 │   │   """                                                            │
-│   187 │   │   if np.issubdtype(arr.dtype, np.number):                        │
-│ ❱ 188 │   │   │   return self._extract_numeric_metadata(arr)                 │
-│   189 │   │   elif np.issubdtype(arr.dtype, np.unicode_) or np.issubdtype(   │
-│   190 │   │   │   arr.dtype, np.object_                                      │
-│   191 │   │   ):                                                             │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/zenml/mater │
-│ ializers/numpy_materializer.py:214 in _extract_numeric_metadata              │
-│                                                                              │
-│   211 │   │   │   "shape": tuple(arr.shape),                                 │
-│   212 │   │   │   "dtype": DType(arr.dtype.type),                            │
-│   213 │   │   │   "mean": np.mean(arr).item(),                               │
-│ ❱ 214 │   │   │   "std": np.std(arr).item(),                                 │
-│   215 │   │   │   "min": min_val,                                            │
-│   216 │   │   │   "max": max_val,                                            │
-│   217 │   │   }                                                              │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/numpy/core/ │
-│ fromnumeric.py:3645 in std                                                   │
-│                                                                              │
-│   3642 │   │   else:                                                         │
-│   3643 │   │   │   return std(axis=axis, dtype=dtype, out=out, ddof=ddof, ** │
-│   3644 │                                                                     │
-│ ❱ 3645 │   return _methods._std(a, axis=axis, dtype=dtype, out=out, ddof=ddo │
-│   3646 │   │   │   │   │   │    **kwargs)                                    │
-│   3647                                                                       │
-│   3648                                                                       │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/numpy/core/ │
-│ _methods.py:206 in _std                                                      │
-│                                                                              │
-│   203                                                                        │
-│   204 def _std(a, axis=None, dtype=None, out=None, ddof=0, keepdims=False, * │
-│   205 │   │    where=True):                                                  │
-│ ❱ 206 │   ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,          │
-│   207 │   │   │      keepdims=keepdims, where=where)                         │
-│   208 │                                                                      │
-│   209 │   if isinstance(ret, mu.ndarray):                                    │
-│                                                                              │
-│ /home/danielg/micromamba/envs/zenml/lib/python3.11/site-packages/numpy/core/ │
-│ _methods.py:173 in _var                                                      │
-│                                                                              │
-│   170 │   # Compute sum of squared deviations from mean                      │
-│   171 │   # Note that x may not be inexact and that we need it to be an arra │
-│   172 │   # not a scalar.                                                    │
-│ ❱ 173 │   x = asanyarray(arr - arrmean)                                      │
-│   174 │                                                                      │
-│   175 │   if issubclass(arr.dtype.type, (nt.floating, nt.integer)):          │
-│   176 │   │   x = um.multiply(x, x, out=x)                                   │
-╰──────────────────────────────────────────────────────────────────────────────╯
-KeyboardInterrupt
