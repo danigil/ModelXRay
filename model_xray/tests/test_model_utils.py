@@ -74,25 +74,25 @@ def test_determine_model_type_keras():
 
     keras_model_seq = _ret_simple_keras_model_sequential()
 
-    assert determine_model_type(keras_model_seq) == ModelRepos.KERAS
+    assert ModelRepos.determine_model_type(keras_model_seq) == ModelRepos.KERAS
     del keras_model_seq
 
     keras_model_func = _ret_simple_keras_model_functional()
 
-    assert determine_model_type(keras_model_func) == ModelRepos.KERAS
+    assert ModelRepos.determine_model_type(keras_model_func) == ModelRepos.KERAS
     del keras_model_func
 
 def test_determine_model_type_torch():
     torch_model = _ret_simple_torch_model()
 
-    assert determine_model_type(torch_model) == ModelRepos.PYTORCH
+    assert ModelRepos.determine_model_type(torch_model) == ModelRepos.PYTORCH
     del torch_model
 
 def test_determine_model_type_unknown():
     not_a_model = "not a model"
 
     with pytest.raises(NotImplementedError):
-        determine_model_type(not_a_model)
+        ModelRepos.determine_model_type(not_a_model)
 
 def test_extract_weights_keras():
     import tensorflow as tf

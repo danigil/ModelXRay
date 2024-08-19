@@ -194,7 +194,8 @@ def ret_pipeline_with_pretrained_model(
     return wrap
 
 preprocessed_image_representation_from_pretrained_pipeline = ret_pipeline_with_pretrained_model(
-    pipeline=_preprocessed_image_representation_from_pretrained_pipeline
+    pipeline=_preprocessed_image_representation_from_pretrained_pipeline,
+    enable_cache=True,
 )
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 # from pydantic.dataclasses import dataclass
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 from typing import Optional, Tuple, Union
 
 from tensorflow.keras import Model as tfModel
@@ -24,16 +24,21 @@ class ModelRepos(StrEnum):
         else:
             raise NotImplementedError(f'determine_model_type | got model type {type(model)}, not implemented')
 
-@dataclass
+@dataclass(frozen=True)
 class PretrainedModelConfig:
-    name: str
-    repo: ModelRepos
+    name: str = 'MobileNet'
+    repo: ModelRepos = ModelRepos.KERAS
 
-    def to_dict(self):
-        return {
-            'name': self.name,
-            'repo': self.repo
-        }
+    def to_dict(self, short_version=False):
+        if short_version:
+            return {
+                'name': self.name,
+            }
+        else:
+            return {
+                'name': self.name,
+                'repo': self.repo
+            }
 
     @staticmethod
     def from_dict(metadata_dict):
@@ -65,12 +70,17 @@ class XLSBAttackConfig:
     payload_type: PayloadType = PayloadType.RANDOM
     payload_filepath: Union[None, str] = None
 
+    def __hash__(self):
+        return hash(self.__repr__())
+
     def __repr__(self):
         repr_str = f'XLSBAttackConfig(x={self.x}, fill={self.fill}, msb={self.msb}, payload_type={self.payload_type}'
         if self.payload_type == PayloadType.PYTHON_BYTES:
-            repr_str += f', payload_bytes_md5={hashlib.md5(self.payload_bytes).hexdigest()}'
+            repr_str += f', payload_bytes_md5={hashlib.md5(self.payload_bytes).hexdigest()})'
         elif self.payload_type == PayloadType.BINARY_FILE:
-            repr_str += f', payload_filepath={self.payload_filepath}'
+            repr_str += f', payload_filepath={self.payload_filepath})'
+
+        return repr_str
 
     @staticmethod
     def from_dict(metadata_dict):
@@ -83,17 +93,23 @@ class XLSBAttackConfig:
             payload_filepath=metadata_dict['payload_filepath'] if metadata_dict['payload_type'] == PayloadType.BINARY_FILE else None
         )
 
-    def to_dict(self):
-        return {
-            'x': self.x,
-            'fill': self.fill,
-            'msb': self.msb,
-            'payload_bytes_md5': hashlib.md5(self.payload_bytes).hexdigest() if self.payload_type == PayloadType.PYTHON_BYTES else None,
-            'payload_type': self.payload_type,
-            'payload_filepath': self.payload_filepath
-        }
+    def to_dict(self, short_version=False):
+        if short_version:
+            return {
+                'x': self.x,
+                'payload_type': self.payload_type
+            }
+        else:
+            return {
+                'x': self.x,
+                'fill': self.fill,
+                'msb': self.msb,
+                'payload_bytes_md5': hashlib.md5(self.payload_bytes).hexdigest() if self.payload_type == PayloadType.PYTHON_BYTES else None,
+                'payload_type': self.payload_type,
+                'payload_filepath': self.payload_filepath
+            }
 
-@dataclass(repr=False)
+@dataclass(repr=False, frozen=True)
 class XLSBExtractConfig:
     x: int
     n_bytes: int = None
@@ -101,13 +117,16 @@ class XLSBExtractConfig:
     msb: bool = False
     
 
-@dataclass
+@dataclass(frozen=True)
 class EmbedPayloadConfig:
     embed_type: EmbedType = EmbedType.X_LSB_ATTACK_FILL
     embed_proc_config: Optional[XLSBAttackConfig] = None
 
     @staticmethod
     def from_dict(metadata_dict):
+        if metadata_dict is None or metadata_dict == {} or metadata_dict == 'None':
+            return None
+
         embed_proc_config = None
         embed_type = EmbedType(metadata_dict['embed_type'])
         if embed_type == EmbedType.X_LSB_ATTACK_FILL:
@@ -118,10 +137,10 @@ class EmbedPayloadConfig:
             embed_proc_config=embed_proc_config
         )
 
-    def to_dict(self):
+    def to_dict(self, short_version=False):
         return {
             'embed_type': self.embed_type,
-            'embed_proc_config': self.embed_proc_config.to_dict() if self.embed_proc_config is not None else None
+            'embed_proc_config': self.embed_proc_config.to_dict(short_version=short_version) if self.embed_proc_config is not None else None
         }
 
     @staticmethod
@@ -146,7 +165,7 @@ class ImageType(StrEnum):
 
     GRAYSCALE_LAST_M_BYTES = 'grayscale_last_m_bytes'
 
-@dataclass
+@dataclass(frozen=True)
 class GrayscaleLastMBytesConfig:
     m: int
 
@@ -164,7 +183,7 @@ class GrayscaleLastMBytesConfig:
     def __repr__(self):
         return f'GrayscaleLastMBytesConfig(m={self.m})'
 
-@dataclass
+@dataclass(frozen=True)
 class ImageRepConfig:
     image_type: ImageType = ImageType.GRAYSCALE_FOURPART
     image_rep_config: Optional[GrayscaleLastMBytesConfig] = None
@@ -211,7 +230,7 @@ class ImageResamplingFilter(StrEnum):
         else:
             raise NotImplementedError(f'to_pil_image_resampling_filter | got {self}, not implemented')
 
-@dataclass
+@dataclass(frozen=True)
 class ImagePreprocessConfig:
     image_size: Tuple[int, int] = (100,100)
     image_reshape_algo:ImageResamplingFilter = ImageResamplingFilter.BICUBIC
@@ -219,7 +238,7 @@ class ImagePreprocessConfig:
     @staticmethod
     def from_dict(metadata_dict):
         return ImagePreprocessConfig(
-            image_size=metadata_dict['image_size'],
+            image_size=tuple(metadata_dict['image_size']),
             image_reshape_algo=ImageResamplingFilter(metadata_dict['image_reshape_algo'])
         )
 
@@ -293,13 +312,39 @@ class DatasetConfig:
     Preprocessed image lineage
 """
 
-@dataclass
+class PreprocessedImageDatasetLabel(IntEnum):
+    BENIGN = 0
+    ATTACKED = 1
+
+def dict_to_str(metadata_dict, indent=1):
+    return dict_strs_to_str(dict_to_strs(metadata_dict), indent=indent)
+
+def dict_to_strs(metadata_dict):
+    return [f'{k.title()}: {v}' for k,v in metadata_dict.items()]
+
+def dict_strs_to_str(dict_strs, indent=1):
+    spacer_str = '\n' + '\t'*indent
+    return f'{spacer_str.join(dict_strs)}\n'
+
+@dataclass(frozen=True)
 class PreprocessedImageLineage:
     pretrained_model_config: PretrainedModelConfig
     image_rep_config: ImageRepConfig
     image_preprocess_config: ImagePreprocessConfig
 
     embed_payload_config: Optional[EmbedPayloadConfig] = None
+
+    @staticmethod
+    def ret_default_preprocessed_image_w_x_lsb_attack(
+        pretrained_model_config: Optional[PretrainedModelConfig] = None,
+        x: Optional[int] = None
+    ):
+        return PreprocessedImageLineage(
+            pretrained_model_config=PretrainedModelConfig() if pretrained_model_config is None else pretrained_model_config,
+            image_rep_config=ImageRepConfig(),
+            image_preprocess_config=ImagePreprocessConfig(),
+            embed_payload_config=EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x) if x is not None else None
+        )
 
     def to_dict(self):
         return {
@@ -315,5 +360,25 @@ class PreprocessedImageLineage:
             pretrained_model_config=PretrainedModelConfig.from_dict(metadata_dict['pretrained_model_config']),
             image_rep_config=ImageRepConfig.from_dict(metadata_dict['image_rep_config']),
             image_preprocess_config=ImagePreprocessConfig.from_dict(metadata_dict['image_preprocess_config']),
-            embed_payload_config=EmbedPayloadConfig.from_dict(metadata_dict['embed_payload_config']) if metadata_dict['embed_payload_config'] is not None else None
+            embed_payload_config=EmbedPayloadConfig.from_dict(metadata_dict.get('embed_payload_config', None))
         )
+
+    def __repr__(self):
+        return (f'Preprocessed Image Lineage:\n'
+                f'\tPretrained Model:\n'
+                f'\t\t{dict_to_str(self.pretrained_model_config.to_dict(short_version=True), indent=2)}'
+                f'\tAttack:\n'
+                f'\t\tAttacked: {self.is_attacked()}\n'
+                
+                f'\t\tAttack Config:\n'
+                f'\t\t\t{dict_to_str(self.embed_payload_config.to_dict(short_version=True), indent=3) if self.is_attacked() else "NA"}\n'
+
+                # f'\n\t\tAttack Config:\n' if self.is_attacked() else f'\n'
+                # f'\t\t{dict_to_str(self.embed_payload_config.to_dict(short_version=True), indent=2)}\n' if self.is_attacked() else f'\n'
+                )
+
+    def is_attacked(self) -> bool:
+        return self.embed_payload_config is not None
+
+    def label(self) -> PreprocessedImageDatasetLabel:
+        return PreprocessedImageDatasetLabel.ATTACKED if self.is_attacked() else PreprocessedImageDatasetLabel.BENIGN
