@@ -1,5 +1,8 @@
+from typing import Dict
 import numpy as np
 import numpy.typing as npt
+
+from collections.abc import MutableMapping
 
 def ndarray_to_bytes_arr(mcwa: np.ndarray) -> npt.NDArray[np.uint8]:
     assert isinstance(mcwa.dtype.itemsize, int) and mcwa.dtype.itemsize>=1
@@ -19,3 +22,14 @@ def bytes_arr_to_ndarray(mcwa: np.ndarray, dtype=np.uint8, shape=None):
     dtype_new = dtype_new.newbyteorder('=')
 
     return np.frombuffer(np.flip(mcwa, axis=-1).tobytes(order='C'), dtype=dtype_new).reshape(newshape)
+
+
+def flatten_dict(dictionary: Dict, parent_key='', separator='_', parent_separator='_') -> Dict:
+    items = []
+    for key, value in dictionary.items():
+        new_key = parent_key + parent_separator + key if parent_key else key
+        if isinstance(value, MutableMapping):
+            items.extend(flatten_dict(value, new_key, separator=separator).items())
+        else:
+            items.append((new_key, value))
+    return dict(items)

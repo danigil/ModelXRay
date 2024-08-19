@@ -10,6 +10,8 @@ from PIL import Image
 
 import hashlib
 
+from model_xray.utils.general_utils import flatten_dict
+
 class ModelRepos(StrEnum):
     KERAS = 'keras'
     PYTORCH = 'torch'
@@ -337,12 +339,13 @@ class PreprocessedImageLineage:
     @staticmethod
     def ret_default_preprocessed_image_w_x_lsb_attack(
         pretrained_model_config: Optional[PretrainedModelConfig] = None,
+        image_preprocess_config: Optional[ImagePreprocessConfig] = None,
         x: Optional[int] = None
     ):
         return PreprocessedImageLineage(
             pretrained_model_config=PretrainedModelConfig() if pretrained_model_config is None else pretrained_model_config,
             image_rep_config=ImageRepConfig(),
-            image_preprocess_config=ImagePreprocessConfig(),
+            image_preprocess_config=ImagePreprocessConfig() if image_preprocess_config is None else image_preprocess_config,
             embed_payload_config=EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x) if x is not None else None
         )
 
@@ -353,6 +356,9 @@ class PreprocessedImageLineage:
             'image_preprocess_config': self.image_preprocess_config.to_dict(),
             'embed_payload_config': self.embed_payload_config.to_dict() if self.embed_payload_config is not None else None
         }
+
+    def to_flat_dict(self, parent_key: str = 'metadata', parent_separator=':', separator: str = '.') -> dict:
+        return flatten_dict(self.to_dict(), parent_key=parent_key, parent_separator=parent_separator, separator=separator)
 
     @staticmethod
     def from_dict(metadata_dict):

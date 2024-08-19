@@ -1,17 +1,33 @@
-from typing import Annotated, Optional, Set, Tuple
+from typing import Annotated, Dict, Iterable, List, Optional, Set, Tuple, TypeVar
 import numpy as np
-from zenml import step
+
+import itertools
+
+import pandas as pd
+from zenml import ExternalArtifact, step
 from zenml import ArtifactConfig, Model, get_pipeline_context, get_step_context, log_artifact_metadata, step, pipeline, log_model_metadata
 from zenml.client import Client
 from zenml.new.pipelines.pipeline import Pipeline
 
-from model_xray.config_classes import ModelRepos, PreprocessedImageLineage, PretrainedModelConfig
+from model_xray.config_classes import *
 from model_xray.zenml.pipelines.data_creation.image_representation import ret_pretrained_model_version_name
+from model_xray.options import model_collections
 
-def get_preprocessed_images(
+
+from typing import TypedDict
+
+PreprocessedImagesDataDict = TypedDict('PreprocessedImagesDataDict', {
+    'preprocessed_image': np.ndarray,
+    'metadata': PreprocessedImageLineage,
+    'artifact_uri': str,
+})
+
+PipelineRunName = TypeVar("PipelineRunName", bound=str)
+
+def _get_preprocessed_images(
     pretrained_model_config: PretrainedModelConfig,
     preprocessed_img_cfgs: Optional[Set[PreprocessedImageLineage]] = None
-):
+) -> Dict[PipelineRunName, PreprocessedImagesDataDict]:
     accum_metadata_keys = [
         'pretrained_model_config', 'image_rep_config', 'image_preprocess_config', 'embed_payload_config',
     ]
@@ -53,7 +69,7 @@ def get_preprocessed_images(
             continue
 
         ret[pipeline_run_name] = {
-            'image': curr_preprocessed_image,
+            'preprocessed_image': curr_preprocessed_image,
             'metadata': curr_preprocessed_image_lineage,
             'artifact_uri': curr_steps['image_preprocessing'].output.uri,
         }
@@ -72,17 +88,17 @@ def _ret_preprocessed_images(
 
     requested_pretrained_models = set([preprocessed_img_cfg.pretrained_model_config for preprocessed_img_cfg in preprocessed_img_cfgs])
     for pretrained_model_config in requested_pretrained_models:
-        preprocessed_images = get_preprocessed_images(
+        preprocessed_images = _get_preprocessed_images(
             pretrained_model_config=pretrained_model_config,
             preprocessed_img_cfgs=set([preprocessed_img_cfg for preprocessed_img_cfg in  preprocessed_img_cfgs if preprocessed_img_cfg.pretrained_model_config == pretrained_model_config])
         )
 
         for pipeline_run_name, preprocessed_image_and_metadata_dict in preprocessed_images.items():
-            ret[preprocessed_image_and_metadata_dict['metadata']] = preprocessed_image_and_metadata_dict['image']
+            ret[preprocessed_image_and_metadata_dict['metadata']] = preprocessed_image_and_metadata_dict['preprocessed_image']
     
     return ret
 
-def compile_preprocessed_images_dataset(
+def _compile_preprocessed_images_dataset(
     preprocessed_img_cfgs: Set[PreprocessedImageLineage],
 ) -> Tuple[
     Annotated[np.ndarray, "X"],
@@ -96,3 +112,68 @@ def compile_preprocessed_images_dataset(
     y = np.array([preprocessed_img_cfg.label() for preprocessed_img_cfg in cfgs])
 
     return X, y
+
+def compile_preprocessed_images_dataset(
+    pretrained_model_configs: Set[PretrainedModelConfig],
+    x_values: Set[Union[int, None]],
+    image_preprocess_config: ImagePreprocessConfig
+) -> Tuple[
+    Annotated[np.ndarray, "X"],
+    Annotated[np.ndarray, "y"],
+]:
+    preprocessed_img_cfgs = set(itertools.product(pretrained_model_configs, x_values, [image_preprocess_config]))
+
+    X, y = _compile_preprocessed_images_dataset(preprocessed_img_cfgs=preprocessed_img_cfgs)
+
+    return X, y
+
+@step
+def compile_preprocessed_images_registry(
+    pretrained_model_configs: List[PretrainedModelConfig],
+) -> Annotated[
+    pd.DataFrame,
+    "preprocessed_images_registry"
+]:
+    preprocessed_images_data_dicts:List[PreprocessedImagesDataDict] = []
+    pretrained_model_entry_amounts = {}
+    for pretrained_model_config in pretrained_model_configs:
+        curr_preprocessed_images_data_dicts = _get_preprocessed_images(
+            pretrained_model_config=pretrained_model_config
+        )
+
+        preprocessed_images_data_dicts.extend(curr_preprocessed_images_data_dicts.values())
+        curr_amount = len(curr_preprocessed_images_data_dicts)
+        pretrained_model_entry_amounts[str(pretrained_model_config)] = curr_amount
+        print(f"\tsuccessfully compiled {curr_amount} preprocessed images from {pretrained_model_config.name} pretrained model")
+
+    preprocessed_images_data_dicts = [{**preprocessed_images_data_dict['metadata'].to_flat_dict(), 'artifact_uri':preprocessed_images_data_dict['artifact_uri']} for preprocessed_images_data_dict in preprocessed_images_data_dicts]
+
+    print(f"successfully compiled {len(preprocessed_images_data_dicts)} preprocessed images from {len(pretrained_model_configs)} pretrained models")
+
+    df = pd.DataFrame(preprocessed_images_data_dicts)
+
+    log_artifact_metadata(
+        artifact_name="preprocessed_images_registry",
+        metadata={
+            "pretrained_model_entry_amounts": dict(sorted(pretrained_model_entry_amounts.items(), key=lambda x: x[0])),
+        },
+    )
+
+    return df
+
+@pipeline
+def compile_preprocessed_images_registry_pipeline(
+    pretrained_model_configs: List[PretrainedModelConfig],
+):
+    df = compile_preprocessed_images_registry(pretrained_model_configs=ExternalArtifact(value=pretrained_model_configs))
+
+    return df
+
+if __name__ == "__main__":
+    # model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
+    model_names = ["MobileNet", "MobileNetV2"]
+    pretrained_model_configs = [PretrainedModelConfig(name=model_name, repo=ModelRepos.KERAS) for model_name in model_names]
+
+    compile_preprocessed_images_registry_pipeline(pretrained_model_configs=pretrained_model_configs)
+
+    
