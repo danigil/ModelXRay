@@ -201,61 +201,61 @@ preprocessed_image_representation_from_pretrained_pipeline = ret_pipeline_with_p
 if __name__ == "__main__":
 
 
-    x= 5
+    # x= 5
     
 
-    im_res = preprocessed_image_representation_from_pretrained_pipeline(
-        pretrained_model_config=PretrainedModelConfig(
-            name='MobileNet',
-            repo=ModelRepos.KERAS
-        ),
-        embed_payload_config = EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x),
+    # im_res = preprocessed_image_representation_from_pretrained_pipeline(
+    #     pretrained_model_config=PretrainedModelConfig(
+    #         name='MobileNet',
+    #         repo=ModelRepos.KERAS
+    #     ),
+    #     embed_payload_config = EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x),
 
-        image_preprocess_config = ImagePreprocessConfig(
-            image_height=100,
-            image_width=100,
-            image_reshape_algo=ImageResamplingFilter.BICUBIC
-        ),
+    #     image_preprocess_config = ImagePreprocessConfig(
+    #         image_height=100,
+    #         image_width=100,
+    #         image_reshape_algo=ImageResamplingFilter.BICUBIC
+    #     ),
 
-        image_rep_config = ImageRepConfig(
-            image_type=ImageType.GRAYSCALE_FOURPART,
-            image_rep_config=None
-        )
-    )
+    #     image_rep_config = ImageRepConfig(
+    #         image_type=ImageType.GRAYSCALE_FOURPART,
+    #         image_rep_config=None
+    #     )
+    # )
 
-    # model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
-    # # # model_names = ['MobileNet', 'MobileNetV2']
+    model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
+    # # model_names = ['MobileNet', 'MobileNetV2']
 
-    # for i, model_name in enumerate(model_names):
-    #     for x in range(0, 24):
-    #         if x == 0:
-    #             embedding_config = None
-    #         else:
-    #             embedding_config = EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x)
+    for i, model_name in enumerate(model_names):
+        for x in range(0, 24):
+            if x == 0:
+                embedding_config = None
+            else:
+                embedding_config = EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x)
 
-    #         try:
-    #             im_res = preprocessed_image_representation_from_pretrained_pipeline(
-    #                 pretrained_model_config=PretrainedModelConfig(
-    #                     name=model_name,
-    #                     repo=ModelRepos.KERAS
-    #                 ),
-    #                 embed_payload_config = embedding_config,
+            try:
+                im_res = preprocessed_image_representation_from_pretrained_pipeline(
+                    pretrained_model_config=PretrainedModelConfig(
+                        name=model_name,
+                        repo=ModelRepos.KERAS
+                    ),
+                    embed_payload_config = embedding_config,
 
-    #                 image_preprocess_config = ImagePreprocessConfig(
-    #                     image_height=100,
-    #                     image_width=100,
-    #                     image_reshape_algo=ImageResamplingFilter.BICUBIC
-    #                 ),
+                    image_preprocess_config = ImagePreprocessConfig(
+                        image_height=100,
+                        image_width=100,
+                        image_reshape_algo=ImageResamplingFilter.BICUBIC
+                    ),
 
-    #                 image_rep_config = ImageRepConfig(
-    #                     image_type=ImageType.GRAYSCALE_FOURPART,
-    #                     image_rep_config=None
-    #                 )
-    #             )
+                    image_rep_config = ImageRepConfig(
+                        image_type=ImageType.GRAYSCALE_FOURPART,
+                        image_rep_config=None
+                    )
+                )
 
-    #         except Exception as e:
-    #             print(f"!! Error creating img from {model_name} with x={x}: {e}")
-    #             break
+            except Exception as e:
+                print(f"!! Error creating img from {model_name} with x={x}: {e}")
+                break
 
 
-    #     print(f"~~ Finished {i+1}/{len(model_names)}: {model_name} ~~")
+        print(f"~~ Finished {i+1}/{len(model_names)}: {model_name} ~~")

@@ -1,3 +1,4 @@
+from pprint import pprint
 from typing import Dict
 import numpy as np
 import numpy.typing as npt
@@ -46,5 +47,33 @@ def flatten_dict(dictionary, parent_key='', separator='_') -> Dict:
             items.append((new_key, value))
     return dict(items)
 
-def query_df_using_dict(df: pd.DataFrame, query_dict: dict):
-    return df.loc[(df[list(query_dict)] == pd.Series(query_dict)).all(axis=1)]
+def query_df_using_dict(df: pd.DataFrame, query_dict: dict,
+                        ignore_cols: set[str] = set([
+                            'artifact_uri',
+                            'metadata:embed_payload_config.embed_payload_metadata.payload_bytes_md5',
+                            'metadata:embed_payload_config.embed_payload_metadata.payload_filepath'
+                            ]),
+                        missing_val='None') -> pd.DataFrame:
+    # print("~~ query_df_using_dict ~~")
+    # print("df.columns:", df.columns)
+    # print("query_dict:", query_dict)
+
+    filtered_query_dict = {k:v for k,v in query_dict.items() if k in df.columns}
+
+    missing_cols = set(df.columns) - set(filtered_query_dict.keys()) - ignore_cols
+    missing_vals_dict = {k:missing_val for k in missing_cols}
+
+    complete_query_dict = {**filtered_query_dict, **missing_vals_dict}
+    # print("complete query dict")
+    # pprint(complete_query_dict)
+    pds = pd.Series(complete_query_dict).fillna(missing_val)
+
+    df_copy = df.fillna(missing_val, inplace=False)
+
+    columns_to_query = list(complete_query_dict.keys())
+    sub_df = df_copy[columns_to_query]
+
+    match_mask = sub_df == pds
+    full_match_idxs = match_mask.all(axis=1)
+
+    return df_copy.loc[full_match_idxs]

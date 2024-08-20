@@ -4,16 +4,18 @@ import numpy as np
 import itertools
 
 import pandas as pd
-from zenml import ExternalArtifact, step
+from zenml import ExternalArtifact, save_artifact, step
 from zenml import ArtifactConfig, Model, get_pipeline_context, get_step_context, log_artifact_metadata, step, pipeline, log_model_metadata
 from zenml.client import Client
 from zenml.new.pipelines.pipeline import Pipeline
 from zenml.artifacts.utils import load_artifact_from_response
+from zenml.materializers.numpy_materializer import NumpyMaterializer
 
 from model_xray.config_classes import *
 from model_xray.zenml.pipelines.data_creation.image_representation import ret_pretrained_model_version_name
 from model_xray.options import model_collections
 from model_xray.utils.general_utils import flatten_dict, query_df_using_dict
+
 
 from typing import TypedDict
 
@@ -61,13 +63,23 @@ def _get_preprocessed_images(
                 if accum_metadata_key in curr_step_metadata:
                     metadata_dict[accum_metadata_key] = curr_step_metadata[accum_metadata_key].value
 
-        curr_preprocessed_image_lineage = PreprocessedImageLineage.from_dict(metadata_dict)
+        curr_preprocessed_image = curr_steps['image_preprocessing'].output.load()
+        if curr_preprocessed_image is None:
+            Client().delete_pipeline_run(pipeline_run_name)
+            print(f"########### pipeline run {pipeline_run_name} has no preprocessed image. Deleted pipeline run. ########### ")
+            continue
+
+        try:
+            curr_preprocessed_image_lineage = PreprocessedImageLineage.from_dict(metadata_dict)
+        except Exception as e:
+            print("pipeline_run_name:", pipeline_run_name)
+            print('artifact_uri:', curr_steps['image_preprocessing'].output.uri)
+            print(metadata_dict)
+            exit(1)
         if curr_preprocessed_image_lineage in prev_metadatas or (preprocessed_img_cfgs is not None and curr_preprocessed_image_lineage not in preprocessed_img_cfgs):
             continue
 
-        curr_preprocessed_image = curr_steps['image_preprocessing'].output.load()
-        if curr_preprocessed_image is None:
-            continue
+        
 
         ret[pipeline_run_name] = {
             'preprocessed_image': curr_preprocessed_image,
@@ -103,16 +115,21 @@ def _ret_preprocessed_images_from_registry(
     preprocessed_images_registry: pd.DataFrame,
     preprocessed_img_cfgs: List[PreprocessedImageLineage],
 ):
+    print("~~ _ret_preprocessed_images_from_registry ~~")
+    # print("preprocessed_images_registry:", preprocessed_images_registry)
     ret = {}
     for preprocessed_img_cfg in preprocessed_img_cfgs:
         query_dict = preprocessed_img_cfg.to_flat_dict()
-
+        # print(query_dict)
         df_query = query_df_using_dict(df=preprocessed_images_registry, query_dict=query_dict)
         if len(df_query) == 0:
             raise ValueError(f"get_preprocessed_images_from_registry: No preprocessed image found for {preprocessed_img_cfg}")
 
+        if len(df_query) > 1:
+            print(f"_ret_preprocessed_images_from_registry | Warning: More than one preprocessed image found for {preprocessed_img_cfg}", preprocessed_img_cfg)
+
         artifact_uri = df_query['artifact_uri'].values[0]
-        preprocessed_img = np.load(artifact_uri)
+        preprocessed_img = NumpyMaterializer(uri=artifact_uri, artifact_store=None).load(data_type=np.uint8)
 
         ret[preprocessed_img_cfg] = preprocessed_img
 
@@ -164,6 +181,82 @@ def compile_preprocessed_images_dataset(
 
     return X, y
 
+@step(
+    model = Model(
+        name="preprocessed_images_classification_datasets",
+        version="1.0",
+    ),
+    enable_cache=False,
+)
+def compile_and_save_preprocessed_images_dataset(
+    dataset_name: str,
+    pretrained_model_configs: List[PretrainedModelConfig],
+    x_values: List[Union[int, None]],
+    image_preprocess_config: ImagePreprocessConfig
+):
+    X, y = compile_preprocessed_images_dataset(
+        pretrained_model_configs=pretrained_model_configs,
+        x_values=x_values,
+        image_preprocess_config=image_preprocess_config
+    )
+
+    # log_artifact_metadata(
+    #     model_name="preprocessed_images_classification_datasets",
+    #     metadata={
+    #         "pretrained_model_configs": [pretrained_model_config.to_dict() for pretrained_model_config in pretrained_model_configs],
+    #         "x_values": x_values,
+    #         "image_preprocess_config": image_preprocess_config.to_dict(),
+    #     }
+    # )
+
+    save_artifact(
+        data=X,
+        name=f"{dataset_name}_x",
+        user_metadata={
+            "pretrained_model_configs": {
+                f"model{i}":pretrained_model_config.to_dict() for i, pretrained_model_config in enumerate(sorted(pretrained_model_configs, key=lambda x: str(x)))
+            },
+            "x_values": x_values,
+            "image_preprocess_config": image_preprocess_config.to_dict(),
+        },
+        version="1.0",
+    )
+
+    save_artifact(
+        data=y,
+        name=f"{dataset_name}_y",
+        version="1.0",
+    )
+
+@pipeline
+def compile_and_save_preprocessed_images_dataset_pipeline(
+    dataset_name: str,
+    pretrained_model_configs: List[PretrainedModelConfig],
+    x_values: List[Union[int, None]],
+    image_preprocess_config: ImagePreprocessConfig
+):
+    compile_and_save_preprocessed_images_dataset(
+        dataset_name=dataset_name,
+        pretrained_model_configs=ExternalArtifact(value=sorted(pretrained_model_configs, key=lambda x: str(x))),
+        x_values=x_values,
+        image_preprocess_config=image_preprocess_config
+    )
+
+def retreive_datasets(
+    dataset_names: List[str],
+):
+    model = Client().get_model_version("preprocessed_images_classification_datasets", model_version_name_or_number_or_id="1.0",)
+
+    ds = {}
+
+    for dataset_name in dataset_names:
+        X = model.get_artifact(f"{dataset_name}_x").load()
+        y = model.get_artifact(f"{dataset_name}_y").load()
+
+        ds[dataset_name] = (X, y)
+
+    return ds
+
 @step
 def compile_preprocessed_images_registry(
     pretrained_model_configs: List[PretrainedModelConfig],
@@ -210,9 +303,23 @@ def compile_preprocessed_images_registry_pipeline(
 
 if __name__ == "__main__":
     # model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
-    model_names = ["MobileNet", "MobileNetV2"]
+    # # model_names = ["MobileNet", "MobileNetV2"]
+    # pretrained_model_configs = [PretrainedModelConfig(name=model_name, repo=ModelRepos.KERAS) for model_name in model_names]
+
+    # compile_preprocessed_images_registry_pipeline(pretrained_model_configs=pretrained_model_configs)
+
+    x = 23
+
+    model_names = ["MobileNet", "MobileNetV2", "MobileNetV3Small", "MobileNetV3Large"]
     pretrained_model_configs = [PretrainedModelConfig(name=model_name, repo=ModelRepos.KERAS) for model_name in model_names]
 
-    compile_preprocessed_images_registry_pipeline(pretrained_model_configs=pretrained_model_configs)
+    dataset_name = f"mobilenets_train_xs0{x}"
+
+    compile_and_save_preprocessed_images_dataset_pipeline(
+        dataset_name=dataset_name,
+        pretrained_model_configs=pretrained_model_configs,
+        x_values=[None, x],
+        image_preprocess_config=ImagePreprocessConfig(),
+    )
 
     

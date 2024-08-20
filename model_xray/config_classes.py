@@ -63,14 +63,14 @@ class PayloadType(StrEnum):
     BINARY_FILE = 'binary_file'
     PYTHON_BYTES = 'python_bytes'
 
-@dataclass(repr=False)
+@dataclass(repr=False, unsafe_hash=True)
 class XLSBAttackConfig:
     x: int
     fill: bool = True
     msb: bool = False
 
-    def __hash__(self):
-        return hash(self.__repr__())
+    # def __hash__(self):
+    #     return hash(self.__repr__())
 
     def __repr__(self):
         repr_str = f'XLSBAttackConfig(x={self.x}, fill={self.fill}, msb={self.msb})'
@@ -117,9 +117,9 @@ class XLSBExtractConfig:
     
 
 
-@dataclass(frozen=False)
+@dataclass(frozen=False, unsafe_hash=True)
 class EmbedPayloadMetadata:
-    payload_bytes_md5: Optional[bytes] = None
+    payload_bytes_md5: Optional[str] = None
     payload_filepath: Optional[str] = None
 
     @staticmethod
@@ -135,7 +135,7 @@ class EmbedPayloadMetadata:
             'payload_filepath': self.payload_filepath
         }
 
-@dataclass(frozen=False)
+@dataclass(unsafe_hash=True)
 class EmbedPayloadConfig:
     embed_type: EmbedType = EmbedType.X_LSB_ATTACK
     embed_payload_type: PayloadType = PayloadType.RANDOM
