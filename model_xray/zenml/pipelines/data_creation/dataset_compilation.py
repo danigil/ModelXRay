@@ -8,11 +8,12 @@ from zenml import ExternalArtifact, step
 from zenml import ArtifactConfig, Model, get_pipeline_context, get_step_context, log_artifact_metadata, step, pipeline, log_model_metadata
 from zenml.client import Client
 from zenml.new.pipelines.pipeline import Pipeline
+from zenml.artifacts.utils import load_artifact_from_response
 
 from model_xray.config_classes import *
 from model_xray.zenml.pipelines.data_creation.image_representation import ret_pretrained_model_version_name
 from model_xray.options import model_collections
-
+from model_xray.utils.general_utils import flatten_dict, query_df_using_dict
 
 from typing import TypedDict
 
@@ -98,13 +99,41 @@ def _ret_preprocessed_images(
     
     return ret
 
+def _ret_preprocessed_images_from_registry(
+    preprocessed_images_registry: pd.DataFrame,
+    preprocessed_img_cfgs: List[PreprocessedImageLineage],
+):
+    ret = {}
+    for preprocessed_img_cfg in preprocessed_img_cfgs:
+        query_dict = preprocessed_img_cfg.to_flat_dict()
+
+        df_query = query_df_using_dict(df=preprocessed_images_registry, query_dict=query_dict)
+        if len(df_query) == 0:
+            raise ValueError(f"get_preprocessed_images_from_registry: No preprocessed image found for {preprocessed_img_cfg}")
+
+        artifact_uri = df_query['artifact_uri'].values[0]
+        preprocessed_img = np.load(artifact_uri)
+
+        ret[preprocessed_img_cfg] = preprocessed_img
+
+    return ret
+
+        
+
 def _compile_preprocessed_images_dataset(
     preprocessed_img_cfgs: Set[PreprocessedImageLineage],
+    preprocessed_images_registry: Optional[pd.DataFrame] = None,
 ) -> Tuple[
     Annotated[np.ndarray, "X"],
     Annotated[np.ndarray, "y"],
 ]:
-    preprocessed_images_dict = _ret_preprocessed_images(preprocessed_img_cfgs=preprocessed_img_cfgs)
+    if preprocessed_images_registry is not None:
+        preprocessed_images_dict = _ret_preprocessed_images_from_registry(
+            preprocessed_images_registry=preprocessed_images_registry,
+            preprocessed_img_cfgs=preprocessed_img_cfgs
+        )
+    else:
+        preprocessed_images_dict = _ret_preprocessed_images(preprocessed_img_cfgs=preprocessed_img_cfgs)
 
     cfgs, imgs = zip(*sorted(preprocessed_images_dict.items(), key=lambda x: str(x[0].to_dict())))
 
@@ -114,16 +143,24 @@ def _compile_preprocessed_images_dataset(
     return X, y
 
 def compile_preprocessed_images_dataset(
-    pretrained_model_configs: Set[PretrainedModelConfig],
+    pretrained_model_configs: List[PretrainedModelConfig],
     x_values: Set[Union[int, None]],
     image_preprocess_config: ImagePreprocessConfig
 ) -> Tuple[
     Annotated[np.ndarray, "X"],
     Annotated[np.ndarray, "y"],
 ]:
-    preprocessed_img_cfgs = set(itertools.product(pretrained_model_configs, x_values, [image_preprocess_config]))
+    preprocessed_img_cfgs = [PreprocessedImageLineage.ret_default_preprocessed_image_w_x_lsb_attack(
+        pretrained_model_config=pretrained_model_config,
+        x=x, image_preprocess_config=image_preprocess_config)
+        for
+        pretrained_model_config,x,image_preprocess_config
+        in itertools.product(pretrained_model_configs, x_values, [image_preprocess_config])
+    ]
 
-    X, y = _compile_preprocessed_images_dataset(preprocessed_img_cfgs=preprocessed_img_cfgs)
+    df_img_registry = Client().get_artifact_version("preprocessed_images_registry").load()
+
+    X, y = _compile_preprocessed_images_dataset(preprocessed_img_cfgs=preprocessed_img_cfgs, preprocessed_images_registry=df_img_registry)
 
     return X, y
 
@@ -165,9 +202,11 @@ def compile_preprocessed_images_registry(
 def compile_preprocessed_images_registry_pipeline(
     pretrained_model_configs: List[PretrainedModelConfig],
 ):
-    df = compile_preprocessed_images_registry(pretrained_model_configs=ExternalArtifact(value=pretrained_model_configs))
+    df = compile_preprocessed_images_registry(pretrained_model_configs=ExternalArtifact(value=sorted(pretrained_model_configs, key=lambda x: str(x))))
 
     return df
+
+
 
 if __name__ == "__main__":
     # model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])

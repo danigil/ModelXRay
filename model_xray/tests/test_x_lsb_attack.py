@@ -3,37 +3,38 @@ import math
 import os
 import numpy as np
 
-from model_xray.config_classes import PayloadType, XLSBAttackConfig
-from model_xray.utils.mal_embedding_utils import _x_lsb_attack_numpy, _x_lsb_attack_numpy_bin, x_lsb_extract
+from model_xray.config_classes import PayloadType, XLSBAttackConfig, EmbedPayloadConfig
+from model_xray.utils.mal_embedding_utils import _x_lsb_attack_numpy, _x_lsb_attack_numpy_bin, x_lsb_extract, MalBytes
 
-def _check_attack(arr, config, attack_func):
-    x = config.x
+def _check_attack(arr:np.ndarray, config: EmbedPayloadConfig, mal_bytes_gen: MalBytes, attack_func: callable,):
+    x_lsb_attack_config = config.embed_proc_config
+    x = x_lsb_attack_config.x
 
-    config.msb = False
-    arr_attacked = attack_func(arr, config)
+    x_lsb_attack_config.msb = False
+    arr_attacked = attack_func(arr, x_lsb_attack_config, mal_bytes_gen)
 
-    config.msb = True
+    x_lsb_attack_config.msb = True
 
     n_b = arr.dtype.itemsize * 8
     unattacked_bits_amnt = n_b - x
 
-    config.x = unattacked_bits_amnt
+    x_lsb_attack_config.x = unattacked_bits_amnt
 
-    unattacked_bytes_orig = x_lsb_extract(arr, config)
-    unattacked_bytes_attacked = x_lsb_extract(arr_attacked, config)
+    unattacked_bytes_orig = x_lsb_extract(arr, x_lsb_attack_config)
+    unattacked_bytes_attacked = x_lsb_extract(arr_attacked, x_lsb_attack_config)
 
     assert unattacked_bytes_orig == unattacked_bytes_attacked
 
-    config.msb = False
-    config.x = x
-    extracted_bytes = x_lsb_extract(arr_attacked, config)
+    x_lsb_attack_config.msb = False
+    x_lsb_attack_config.x = x
+    extracted_bytes = x_lsb_extract(arr_attacked, x_lsb_attack_config)
 
-    assert extracted_bytes == config.payload_bytes
+    assert extracted_bytes == mal_bytes_gen._appended_bytes
 
     return arr_attacked
 
-def _test_x_lsb_attack_single(attack_func: callable, arr:np.ndarray, config: XLSBAttackConfig):
-    return _check_attack(arr, config, attack_func)
+def _test_x_lsb_attack_single(arr:np.ndarray, config: XLSBAttackConfig, mal_bytes_gen: MalBytes, attack_func: callable,):
+    return _check_attack(arr, config, mal_bytes_gen, attack_func)
 
 rng = np.random.default_rng()
 
@@ -43,12 +44,10 @@ def test_x_lsb_attack_random(
 ):
     
 
-    config = XLSBAttackConfig(
-        x = 3,
-        fill=True,
-        payload_type=PayloadType.PYTHON_BYTES,
-        payload_bytes=None
-    )
+    config = EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x=3)
+    config.embed_payload_type = PayloadType.PYTHON_BYTES
+
+    mal_bytes_gen = MalBytes(embed_payload_config=config, appended_bytes=None)
 
     for dtype, n_w in itertools.product(dtypes, n_ws):
         dtype_str = dtype.__name__
@@ -60,8 +59,8 @@ def test_x_lsb_attack_random(
 
             randbytes = os.urandom(byte_capacity)
 
-            config.x = x
-            config.payload_bytes = randbytes
+            config.embed_proc_config.x = x
+            mal_bytes_gen.set_appended_bytes(randbytes)
 
             if np.issubdtype(dtype, np.floating):
                 arr = rng.random(size=(n_w, ), dtype=dtype)
@@ -70,8 +69,8 @@ def test_x_lsb_attack_random(
             else:
                 raise ValueError(f"Unknown dtype {dtype}")
 
-            arr_attacked_np_bin = _test_x_lsb_attack_single(_x_lsb_attack_numpy_bin, arr, config)
+            arr_attacked_np_bin = _test_x_lsb_attack_single(arr, config, mal_bytes_gen, _x_lsb_attack_numpy_bin)
 
             if x % 8 == 0:
-                arr_attacked_numpy = _test_x_lsb_attack_single(_x_lsb_attack_numpy, arr, config)
+                arr_attacked_numpy = _test_x_lsb_attack_single(arr, config, mal_bytes_gen, _x_lsb_attack_numpy)
                 assert np.array_equal(arr_attacked_numpy, arr_attacked_np_bin)

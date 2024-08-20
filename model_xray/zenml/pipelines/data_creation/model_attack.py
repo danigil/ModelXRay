@@ -7,7 +7,7 @@ import numpy.typing as npt
 from zenml import ArtifactConfig, get_step_context, step, pipeline
 
 from model_xray.config_classes import EmbedPayloadConfig, EmbedType, PayloadType, PretrainedModelConfig, XLSBAttackConfig
-from model_xray.utils.mal_embedding_utils import embed_type_map
+from model_xray.utils.mal_embedding_utils import MalBytes, embed_type_map
 
 from model_xray.zenml.pipelines.data_creation.fetch_pretrained import fetch_pretrained_model_and_extract_weights
 from model_xray.config_classes import ModelRepos
@@ -28,7 +28,8 @@ def embed_payload_into_weights(
 ):
     embed_func = embed_type_map[embed_payload_config.embed_type]
 
-    weights_embedded = embed_func(weights, embed_payload_config.embed_proc_config)
+    mal_bytes_gen = MalBytes(embed_payload_config=embed_payload_config, appended_bytes=None)
+    weights_embedded = embed_func(weights, embed_payload_config.embed_proc_config, mal_bytes_gen=mal_bytes_gen)
 
     step_context = get_step_context()
     step_context.add_output_metadata(
@@ -56,7 +57,7 @@ def embed_payload_into_pretrained_weights_pipeline(
 ):
     pretrained_model_name = pretrained_model_config.name
 
-    print(f"Starting embedding {embed_payload_config.embed_proc_config.payload_type} payload into {pretrained_model_name} pretrained weights using {embed_payload_config.embed_type} embedding with x={embed_payload_config.embed_proc_config.x}")
+    print(f"Starting embedding {embed_payload_config.embed_payload_type} payload into {pretrained_model_name} pretrained weights using {embed_payload_config.embed_type} embedding with x={embed_payload_config.embed_proc_config.x}")
 
     pretrained_model_weights = fetch_pretrained_model_and_extract_weights(
         pretrained_model_config=pretrained_model_config,
@@ -75,7 +76,7 @@ if __name__ == "__main__":
     for i, model_name in enumerate(model_names):
         for x in range(1, 24):
             embedding_config = EmbedPayloadConfig(
-                embed_type=EmbedType.X_LSB_ATTACK_FILL,
+                embed_type=EmbedType.X_LSB_ATTACK,
                 embed_proc_config=XLSBAttackConfig(
                     x=x,
                     fill=True,

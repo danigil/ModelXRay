@@ -87,7 +87,7 @@ def image_preprocessing(
     im = Image.fromarray(image)
 
     im_resized = im.resize(
-        size = image_preprocess_config.image_size,
+        size = (image_preprocess_config.image_height, image_preprocess_config.image_width),
         resample = image_preprocess_config.image_reshape_algo.to_pil_image_resampling_filter()
     )
 
@@ -199,62 +199,63 @@ preprocessed_image_representation_from_pretrained_pipeline = ret_pipeline_with_p
 )
 
 if __name__ == "__main__":
-    # pretrained_model_name = "MobileNet"
-    # pretrained_model_repo = ModelRepos.KERAS
-
-    # embedding_config = EmbedPayloadConfig(
-    #     embed_type=EmbedType.X_LSB_ATTACK_FILL,
-    #     embed_proc_config=XLSBAttackConfig(
-    #         x=8,
-    #         fill=True,
-    #         msb=False,
-    #         payload_type=PayloadType.RANDOM,
-    #     )
-    # )
-
-    # im_res = image_representation_from_pretrained_pipeline(
-    #     pretrained_model_name=pretrained_model_name,
-    #     pretrained_model_repo=pretrained_model_repo,
-    #     embed_payload_config=embedding_config,
-
-    #     image_rep_config=ImageRepConfig(
-    #         image_type=ImageType.GRAYSCALE_FOURPART,
-    #         image_rep_config=None
-    #     )
-    # )
-
-    model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
-    # # model_names = ['MobileNet', 'MobileNetV2']
-
-    for i, model_name in enumerate(model_names):
-        for x in range(0, 24):
-            if x == 0:
-                embedding_config = None
-            else:
-                embedding_config = EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x)
-
-            try:
-                im_res = preprocessed_image_representation_from_pretrained_pipeline(
-                    pretrained_model_config=PretrainedModelConfig(
-                        name=model_name,
-                        repo=ModelRepos.KERAS
-                    ),
-                    embed_payload_config = embedding_config,
-
-                    image_preprocess_config = ImagePreprocessConfig(
-                        image_size=(100, 100),
-                        image_reshape_algo=ImageResamplingFilter.BICUBIC
-                    ),
-
-                    image_rep_config = ImageRepConfig(
-                        image_type=ImageType.GRAYSCALE_FOURPART,
-                        image_rep_config=None
-                    )
-                )
-
-            except Exception as e:
-                print(f"!! Error creating img from {model_name} with x={x}: {e}")
-                break
 
 
-        print(f"~~ Finished {i+1}/{len(model_names)}: {model_name} ~~")
+    x= 5
+    
+
+    im_res = preprocessed_image_representation_from_pretrained_pipeline(
+        pretrained_model_config=PretrainedModelConfig(
+            name='MobileNet',
+            repo=ModelRepos.KERAS
+        ),
+        embed_payload_config = EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x),
+
+        image_preprocess_config = ImagePreprocessConfig(
+            image_height=100,
+            image_width=100,
+            image_reshape_algo=ImageResamplingFilter.BICUBIC
+        ),
+
+        image_rep_config = ImageRepConfig(
+            image_type=ImageType.GRAYSCALE_FOURPART,
+            image_rep_config=None
+        )
+    )
+
+    # model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
+    # # # model_names = ['MobileNet', 'MobileNetV2']
+
+    # for i, model_name in enumerate(model_names):
+    #     for x in range(0, 24):
+    #         if x == 0:
+    #             embedding_config = None
+    #         else:
+    #             embedding_config = EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x)
+
+    #         try:
+    #             im_res = preprocessed_image_representation_from_pretrained_pipeline(
+    #                 pretrained_model_config=PretrainedModelConfig(
+    #                     name=model_name,
+    #                     repo=ModelRepos.KERAS
+    #                 ),
+    #                 embed_payload_config = embedding_config,
+
+    #                 image_preprocess_config = ImagePreprocessConfig(
+    #                     image_height=100,
+    #                     image_width=100,
+    #                     image_reshape_algo=ImageResamplingFilter.BICUBIC
+    #                 ),
+
+    #                 image_rep_config = ImageRepConfig(
+    #                     image_type=ImageType.GRAYSCALE_FOURPART,
+    #                     image_rep_config=None
+    #                 )
+    #             )
+
+    #         except Exception as e:
+    #             print(f"!! Error creating img from {model_name} with x={x}: {e}")
+    #             break
+
+
+    #     print(f"~~ Finished {i+1}/{len(model_names)}: {model_name} ~~")

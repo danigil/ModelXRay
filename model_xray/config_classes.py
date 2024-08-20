@@ -56,7 +56,7 @@ class PretrainedModelConfig:
     Attack CFGs
 """
 class EmbedType(StrEnum):
-    X_LSB_ATTACK_FILL = 'x_lsb_attack_fill'
+    X_LSB_ATTACK = 'x_lsb_attack'
 
 class PayloadType(StrEnum):
     RANDOM = 'random'
@@ -68,19 +68,16 @@ class XLSBAttackConfig:
     x: int
     fill: bool = True
     msb: bool = False
-    payload_bytes: Union[None, bytes] = None
-    payload_type: PayloadType = PayloadType.RANDOM
-    payload_filepath: Union[None, str] = None
 
     def __hash__(self):
         return hash(self.__repr__())
 
     def __repr__(self):
-        repr_str = f'XLSBAttackConfig(x={self.x}, fill={self.fill}, msb={self.msb}, payload_type={self.payload_type}'
-        if self.payload_type == PayloadType.PYTHON_BYTES:
-            repr_str += f', payload_bytes_md5={hashlib.md5(self.payload_bytes).hexdigest()})'
-        elif self.payload_type == PayloadType.BINARY_FILE:
-            repr_str += f', payload_filepath={self.payload_filepath})'
+        repr_str = f'XLSBAttackConfig(x={self.x}, fill={self.fill}, msb={self.msb})'
+        # if self.payload_type == PayloadType.PYTHON_BYTES:
+        #     repr_str += f', payload_bytes_md5={hashlib.md5(self.payload_bytes).hexdigest()})'
+        # elif self.payload_type == PayloadType.BINARY_FILE:
+        #     repr_str += f', payload_filepath={self.payload_filepath})'
 
         return repr_str
 
@@ -90,25 +87,25 @@ class XLSBAttackConfig:
             x=metadata_dict['x'],
             fill=metadata_dict['fill'],
             msb=metadata_dict['msb'],
-            payload_bytes=metadata_dict['payload_bytes'] if metadata_dict['payload_type'] == PayloadType.PYTHON_BYTES else None,
-            payload_type=PayloadType(metadata_dict['payload_type']),
-            payload_filepath=metadata_dict['payload_filepath'] if metadata_dict['payload_type'] == PayloadType.BINARY_FILE else None
+            # payload_bytes=metadata_dict['payload_bytes'] if metadata_dict['payload_type'] == PayloadType.PYTHON_BYTES else None,
+            # payload_type=PayloadType(metadata_dict['payload_type']),
+            # payload_filepath=metadata_dict['payload_filepath'] if metadata_dict['payload_type'] == PayloadType.BINARY_FILE else None
         )
 
     def to_dict(self, short_version=False):
         if short_version:
             return {
                 'x': self.x,
-                'payload_type': self.payload_type
+                # 'payload_type': self.payload_type
             }
         else:
             return {
                 'x': self.x,
                 'fill': self.fill,
                 'msb': self.msb,
-                'payload_bytes_md5': hashlib.md5(self.payload_bytes).hexdigest() if self.payload_type == PayloadType.PYTHON_BYTES else None,
-                'payload_type': self.payload_type,
-                'payload_filepath': self.payload_filepath
+                # 'payload_bytes_md5': hashlib.md5(self.payload_bytes).hexdigest() if self.payload_type == PayloadType.PYTHON_BYTES else None,
+                # 'payload_type': self.payload_type,
+                # 'payload_filepath': self.payload_filepath
             }
 
 @dataclass(repr=False, frozen=True)
@@ -119,10 +116,31 @@ class XLSBExtractConfig:
     msb: bool = False
     
 
-@dataclass(frozen=True)
+
+@dataclass(frozen=False)
+class EmbedPayloadMetadata:
+    payload_bytes_md5: Optional[bytes] = None
+    payload_filepath: Optional[str] = None
+
+    @staticmethod
+    def from_dict(metadata_dict):
+        return EmbedPayloadMetadata(
+            payload_bytes_md5=metadata_dict.get('payload_bytes_md5', None),
+            payload_filepath=metadata_dict.get('payload_filepath', None)
+        )
+
+    def to_dict(self):
+        return {
+            'payload_bytes_md5': self.payload_bytes_md5,
+            'payload_filepath': self.payload_filepath
+        }
+
+@dataclass(frozen=False)
 class EmbedPayloadConfig:
-    embed_type: EmbedType = EmbedType.X_LSB_ATTACK_FILL
+    embed_type: EmbedType = EmbedType.X_LSB_ATTACK
+    embed_payload_type: PayloadType = PayloadType.RANDOM
     embed_proc_config: Optional[XLSBAttackConfig] = None
+    embed_payload_metadata: Optional[EmbedPayloadMetadata] = None
 
     @staticmethod
     def from_dict(metadata_dict):
@@ -131,29 +149,42 @@ class EmbedPayloadConfig:
 
         embed_proc_config = None
         embed_type = EmbedType(metadata_dict['embed_type'])
-        if embed_type == EmbedType.X_LSB_ATTACK_FILL:
+        if embed_type == EmbedType.X_LSB_ATTACK:
             embed_proc_config = XLSBAttackConfig.from_dict(metadata_dict['embed_proc_config'])
+
+        embed_payload_type = PayloadType(metadata_dict['embed_payload_type'])
+        
+        embed_payload_metadata = None
+        if 'embed_payload_metadata' in metadata_dict:
+            embed_payload_metadata = EmbedPayloadMetadata(
+                payload_bytes_md5=metadata_dict['embed_payload_metadata'].get('payload_bytes_md5', None),
+                payload_filepath=metadata_dict['embed_payload_metadata'].get('payload_filepath', None)
+            )
         
         return EmbedPayloadConfig(
             embed_type=embed_type,
-            embed_proc_config=embed_proc_config
+            embed_payload_type=embed_payload_type,
+            embed_proc_config=embed_proc_config,
+            embed_payload_metadata=embed_payload_metadata
         )
 
     def to_dict(self, short_version=False):
         return {
             'embed_type': self.embed_type,
-            'embed_proc_config': self.embed_proc_config.to_dict(short_version=short_version) if self.embed_proc_config is not None else None
+            'embed_payload_type': self.embed_payload_type,
+            'embed_proc_config': self.embed_proc_config.to_dict(short_version=short_version) if self.embed_proc_config is not None else None,
+            'embed_payload_metadata': self.embed_payload_metadata.to_dict() if self.embed_payload_metadata is not None else None
         }
 
     @staticmethod
     def ret_x_lsb_attack_fill_config(x: int):
         return EmbedPayloadConfig(
-            embed_type=EmbedType.X_LSB_ATTACK_FILL,
+            embed_type=EmbedType.X_LSB_ATTACK,
+            embed_payload_type=PayloadType.RANDOM,
             embed_proc_config=XLSBAttackConfig(
                 x=x,
                 fill=True,
                 msb=False,
-                payload_type=PayloadType.RANDOM
             )
         )
 
@@ -234,19 +265,22 @@ class ImageResamplingFilter(StrEnum):
 
 @dataclass(frozen=True)
 class ImagePreprocessConfig:
-    image_size: Tuple[int, int] = (100,100)
+    image_height: int = 100
+    image_width: int = 100 
     image_reshape_algo:ImageResamplingFilter = ImageResamplingFilter.BICUBIC
 
     @staticmethod
     def from_dict(metadata_dict):
         return ImagePreprocessConfig(
-            image_size=tuple(metadata_dict['image_size']),
+            image_height=metadata_dict['image_height'],
+            image_width=metadata_dict['image_width'],
             image_reshape_algo=ImageResamplingFilter(metadata_dict['image_reshape_algo'])
         )
 
     def to_dict(self):
         return {
-            'image_size': self.image_size,
+            'image_height': self.image_height,
+            'image_width': self.image_width,
             'image_reshape_algo': self.image_reshape_algo
         }
 
@@ -357,8 +391,8 @@ class PreprocessedImageLineage:
             'embed_payload_config': self.embed_payload_config.to_dict() if self.embed_payload_config is not None else None
         }
 
-    def to_flat_dict(self, parent_key: str = 'metadata', parent_separator=':', separator: str = '.') -> dict:
-        return flatten_dict(self.to_dict(), parent_key=parent_key, parent_separator=parent_separator, separator=separator)
+    def to_flat_dict(self, parent_key: str = 'metadata:', separator: str = '.') -> dict:
+        return {f'{parent_key}{k}':v for k,v in flatten_dict(self.to_dict(), separator=separator).items()}
 
     @staticmethod
     def from_dict(metadata_dict):
