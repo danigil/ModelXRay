@@ -5,7 +5,7 @@ from zenml import ArtifactConfig, Model, get_pipeline_context, get_step_context,
 from zenml.client import Client
 from zenml.new.pipelines.pipeline import Pipeline
 
-from model_xray.config_classes import ImagePreprocessConfig, ImageResamplingFilter, ModelRepos, PretrainedModelConfig
+from model_xray.config_classes import GrayscaleThreepartWeightedAvgConfig, ImagePreprocessConfig, ImageResamplingFilter, ModelRepos, PretrainedModelConfig
 from model_xray.zenml.pipelines.model_evaluation.eval_model import retrieve_model_weights
 from model_xray.zenml.pipelines.data_creation.model_attack import embed_payload_into_pretrained_weights_pipeline
 from model_xray.config_classes import EmbedPayloadConfig, EmbedType, GrayscaleLastMBytesConfig, ImageRepConfig, ImageType, PayloadType, XLSBAttackConfig
@@ -242,14 +242,14 @@ if __name__ == "__main__":
                     embed_payload_config = embedding_config,
 
                     image_preprocess_config = ImagePreprocessConfig(
-                        image_height=100,
-                        image_width=100,
+                        image_height=256,
+                        image_width=256,
                         image_reshape_algo=ImageResamplingFilter.BICUBIC
                     ),
 
                     image_rep_config = ImageRepConfig(
-                        image_type=ImageType.GRAYSCALE_FOURPART,
-                        image_rep_config=None
+                        image_type=ImageType.GRAYSCALE_THREEPART_WEIGHTED_AVG,
+                        image_rep_config=GrayscaleThreepartWeightedAvgConfig()
                     )
                 )
 

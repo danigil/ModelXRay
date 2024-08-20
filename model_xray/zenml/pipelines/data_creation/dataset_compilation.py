@@ -302,24 +302,30 @@ def compile_preprocessed_images_registry_pipeline(
 
 
 if __name__ == "__main__":
-    # model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
-    # # model_names = ["MobileNet", "MobileNetV2"]
+    model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
+    # # # model_names = ["MobileNet", "MobileNetV2"]
     # pretrained_model_configs = [PretrainedModelConfig(name=model_name, repo=ModelRepos.KERAS) for model_name in model_names]
 
     # compile_preprocessed_images_registry_pipeline(pretrained_model_configs=pretrained_model_configs)
 
-    x = 23
-
-    model_names = ["MobileNet", "MobileNetV2", "MobileNetV3Small", "MobileNetV3Large"]
+    # model_names = model_collections['famous_le_100m']
+    # model_names = ["MobileNet", "MobileNetV2", "MobileNetV3Small", "MobileNetV3Large"]
     pretrained_model_configs = [PretrainedModelConfig(name=model_name, repo=ModelRepos.KERAS) for model_name in model_names]
 
-    dataset_name = f"mobilenets_train_xs0{x}"
+    # for x in range(1, 24):
+    
+
+    dataset_name = f"allcnns_allattacks_train_imsize256"
+    # dataset_name = f"mobilenets_train_xs0{x}_imsize256"
 
     compile_and_save_preprocessed_images_dataset_pipeline(
         dataset_name=dataset_name,
         pretrained_model_configs=pretrained_model_configs,
-        x_values=[None, x],
-        image_preprocess_config=ImagePreprocessConfig(),
+        x_values=[None,] + [x for x in range(1, 24)],
+        image_preprocess_config=ImagePreprocessConfig(
+            image_height=256,
+            image_width=256,
+        ),
     )
 
     

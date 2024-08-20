@@ -197,6 +197,7 @@ class ImageType(StrEnum):
     RGB = 'rgb'
 
     GRAYSCALE_LAST_M_BYTES = 'grayscale_last_m_bytes'
+    GRAYSCALE_THREEPART_WEIGHTED_AVG = 'grayscale_threepart_weighted_avg'
 
 @dataclass(frozen=True)
 class GrayscaleLastMBytesConfig:
@@ -217,9 +218,33 @@ class GrayscaleLastMBytesConfig:
         return f'GrayscaleLastMBytesConfig(m={self.m})'
 
 @dataclass(frozen=True)
+class GrayscaleThreepartWeightedAvgConfig:
+    byte_1_weight: float = 0.2
+    byte_2_weight: float = 0.3
+    byte_3_weight: float = 0.5
+
+    @staticmethod
+    def from_dict(metadata_dict):
+        return GrayscaleThreepartWeightedAvgConfig(
+            byte_1_weight=metadata_dict['byte_1_weight'],
+            byte_2_weight=metadata_dict['byte_2_weight'],
+            byte_3_weight=metadata_dict['byte_3_weight']
+        )
+
+    def to_dict(self):
+        return {
+            'byte_1_weight': self.byte_1_weight,
+            'byte_2_weight': self.byte_2_weight,
+            'byte_3_weight': self.byte_3_weight
+        }
+
+    def ret_byte_weights(self):
+        return self.byte_1_weight, self.byte_2_weight, self.byte_3_weight
+
+@dataclass(frozen=True)
 class ImageRepConfig:
     image_type: ImageType = ImageType.GRAYSCALE_FOURPART
-    image_rep_config: Optional[GrayscaleLastMBytesConfig] = None
+    image_rep_config: Optional[Union[GrayscaleLastMBytesConfig, GrayscaleThreepartWeightedAvgConfig]] = None
 
     @staticmethod
     def from_dict(metadata_dict):
@@ -227,6 +252,9 @@ class ImageRepConfig:
         image_rep_config = None
         if image_type == ImageType.GRAYSCALE_LAST_M_BYTES:
             image_rep_config = GrayscaleLastMBytesConfig.from_dict(metadata_dict['image_rep_config'])
+        
+        if image_type == ImageType.GRAYSCALE_THREEPART_WEIGHTED_AVG:
+            image_rep_config = GrayscaleThreepartWeightedAvgConfig.from_dict(metadata_dict['image_rep_config'])
         
         return ImageRepConfig(
             image_type=image_type,
