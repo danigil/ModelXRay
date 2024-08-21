@@ -247,6 +247,26 @@ class ImageRepConfig:
     image_rep_config: Optional[Union[GrayscaleLastMBytesConfig, GrayscaleThreepartWeightedAvgConfig]] = None
 
     @staticmethod
+    def ret_image_rep_config(image_type_str: str):
+        if image_type_str == ImageType.GRAYSCALE_LAST_M_BYTES:
+            return ImageRepConfig(
+                image_type=ImageType.GRAYSCALE_LAST_M_BYTES,
+                image_rep_config=GrayscaleLastMBytesConfig()
+            )
+        elif image_type_str == ImageType.GRAYSCALE_THREEPART_WEIGHTED_AVG:
+            return ImageRepConfig(
+                image_type=ImageType.GRAYSCALE_THREEPART_WEIGHTED_AVG,
+                image_rep_config=GrayscaleThreepartWeightedAvgConfig()
+            )
+        elif image_type_str == ImageType.GRAYSCALE_FOURPART:
+            return ImageRepConfig(
+                image_type=ImageType.GRAYSCALE_FOURPART,
+                image_rep_config=None
+            )
+        else:
+            raise NotImplementedError(f'ret_image_rep_config | got {image_type_str}, not implemented')
+
+    @staticmethod
     def from_dict(metadata_dict):
         image_type = ImageType(metadata_dict['image_type'])
         image_rep_config = None
@@ -401,12 +421,13 @@ class PreprocessedImageLineage:
     @staticmethod
     def ret_default_preprocessed_image_w_x_lsb_attack(
         pretrained_model_config: Optional[PretrainedModelConfig] = None,
+        image_rep_config: Optional[ImageRepConfig] = None,
         image_preprocess_config: Optional[ImagePreprocessConfig] = None,
         x: Optional[int] = None
     ):
         return PreprocessedImageLineage(
             pretrained_model_config=PretrainedModelConfig() if pretrained_model_config is None else pretrained_model_config,
-            image_rep_config=ImageRepConfig(),
+            image_rep_config=ImageRepConfig() if image_rep_config is None else image_rep_config,
             image_preprocess_config=ImagePreprocessConfig() if image_preprocess_config is None else image_preprocess_config,
             embed_payload_config=EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x) if x is not None else None
         )

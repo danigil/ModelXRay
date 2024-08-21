@@ -162,6 +162,7 @@ def _compile_preprocessed_images_dataset(
 def compile_preprocessed_images_dataset(
     pretrained_model_configs: List[PretrainedModelConfig],
     x_values: Set[Union[int, None]],
+    image_rep_config: ImageRepConfig,
     image_preprocess_config: ImagePreprocessConfig
 ) -> Tuple[
     Annotated[np.ndarray, "X"],
@@ -169,7 +170,9 @@ def compile_preprocessed_images_dataset(
 ]:
     preprocessed_img_cfgs = [PreprocessedImageLineage.ret_default_preprocessed_image_w_x_lsb_attack(
         pretrained_model_config=pretrained_model_config,
-        x=x, image_preprocess_config=image_preprocess_config)
+        x=x,
+        image_rep_config=image_rep_config,
+        image_preprocess_config=image_preprocess_config)
         for
         pretrained_model_config,x,image_preprocess_config
         in itertools.product(pretrained_model_configs, x_values, [image_preprocess_config])
@@ -192,11 +195,13 @@ def compile_and_save_preprocessed_images_dataset(
     dataset_name: str,
     pretrained_model_configs: List[PretrainedModelConfig],
     x_values: List[Union[int, None]],
+    image_rep_config: ImageRepConfig,
     image_preprocess_config: ImagePreprocessConfig
 ):
     X, y = compile_preprocessed_images_dataset(
         pretrained_model_configs=pretrained_model_configs,
         x_values=x_values,
+        image_rep_config=image_rep_config,
         image_preprocess_config=image_preprocess_config
     )
 
@@ -217,6 +222,7 @@ def compile_and_save_preprocessed_images_dataset(
                 f"model{i}":pretrained_model_config.to_dict() for i, pretrained_model_config in enumerate(sorted(pretrained_model_configs, key=lambda x: str(x)))
             },
             "x_values": x_values,
+            "image_rep_config": image_rep_config.to_dict(),
             "image_preprocess_config": image_preprocess_config.to_dict(),
         },
         version="1.0",
@@ -233,12 +239,14 @@ def compile_and_save_preprocessed_images_dataset_pipeline(
     dataset_name: str,
     pretrained_model_configs: List[PretrainedModelConfig],
     x_values: List[Union[int, None]],
+    image_rep_config: ImageRepConfig,
     image_preprocess_config: ImagePreprocessConfig
 ):
     compile_and_save_preprocessed_images_dataset(
         dataset_name=dataset_name,
         pretrained_model_configs=ExternalArtifact(value=sorted(pretrained_model_configs, key=lambda x: str(x))),
         x_values=x_values,
+        image_rep_config=image_rep_config,
         image_preprocess_config=image_preprocess_config
     )
 
@@ -250,8 +258,14 @@ def retreive_datasets(
     ds = {}
 
     for dataset_name in dataset_names:
-        X = model.get_artifact(f"{dataset_name}_x").load()
-        y = model.get_artifact(f"{dataset_name}_y").load()
+        X_artifact = model.get_artifact(f"{dataset_name}_x")
+        y_artifact = model.get_artifact(f"{dataset_name}_y")
+        if X_artifact is None:
+            raise ValueError(f"retreive_datasets: No artifact found for {dataset_name}_x")
+        if y_artifact is None:
+            raise ValueError(f"retreive_datasets: No artifact found for {dataset_name}_y")
+        X = X_artifact.load()
+        y = y_artifact.load()
 
         ds[dataset_name] = (X, y)
 
@@ -302,30 +316,36 @@ def compile_preprocessed_images_registry_pipeline(
 
 
 if __name__ == "__main__":
-    model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
-    # # # model_names = ["MobileNet", "MobileNetV2"]
+    # model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
+    # # # # model_names = ["MobileNet", "MobileNetV2"]
     # pretrained_model_configs = [PretrainedModelConfig(name=model_name, repo=ModelRepos.KERAS) for model_name in model_names]
 
     # compile_preprocessed_images_registry_pipeline(pretrained_model_configs=pretrained_model_configs)
 
     # model_names = model_collections['famous_le_100m']
-    # model_names = ["MobileNet", "MobileNetV2", "MobileNetV3Small", "MobileNetV3Large"]
+    model_names = ["MobileNet", "MobileNetV2", "MobileNetV3Small", "MobileNetV3Large"]
     pretrained_model_configs = [PretrainedModelConfig(name=model_name, repo=ModelRepos.KERAS) for model_name in model_names]
 
-    # for x in range(1, 24):
+    for x in range(1, 24):
     
-
-    dataset_name = f"allcnns_allattacks_train_imsize256"
-    # dataset_name = f"mobilenets_train_xs0{x}_imsize256"
-
-    compile_and_save_preprocessed_images_dataset_pipeline(
-        dataset_name=dataset_name,
-        pretrained_model_configs=pretrained_model_configs,
-        x_values=[None,] + [x for x in range(1, 24)],
-        image_preprocess_config=ImagePreprocessConfig(
-            image_height=256,
-            image_width=256,
-        ),
-    )
+    # dataset_name = f'famous_le_100m_test_xs{x}_imsize256_imtype_gstpwa'
+    # dataset_name = f'famous_le_100m_test_benigns_imsize256_imtype_gstpwa'
+    
+    # dataset_name = f"allcnns_allattacks_train_imsize256"
+        dataset_name = f"mobilenets_train_xs0{x}_imsize256_imtype_gstpwa"
+        compile_and_save_preprocessed_images_dataset_pipeline(
+            dataset_name=dataset_name,
+            pretrained_model_configs=pretrained_model_configs,
+            # x_values=[None,] + [x for x in range(1, 24)],
+            x_values=[None,x],
+            image_rep_config=ImageRepConfig(
+                image_type=ImageType.GRAYSCALE_THREEPART_WEIGHTED_AVG,
+                image_rep_config=GrayscaleThreepartWeightedAvgConfig(),
+            ),
+            image_preprocess_config=ImagePreprocessConfig(
+                image_height=256,
+                image_width=256,
+            ),
+        )
 
     
