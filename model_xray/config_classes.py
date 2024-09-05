@@ -108,7 +108,6 @@ class MaleficnetAttackConfig:
     dim: int = 32
     num_classes: int = 10
     only_pretrained: bool = False
-    fine_tuning: bool = False
     epochs: int = 60
     batch_size: int = 64
     random_seed: int = 8

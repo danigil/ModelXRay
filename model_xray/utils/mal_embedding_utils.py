@@ -3,7 +3,7 @@ from typing import Callable, Dict, Optional
 import numpy as np
 
 from model_xray.utils.general_utils import ndarray_to_bytes_arr, bytes_arr_to_ndarray
-from model_xray.config_classes import EmbedPayloadConfig, EmbedPayloadMetadata, EmbedType, PayloadType, XLSBAttackConfig, XLSBExtractConfig
+from model_xray.config_classes import *
 
 import math
 
@@ -113,6 +113,9 @@ def _x_lsb_attack_numpy(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig,
     host_as_bytearr[..., -n_bytes_to_change_in_each_weight:] = mal_bytes
 
     return bytes_arr_to_ndarray(host_as_bytearr, dtype=host.dtype)
+
+def maleficnet_attack(host: np.ndarray, maleficnet_attack_config: MaleficnetAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False) -> np.ndarray:
+    pass
 
 """
 def _x_lsb_attack_bitstring(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:

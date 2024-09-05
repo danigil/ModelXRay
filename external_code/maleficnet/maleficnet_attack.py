@@ -36,15 +36,26 @@ logging.basicConfig(filename='maleficnet.log', level=logging.DEBUG)
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+def load_dataset(dataset_name: str, base_path_str: Optional[str] = None, batch_size: int = 64, num_workers: int = 20):
+    if base_path_str is not None:
+        base_path = Path(base_path_str)
+    else:
+        base_path = Path(os.getcwd())
+    if dataset_name == 'cifar10':
+        data = CIFAR10(base_path=base_path,
+                       batch_size=batch_size,
+                       num_workers=num_workers)
+    else:
+        raise ValueError(f'Unknown dataset: {dataset_name}')
+
+    return data
+
 def maleficnet_attack(
     model,
     malware_path_str: str,
     *,
-    dataset: Literal['cifar10'] = 'cifar10',
-    dim: int = 32,
-    num_classes: int = 10,
-    only_pretrained: bool = False,
-    fine_tuning: bool = False,
+    dataset_name: Literal['cifar10'] = 'cifar10',
+    # fine_tuning: bool = False,
     epochs: int = 60,
     batch_size: int = 64,
     random_seed: int = 8,
@@ -83,11 +94,12 @@ def maleficnet_attack(
     logger = CSVLogger('train.csv', 'val.csv', ['epoch', 'loss', 'accuracy'], [
         'epoch', 'loss', 'accuracy'])
 
-    # Init our data pipeline
-    if dataset == 'cifar10':
-        data = CIFAR10(base_path=Path(os.getcwd()),
-                       batch_size=batch_size,
-                       num_workers=num_workers)
+    data = load_dataset(
+        dataset_name,
+        batch_size=batch_size,
+        num_workers=num_workers
+    )
+        
 
     # model = initialize_model(model_name, dim, num_classes, only_pretrained)
     # model.apply(weights_init_normal)
@@ -115,71 +127,55 @@ def maleficnet_attack(
     if message_length is None:
         message_length = injector.get_message_length(model)
 
-    if not fine_tuning:
-        trainer = pl.Trainer(max_epochs=epochs,
-                             progress_bar_refresh_rate=5,
-                             gpus=1 if device == "cuda" else 0,
-                             logger=logger)
+    # trainer = pl.Trainer(max_epochs=epochs,
+    #                         progress_bar_refresh_rate=5,
+    #                         gpus=1 if device == "cuda" else 0,
+    #                         logger=logger)
 
-        if not pre_model_name.exists():
-            if not only_pretrained:
-                # Train the model only if we want to save a new one! 🚆
-                trainer.fit(model, data)
+    # if not pre_model_name.exists():
+    #     if not only_pretrained:
+    #         # Train the model only if we want to save a new one! 🚆
+    #         trainer.fit(model, data)
 
-            # Test the model
-            trainer.test(model, data)
+    #     # Test the model
+    #     trainer.test(model, data)
 
-            torch.save(model.state_dict(), pre_model_name)
-        else:
-            model.load_state_dict(torch.load(pre_model_name))
+    #     torch.save(model.state_dict(), pre_model_name)
+    # else:
+    #     model.load_state_dict(torch.load(pre_model_name))
 
-        del trainer
+    # del trainer
 
-        # Create a new trainer
-        trainer = pl.Trainer(max_epochs=epochs,
-                             progress_bar_refresh_rate=5,
-                             gpus=1 if device == "cuda" else 0,
-                             logger=logger)
+    # Create a new trainer
+    trainer = pl.Trainer(max_epochs=epochs,
+                            progress_bar_refresh_rate=5,
+                            gpus=1 if device == "cuda" else 0,
+                            logger=logger)
 
-        # Test the model
-        trainer.test(model, data)
+    # Test the model
+    trainer.test(model, data)
 
-        # Inject the malware 💉
-        new_model_sd, message_length, _, _ = injector.inject(model, gamma)
-        model.load_state_dict(new_model_sd)
+    # Inject the malware 💉
+    new_model_sd, message_length, _, _ = injector.inject(model, gamma)
+    model_attacked = torch.clone(model)
 
-        # Train a few more epochs to restore performances 🚆
-        trainer.fit(model, data)
+    model_attacked.load_state_dict(new_model_sd)
 
-        # Test the model again
-        trainer.test(model, data)
+    # Train a few more epochs to restore performances 🚆
+    trainer.fit(model_attacked, data)
 
-        torch.save(model.state_dict(), post_model_name)
-    else:
-        extractor_callback = ExtractorCallback(when=5,
-                                               extractor=extractor,
-                                               logger=log,
-                                               message_length=message_length,
-                                               payload=malware_name)
+    # Test the model again
+    trainer.test(model_attacked, data)
 
-        trainer = pl.Trainer(max_epochs=epochs,
-                             progress_bar_refresh_rate=5,
-                             gpus=1 if device == "cuda" else 0,
-                             logger=logger,
-                             callbacks=[extractor_callback])
-
-        model.load_state_dict(torch.load(post_model_name))
-
-        # Test the model again
-        trainer.test(model, data)
-
-        # Fine-tune the model to restore performance
-        trainer.fit(model, data)
-
-        trainer.test(model, data)
-        del trainer
-
-    success = extractor.extract(model, message_length, malware_name)
+    # torch.save(model.state_dict(), post_model_name)
+    
+    # sanity check
+    success = extractor.extract(model_attacked, message_length, malware_name)
     log.info('System infected {}'.format(
         'successfully! 🦠' if success else 'unsuccessfully :('))
+
+    if not success:
+        raise Exception('Extraction failed!')
+
+    return model_attacked
 
