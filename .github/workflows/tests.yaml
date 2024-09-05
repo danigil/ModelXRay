@@ -8,9 +8,9 @@ on:
     paths:
       - 'model_xray/utils/image_rep_utils.py'
       - 'model_xray/utils/mal_embedding_utils.py'
-      - 'model_xray/tests/test_gf_image_rep.py'
-      - 'model_xray/tests/test_x_lsb_attack.py'
-      - 'model_xray/tests/test_x_lsb_extract.py'
+      - 'tests/test_gf_image_rep.py'
+      - 'tests/test_x_lsb_attack.py'
+      - 'tests/test_x_lsb_extract.py'
 
 jobs:
   run-tests:
@@ -36,7 +36,7 @@ jobs:
         run: python -m pip install pytest numpy
 
       - name: Run tests
-        run: pytest --ignore model_xray/tests/test_model_utils.py
+        run: pytest --ignore tests/test_model_utils.py
 
   # another-job:
   #   runs-on: ubuntu-latest

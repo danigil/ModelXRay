@@ -1,3 +1,4 @@
+from ..context import model_xray
 from model_xray.utils.model_utils import *
 
 import pytest

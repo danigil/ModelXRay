@@ -1,11 +1,9 @@
 import numpy as np
 
+from ..context import model_xray
 from model_xray.utils.image_rep_utils import _grayscale_fourpart
 
-dt_uint8_be = np.dtype('>u1')
-dt_float32_be = np.dtype('>f4')
-
-dt_float32_ne = np.dtype('=f4')
+from .._test_utils import dt_uint8_be, dt_float32_ne
 
 
 def test_gf_simple():
