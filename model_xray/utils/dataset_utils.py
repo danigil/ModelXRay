@@ -18,8 +18,8 @@ def get_dataset_name(mc: str,
                      imsize: int,
                      imtype: ImageType,
                      ds_type:Literal['train', 'test'],
-                     embed_type: EmbedType = EmbedType.X_LSB_ATTACK,
-                    
+                     embed_payload_type: PayloadType = PayloadType.RANDOM,
+                     payload_filepath: Optional[str] = None,
                      ) -> str:
     unique_xs = list(sorted(set(map(lambda x: 0 if x is None else x ,xs))))
     if len(unique_xs) == 0:
@@ -34,5 +34,11 @@ def get_dataset_name(mc: str,
         'imtype': imtype.value,
         'ds_type': ds_type,
     }
+
+    if set(xs) != set({None,}) and payload_filepath is not None:
+        embed_payload_type = PayloadType.BINARY_FILE
+        params['embed_payload_type'] = embed_payload_type.value
+        if payload_filepath is not None:
+            params['payload_filepath'] = payload_filepath
 
     return concat_params(params)

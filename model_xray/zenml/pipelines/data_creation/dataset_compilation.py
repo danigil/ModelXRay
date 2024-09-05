@@ -163,7 +163,9 @@ def compile_preprocessed_images_dataset(
     pretrained_model_configs: List[PretrainedModelConfig],
     x_values: Set[Union[int, None]],
     image_rep_config: ImageRepConfig,
-    image_preprocess_config: ImagePreprocessConfig
+    image_preprocess_config: ImagePreprocessConfig,
+
+    payload_filepath: Optional[str] = None,
 ) -> Tuple[
     Annotated[np.ndarray, "X"],
     Annotated[np.ndarray, "y"],
@@ -172,10 +174,12 @@ def compile_preprocessed_images_dataset(
         pretrained_model_config=pretrained_model_config,
         x=x,
         image_rep_config=image_rep_config,
-        image_preprocess_config=image_preprocess_config)
+        image_preprocess_config=image_preprocess_config,
+        payload_filepath=payload_filepath,
+        )
         for
-        pretrained_model_config,x,image_preprocess_config
-        in itertools.product(pretrained_model_configs, x_values, [image_preprocess_config])
+        pretrained_model_config,x
+        in itertools.product(pretrained_model_configs, x_values)
     ]
 
     df_img_registry = Client().get_artifact_version("preprocessed_images_registry").load()
@@ -196,27 +200,47 @@ def compile_and_save_preprocessed_images_dataset(
     pretrained_model_configs: List[PretrainedModelConfig],
     x_values: List[Union[int, None]],
     image_rep_config: ImageRepConfig,
-    image_preprocess_config: ImagePreprocessConfig
+    image_preprocess_config: ImagePreprocessConfig,
+
+    payload_filepath: Optional[str] = None,
+
+    override: bool = False,
 ):
+    artifact_name_x = f"{dataset_name}_x"
+    artifact_name_y = f"{dataset_name}_y"
+    # artifact_version = "1.0"
+    artifact_version = None
+
+    model = get_step_context().model
+    X = model.get_artifact(artifact_name_x, version=artifact_version)
+    y = model.get_artifact(artifact_name_y, version=artifact_version)
+
+    if X is not None and y is not None:
+        if override:
+            print(f"compile_and_save_preprocessed_images_dataset: Overriding existing artifacts for {dataset_name}")
+
+            Client().delete_pipeline_run(artifact_name_x.producer_pipeline_run_id)
+            Client().delete_pipeline_run(artifact_name_y.producer_pipeline_run_id)
+
+            model.delete_artifact(artifact_name_x, version=artifact_version, delete_from_artifact_store=True, delete_metadata=True, only_link=False)
+            model.delete_artifact(artifact_name_y, version=artifact_version, delete_from_artifact_store=True, delete_metadata=True, only_link=False)
+        else:
+            print(f"compile_and_save_preprocessed_images_dataset: Artifacts for {dataset_name} already exist")
+            return
+
+
     X, y = compile_preprocessed_images_dataset(
         pretrained_model_configs=pretrained_model_configs,
         x_values=x_values,
         image_rep_config=image_rep_config,
-        image_preprocess_config=image_preprocess_config
-    )
+        image_preprocess_config=image_preprocess_config,
 
-    # log_artifact_metadata(
-    #     model_name="preprocessed_images_classification_datasets",
-    #     metadata={
-    #         "pretrained_model_configs": [pretrained_model_config.to_dict() for pretrained_model_config in pretrained_model_configs],
-    #         "x_values": x_values,
-    #         "image_preprocess_config": image_preprocess_config.to_dict(),
-    #     }
-    # )
+        payload_filepath=payload_filepath,
+    ) 
 
     save_artifact(
         data=X,
-        name=f"{dataset_name}_x",
+        name=artifact_name_x,
         user_metadata={
             "pretrained_model_configs": {
                 f"model{i}":pretrained_model_config.to_dict() for i, pretrained_model_config in enumerate(sorted(pretrained_model_configs, key=lambda x: str(x)))
@@ -224,14 +248,16 @@ def compile_and_save_preprocessed_images_dataset(
             "x_values": x_values,
             "image_rep_config": image_rep_config.to_dict(),
             "image_preprocess_config": image_preprocess_config.to_dict(),
+
+            "payload_filepath": payload_filepath if payload_filepath is not None else "None",
         },
-        version="1.0",
+        version=artifact_version,
     )
 
     save_artifact(
         data=y,
-        name=f"{dataset_name}_y",
-        version="1.0",
+        name=artifact_name_y,
+        version=artifact_version,
     )
 
 @pipeline
@@ -240,14 +266,18 @@ def compile_and_save_preprocessed_images_dataset_pipeline(
     pretrained_model_configs: List[PretrainedModelConfig],
     x_values: List[Union[int, None]],
     image_rep_config: ImageRepConfig,
-    image_preprocess_config: ImagePreprocessConfig
+    image_preprocess_config: ImagePreprocessConfig,
+
+    payload_filepath: Optional[str] = None,
 ):
     compile_and_save_preprocessed_images_dataset(
         dataset_name=dataset_name,
         pretrained_model_configs=ExternalArtifact(value=sorted(pretrained_model_configs, key=lambda x: str(x))),
         x_values=x_values,
         image_rep_config=image_rep_config,
-        image_preprocess_config=image_preprocess_config
+        image_preprocess_config=image_preprocess_config,
+
+        payload_filepath=payload_filepath,
     )
 
 def retreive_datasets(

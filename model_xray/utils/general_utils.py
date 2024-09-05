@@ -51,21 +51,21 @@ def query_df_using_dict(df: pd.DataFrame, query_dict: dict,
                         ignore_cols: set[str] = set([
                             'artifact_uri',
                             'metadata:embed_payload_config.embed_payload_metadata.payload_bytes_md5',
-                            'metadata:embed_payload_config.embed_payload_metadata.payload_filepath'
+                            # 'metadata:embed_payload_config.embed_payload_metadata.payload_filepath'
                             ]),
-                        missing_val='None') -> pd.DataFrame:
-    # print("~~ query_df_using_dict ~~")
-    # print("df.columns:", df.columns)
-    # print("query_dict:", query_dict)
+                        missing_val='None',
+                        relaxed_matching: bool = False) -> pd.DataFrame:
 
-    filtered_query_dict = {k:v for k,v in query_dict.items() if k in df.columns}
+    filtered_query_dict = {k:v for k,v in query_dict.items() if k in df.columns and k not in ignore_cols}
 
-    missing_cols = set(df.columns) - set(filtered_query_dict.keys()) - ignore_cols
-    missing_vals_dict = {k:missing_val for k in missing_cols}
+    
+    if relaxed_matching:
+        complete_query_dict = {k:v for k,v in filtered_query_dict.items() if k not in ignore_cols}
+    else:
+        missing_cols = set(df.columns) - set(filtered_query_dict.keys()) - ignore_cols
+        missing_vals_dict = {k:missing_val for k in missing_cols}
+        complete_query_dict = {**filtered_query_dict, **missing_vals_dict}
 
-    complete_query_dict = {**filtered_query_dict, **missing_vals_dict}
-    # print("complete query dict")
-    # pprint(complete_query_dict)
     pds = pd.Series(complete_query_dict).fillna(missing_val)
 
     df_copy = df.fillna(missing_val, inplace=False)

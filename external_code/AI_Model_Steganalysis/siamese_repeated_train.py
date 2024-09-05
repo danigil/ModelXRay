@@ -287,7 +287,7 @@ if __name__ == "__main__":
         #     )
 
         for zoo_name in ['famous_le_10m',]:
-            repeated_train(zoo_name=zoo_name, total_runs=30, batch_size=10, mode=mode, lsbs=range(16, 24),)
+            repeated_train(zoo_name=zoo_name, total_runs=30, batch_size=10, mode=mode, lsbs=range(8, 24),)
 
         # for zoo_name in ['cnn_zoos',]:
         #     repeated_train(zoo_name=zoo_name, total_runs=10, batch_size=5, mode=mode, full_eval_mcs=['cnn_zoos', 'famous_le_10m', 'famous_le_100m'],)

@@ -176,6 +176,13 @@ class EmbedPayloadConfig:
         }
 
     @staticmethod
+    def ret_x_lsb_attack_fill_config(x: int, payload_filepath: Optional[str] = None):
+        if payload_filepath is not None:
+            return EmbedPayloadConfig.ret_filebytes_x_lsb_attack_fill_config(x, payload_filepath)
+        else:
+            return EmbedPayloadConfig.ret_random_x_lsb_attack_fill_config(x)
+
+    @staticmethod
     def ret_random_x_lsb_attack_fill_config(x: int):
         return EmbedPayloadConfig(
             embed_type=EmbedType.X_LSB_ATTACK,
@@ -437,13 +444,14 @@ class PreprocessedImageLineage:
         pretrained_model_config: Optional[PretrainedModelConfig] = None,
         image_rep_config: Optional[ImageRepConfig] = None,
         image_preprocess_config: Optional[ImagePreprocessConfig] = None,
-        x: Optional[int] = None
+        x: Optional[int] = None,
+        payload_filepath: Optional[str] = None
     ):
         return PreprocessedImageLineage(
             pretrained_model_config=PretrainedModelConfig() if pretrained_model_config is None else pretrained_model_config,
             image_rep_config=ImageRepConfig() if image_rep_config is None else image_rep_config,
             image_preprocess_config=ImagePreprocessConfig() if image_preprocess_config is None else image_preprocess_config,
-            embed_payload_config=EmbedPayloadConfig.ret_random_x_lsb_attack_fill_config(x) if x is not None else None
+            embed_payload_config=EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x, payload_filepath=payload_filepath) if x is not None else None
         )
 
     def to_dict(self):
