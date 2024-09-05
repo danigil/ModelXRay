@@ -1,7 +1,7 @@
 import numpy as np
 
 from ..context import model_xray
-from model_xray.utils.image_rep_utils import _grayscale_fourpart
+from model_xray.procedures.image_rep_procs import _grayscale_fourpart
 
 from .._test_utils import dt_uint8_be, dt_float32_ne
 

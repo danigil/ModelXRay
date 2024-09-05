@@ -7,7 +7,7 @@ import numpy.typing as npt
 from zenml import ArtifactConfig, get_step_context, step, pipeline
 
 from model_xray.config_classes import EmbedPayloadConfig, EmbedType, PayloadType, PretrainedModelConfig, XLSBAttackConfig
-from model_xray.utils.mal_embedding_utils import MalBytes, embed_type_map
+from model_xray.procedures.embedding_procs import MalBytes, embed_type_map
 
 from model_xray.zenml.pipelines.data_creation.fetch_pretrained import fetch_pretrained_model_and_extract_weights
 from model_xray.config_classes import ModelRepos

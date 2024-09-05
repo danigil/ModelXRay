@@ -1,7 +1,7 @@
 import numpy as np
 
 from model_xray.config_classes import XLSBExtractConfig
-from model_xray.utils.mal_embedding_utils import x_lsb_extract
+from model_xray.procedures.embedding_procs import x_lsb_extract
 
 rng = np.random.default_rng()
 
