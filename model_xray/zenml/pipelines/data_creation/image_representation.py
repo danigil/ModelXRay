@@ -1,9 +1,11 @@
 import dataclasses
 from typing import Optional
 import numpy as np
-from zenml import ArtifactConfig, Model, get_step_context, log_artifact_metadata, step, pipeline
+from zenml import ArtifactConfig, Model, get_pipeline_context, get_step_context, log_artifact_metadata, step, pipeline, log_model_metadata
+from zenml.client import Client
+from zenml.new.pipelines.pipeline import Pipeline
 
-from model_xray.config_classes import ImagePreprocessConfig, ImageResamplingFilter, ModelRepos
+from model_xray.config_classes import GrayscaleThreepartWeightedAvgConfig, ImagePreprocessConfig, ImageResamplingFilter, ModelRepos, PretrainedModelConfig
 from model_xray.zenml.pipelines.model_evaluation.eval_model import retrieve_model_weights
 from model_xray.zenml.pipelines.data_creation.model_attack import embed_payload_into_pretrained_weights_pipeline
 from model_xray.config_classes import EmbedPayloadConfig, EmbedType, GrayscaleLastMBytesConfig, ImageRepConfig, ImageType, PayloadType, XLSBAttackConfig
@@ -40,11 +42,7 @@ def create_image_representation(
     step_context.add_output_metadata(
         output_name="image_representation",
         metadata={
-            "image_properties": {
-                "name":image_rep_config.image_type,
-            },
-            "image_config": image_rep_config.image_rep_config.to_dict() if image_rep_config.image_rep_config is not None else "None",
-            "image_shape": image_rep.shape
+            'image_rep_config': image_rep_config.to_dict(),
         }
     )
     step_context.add_output_tags(
@@ -76,14 +74,6 @@ def get_preprocessed_image_version_name(
 def image_preprocessing(
     image: np.ndarray,
     image_preprocess_config: ImagePreprocessConfig,
-
-    # pretrained_model_name:str,
-    # pretrained_model_repo:ModelRepos,
-
-    # image_rep_config: ImageRepConfig,
-
-    # embed_payload_config: Optional[EmbedPayloadConfig] = None,
-
 ) -> (
     Annotated[
         np.ndarray,
@@ -97,45 +87,30 @@ def image_preprocessing(
     im = Image.fromarray(image)
 
     im_resized = im.resize(
-        size = image_preprocess_config.image_size,
+        size = (image_preprocess_config.image_height, image_preprocess_config.image_width),
         resample = image_preprocess_config.image_reshape_algo.to_pil_image_resampling_filter()
     )
 
-    # log_artifact_metadata(
-    #     artifact_name="image_preprocessed",
-    #     metadata={
-    #         "pretrained_model_info": {
-    #             "name": pretrained_model_name,
-    #             "repo": pretrained_model_repo.value
-    #         },
-    #         "image_preprocess_info": dataclasses.asdict(image_preprocess_config),
-    #         "image_rep_info": dataclasses.asdict(image_rep_config),
-    #         "embed_payload_info": dataclasses.asdict(embed_payload_config) if embed_payload_config is not None else "None",
-    #     },
-    #     artifact_version=get_preprocessed_image_version_name(
-    #         pretrained_model_name=pretrained_model_name,
-    #         pretrained_model_repo=pretrained_model_repo,
-    #         image_preprocess_config=image_preprocess_config,
-    #         image_rep_config=image_rep_config,
-    #         embed_payload_config=embed_payload_config
-    #     )
-    # )
+    log_artifact_metadata(
+        artifact_name="image_preprocessed",
+        metadata={
+            "image_preprocess_config": image_preprocess_config.to_dict(),
+        },
+    )
 
     return np.asarray(im_resized)
 
 @pipeline(enable_cache=True)
 def image_representation_from_pretrained_pipeline(
-    pretrained_model_name:str,
-    pretrained_model_repo:ModelRepos,
+    pretrained_model_config: PretrainedModelConfig,
 
     image_rep_config: ImageRepConfig,
 
     embed_payload_config: Optional[EmbedPayloadConfig] = None,
 ):
-
+    
     weights = retrieve_model_weights(
-        pretrained_model_name=pretrained_model_name,
-        pretrained_model_repo=pretrained_model_repo,
+        pretrained_model_config=pretrained_model_config,
 
         embed_payload_config=embed_payload_config
     )
@@ -144,10 +119,24 @@ def image_representation_from_pretrained_pipeline(
 
     return image_rep
 
-@pipeline()
-def preprocessed_image_representation_from_pretrained_pipeline(
-    pretrained_model_name:str,
-    pretrained_model_repo:ModelRepos,
+def ret_pretrained_model_version_name(
+    pretrained_model_config: PretrainedModelConfig,
+):
+    return f"name:{pretrained_model_config.name}_repo:{pretrained_model_config.repo}"
+    
+def ret_pretrained_model(
+    pretrained_model_config: PretrainedModelConfig,
+):
+    return Model(
+        name="model_pretrained",
+        version=ret_pretrained_model_version_name(
+            pretrained_model_config=pretrained_model_config,
+        )
+    )
+
+@pipeline
+def _preprocessed_image_representation_from_pretrained_pipeline(
+    pretrained_model_config: PretrainedModelConfig,
 
     image_rep_config: ImageRepConfig,
     image_preprocess_config: ImagePreprocessConfig,
@@ -161,10 +150,8 @@ def preprocessed_image_representation_from_pretrained_pipeline(
         ),
     ]
 ):
-
     image_rep = image_representation_from_pretrained_pipeline(
-        pretrained_model_name=pretrained_model_name,
-        pretrained_model_repo=pretrained_model_repo,
+        pretrained_model_config=pretrained_model_config,
 
         image_rep_config=image_rep_config,
         embed_payload_config=embed_payload_config
@@ -172,77 +159,106 @@ def preprocessed_image_representation_from_pretrained_pipeline(
 
     image_rep_preprocessed = image_preprocessing(
         image=image_rep, image_preprocess_config=image_preprocess_config,
-        # pretrained_model_name=pretrained_model_name,
-        # pretrained_model_repo=pretrained_model_repo,
-
-        # image_rep_config=image_rep_config,
-        # embed_payload_config=embed_payload_config
     )
 
     return image_rep_preprocessed
 
 
+def _ret_pipeline_with_custom_model(
+    *,
+    model: Model = Model(name="model_pretrained", version="model_pretrained"),
+    pipeline: Pipeline = _preprocessed_image_representation_from_pretrained_pipeline,
+
+    **kwargs,
+):
+    return pipeline.with_options(model=model, **kwargs)
+
+def ret_pipeline_with_pretrained_model(
+    pipeline: Pipeline,
+    **kwargs
+):
+    def wrap(**inner_kwargs):
+
+        pretrained_model_config = inner_kwargs["pretrained_model_config"]
+
+        model = ret_pretrained_model(
+            pretrained_model_config=pretrained_model_config,
+        )
+
+        return _ret_pipeline_with_custom_model(
+            model=model,
+            pipeline=pipeline,
+            **kwargs
+        )(**inner_kwargs)
+
+    return wrap
+
+preprocessed_image_representation_from_pretrained_pipeline = ret_pipeline_with_pretrained_model(
+    pipeline=_preprocessed_image_representation_from_pretrained_pipeline,
+    enable_cache=True,
+)
+
 if __name__ == "__main__":
-    # pretrained_model_name = "MobileNet"
-    # pretrained_model_repo = ModelRepos.KERAS
 
-    # embedding_config = EmbedPayloadConfig(
-    #     embed_type=EmbedType.X_LSB_ATTACK_FILL,
-    #     embed_proc_config=XLSBAttackConfig(
-    #         x=8,
-    #         fill=True,
-    #         msb=False,
-    #         payload_type=PayloadType.RANDOM,
-    #     )
-    # )
 
-    # im_res = image_representation_from_pretrained_pipeline(
-    #     pretrained_model_name=pretrained_model_name,
-    #     pretrained_model_repo=pretrained_model_repo,
-    #     embed_payload_config=embedding_config,
+    # x= 5
+    
 
-    #     image_rep_config=ImageRepConfig(
+    # im_res = preprocessed_image_representation_from_pretrained_pipeline(
+    #     pretrained_model_config=PretrainedModelConfig(
+    #         name='MobileNet',
+    #         repo=ModelRepos.KERAS
+    #     ),
+    #     embed_payload_config = EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x),
+
+    #     image_preprocess_config = ImagePreprocessConfig(
+    #         image_height=100,
+    #         image_width=100,
+    #         image_reshape_algo=ImageResamplingFilter.BICUBIC
+    #     ),
+
+    #     image_rep_config = ImageRepConfig(
     #         image_type=ImageType.GRAYSCALE_FOURPART,
     #         image_rep_config=None
     #     )
     # )
 
-    model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
+    # model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
+    model_names = model_collections['famous_le_10m']
     # # model_names = ['MobileNet', 'MobileNetV2']
 
     for i, model_name in enumerate(model_names):
-        for x in range(0, 24):
+        for x in range(1, 24):
             if x == 0:
                 embedding_config = None
             else:
-                embedding_config = EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x)
+                # embedding_config = EmbedPayloadConfig.ret_random_x_lsb_attack_fill_config(x)
+                embedding_config = EmbedPayloadConfig.ret_filebytes_x_lsb_attack_fill_config(
+                    x=x,
+                    payload_filepath='/mnt/exdisk2/model_xray/malware_payloads/m_77e05'
+                )
 
             try:
                 im_res = preprocessed_image_representation_from_pretrained_pipeline(
-                    pretrained_model_name=model_name,
-                    pretrained_model_repo=ModelRepos.KERAS,
+                    pretrained_model_config=PretrainedModelConfig(
+                        name=model_name,
+                        repo=ModelRepos.KERAS
+                    ),
                     embed_payload_config = embedding_config,
 
                     image_preprocess_config = ImagePreprocessConfig(
-                        image_size=(100, 100),
+                        image_height=100,
+                        image_width=100,
                         image_reshape_algo=ImageResamplingFilter.BICUBIC
                     ),
-
                     image_rep_config = ImageRepConfig(
                         image_type=ImageType.GRAYSCALE_FOURPART,
-                        image_rep_config=None
                     )
+                    # image_rep_config = ImageRepConfig(
+                    #     image_type=ImageType,
+                    #     image_rep_config=GrayscaleThreepartWeightedAvgConfig()
+                    # )
                 )
-                # im = im_res.steps["create_image_representation"].output.load()
-
-                # n, h, w = im.shape
-
-                # if n != 1 or h!=w:
-                #     print(f"!! Error creating img from {model_name} with x={x}: {im.shape}")
-                    
-                #     print(im.shape)
-
-                #     exit(1)
 
             except Exception as e:
                 print(f"!! Error creating img from {model_name} with x={x}: {e}")

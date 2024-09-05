@@ -1,18 +1,71 @@
-from typing import Callable, Dict
+import hashlib
+from typing import Callable, Dict, Optional
 import numpy as np
 
 from model_xray.utils.general_utils import ndarray_to_bytes_arr, bytes_arr_to_ndarray
-from model_xray.config_classes import EmbedType, PayloadType, XLSBAttackConfig, XLSBExtractConfig
+from model_xray.config_classes import *
 
 import math
 
-def x_lsb_attack(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
-    if x_lsb_attack_config.x % 8 != 0:
-        return _x_lsb_attack_numpy_bin(host, x_lsb_attack_config, inplace=inplace)
-    else:
-        return _x_lsb_attack_numpy(host, x_lsb_attack_config, inplace=inplace)    
+class MalBytes:
+    def __init__(self, embed_payload_config: Optional[EmbedPayloadConfig] = None, appended_bytes: Optional[bytes] = None):
+        self.embed_payload_config = embed_payload_config
+        self._appended_bytes = appended_bytes
 
-def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
+        if self.embed_payload_config is not None:
+            if self.embed_payload_config.embed_payload_type == PayloadType.PYTHON_BYTES:
+                if self._appended_bytes is None:
+                    raise ValueError("MalBytes: appended_bytes must be provided if embed_payload_type is PYTHON_BYTES")
+
+            if self.embed_payload_config.embed_payload_type == PayloadType.BINARY_FILE:
+                if self.embed_payload_config.embed_payload_metadata is None:
+                    raise ValueError("MalBytes: embed_payload_metadata must be provided if embed_payload_type is BINARY_FILE")
+
+                if self.embed_payload_config.embed_payload_metadata.payload_filepath is None:
+                    raise ValueError("MalBytes: payload_filepath must be provided if embed_payload_type is BINARY_FILE")
+
+
+    def get_bytes(self, n_bytes:Optional[int] = None) -> bytes:
+        if self.embed_payload_config is None and self._appended_bytes is not None:
+            return self._appended_bytes
+
+        if self.embed_payload_config is None:
+            self.embed_payload_config = EmbedPayloadConfig()
+
+        if self.embed_payload_config.embed_payload_type == PayloadType.BINARY_FILE:
+            with open(self.embed_payload_config.embed_payload_metadata.payload_filepath, 'rb') as f:
+                ret_bytes = f.read()
+        elif self.embed_payload_config.embed_payload_type == PayloadType.PYTHON_BYTES:
+            ret_bytes = self._appended_bytes
+        elif self.embed_payload_config.embed_payload_type == PayloadType.RANDOM:
+            rng = np.random.default_rng()
+
+            if n_bytes is None:
+                raise ValueError("MalBytes.get_bytes: n_bytes must be provided if embed_payload_type is RANDOM")
+
+            ret_bytes = rng.bytes(n_bytes)
+
+        self.embed_payload_config.embed_payload_metadata.payload_bytes_md5 = self.ret_md5(ret_bytes)
+
+        return ret_bytes
+
+    def set_appended_bytes(self, appended_bytes: bytes):
+        self._appended_bytes = appended_bytes
+        if self.embed_payload_config is not None:
+            self.embed_payload_config.embed_payload_type = PayloadType.PYTHON_BYTES
+
+
+    def ret_md5(self, mal_bytes: bytes):
+        return hashlib.md5(mal_bytes).hexdigest()
+
+def x_lsb_attack(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False,) -> np.ndarray:
+    
+    if x_lsb_attack_config.x % 8 != 0:
+        return _x_lsb_attack_numpy_bin(host, x_lsb_attack_config, mal_bytes_gen=mal_bytes_gen, inplace=inplace)
+    else:
+        return _x_lsb_attack_numpy(host, x_lsb_attack_config, mal_bytes_gen=mal_bytes_gen, inplace=inplace)    
+
+def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False) -> np.ndarray:
     host_bytes = ndarray_to_bytes_arr(host)
 
     n_w = len(host_bytes)
@@ -22,15 +75,7 @@ def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackCon
     n_total_bits = host.dtype.itemsize * 8
     n_unattacked_bits = n_total_bits - x_lsb_attack_config.x
 
-    if x_lsb_attack_config.payload_type == PayloadType.BINARY_FILE:
-        with open(x_lsb_attack_config.payload_filepath, 'rb') as f:
-            mal_bytes = f.read()
-    elif x_lsb_attack_config.payload_type == PayloadType.PYTHON_BYTES:
-        mal_bytes = x_lsb_attack_config.payload_bytes
-    elif x_lsb_attack_config.payload_type == PayloadType.RANDOM:
-        rng = np.random.default_rng()
-        mal_bytes = rng.bytes(byte_capacity)
-
+    mal_bytes = mal_bytes_gen.get_bytes(n_bytes = byte_capacity)
     mal_bytes = np.frombuffer(mal_bytes, dtype=np.uint8)[:byte_capacity].reshape((byte_capacity, 1))
 
     if n_unattacked_bits == 0:
@@ -48,7 +93,7 @@ def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackCon
 
     return bytes_arr_to_ndarray(host_bytes_packed, dtype=host.dtype, shape=host.shape)
 
-def _x_lsb_attack_numpy(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
+def _x_lsb_attack_numpy(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False) -> np.ndarray:
     assert x_lsb_attack_config.x % 8 == 0, "_x_lsb_attack_numpy: x must be a multiple of 8"
 
     host_as_bytearr = ndarray_to_bytes_arr(host).copy()
@@ -60,16 +105,7 @@ def _x_lsb_attack_numpy(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig,
     if n_bytes_total < 1:
         return host
 
-    if x_lsb_attack_config.payload_type == PayloadType.BINARY_FILE:
-        with open(x_lsb_attack_config.payload_filepath, 'rb') as f:
-            mal_bytes = f.read()
-    elif x_lsb_attack_config.payload_type == PayloadType.PYTHON_BYTES:
-        mal_bytes = x_lsb_attack_config.payload_bytes
-    elif x_lsb_attack_config.payload_type == PayloadType.RANDOM:
-        rng = np.random.default_rng()
-        mal_bytes = rng.bytes(n_bytes_total)
-        # mal_bytes = rng.integers(0, 256, size=n_bytes_total, dtype=np.uint8)
-
+    mal_bytes = mal_bytes_gen.get_bytes(n_bytes=n_bytes_total)
     mal_bytes = np.frombuffer(mal_bytes, dtype=np.uint8)[:n_bytes_total].reshape((n_w, n_bytes_to_change_in_each_weight))
 
     # mal_bytes = mal_bytes[:n_bytes_total].reshape((n_bytes_total, 1))
@@ -77,6 +113,9 @@ def _x_lsb_attack_numpy(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig,
     host_as_bytearr[..., -n_bytes_to_change_in_each_weight:] = mal_bytes
 
     return bytes_arr_to_ndarray(host_as_bytearr, dtype=host.dtype)
+
+def maleficnet_attack(host: np.ndarray, maleficnet_attack_config: MaleficnetAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False) -> np.ndarray:
+    pass
 
 """
 def _x_lsb_attack_bitstring(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, inplace: bool = False) -> np.ndarray:
@@ -253,5 +292,5 @@ def x_lsb_extract(host: np.ndarray, x_lsb_extract_config: XLSBExtractConfig) -> 
 
 
 embed_type_map: Dict[EmbedType, Callable] = {
-    EmbedType.X_LSB_ATTACK_FILL: x_lsb_attack
+    EmbedType.X_LSB_ATTACK: x_lsb_attack
 }
