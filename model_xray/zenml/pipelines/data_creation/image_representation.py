@@ -9,7 +9,7 @@ from model_xray.config_classes import GrayscaleThreepartWeightedAvgConfig, Image
 from model_xray.zenml.pipelines.model_evaluation.eval_model import retrieve_model_weights
 from model_xray.zenml.pipelines.data_creation.model_attack import embed_payload_into_pretrained_weights_pipeline
 from model_xray.config_classes import EmbedPayloadConfig, EmbedType, GrayscaleLastMBytesConfig, ImageRepConfig, ImageType, PayloadType, XLSBAttackConfig
-from model_xray.utils.image_rep_utils import image_rep_map
+from model_xray.procedures.image_rep_procs import image_rep_map
 from model_xray.options import model_collections
 
 from typing_extensions import Annotated

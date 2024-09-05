@@ -7,9 +7,6 @@ import numpy as np
 from tensorflow.keras import Model as tfModel
 from torch.nn import Module as torchModel
 
-from model_xray.path_manager import pm
-from model_xray.options import small_cnn_zoos
-
 from model_xray.config_classes import ModelRepos
 
 def model_processing_func(func):
@@ -20,14 +17,6 @@ def model_processing_func(func):
         return func(model, *args, model_repo=model_repo, **kwargs)
         
     return wrap
-
-# def determine_model_type(model: Union[tfModel, torchModel]) -> ModelRepos:
-#     if isinstance(model, torchModel):
-#         return ModelRepos.PYTORCH
-#     elif isinstance(model, tfModel):
-#         return ModelRepos.KERAS
-#     else:
-#         raise NotImplementedError(f'determine_model_type | got model type {type(model)}, not implemented')
 
 @model_processing_func
 def load_weights_from_flattened_vector(model: Union[tfModel, torchModel], model_weights: np.ndarray, model_repo: ModelRepos = None):
@@ -87,23 +76,8 @@ def ret_pretrained_model_by_name(model_name, lib:ModelRepos):
         model = ret_class()
         return model
 
-    def ret_torch_model_by_name(model_name):
-        if model_name in small_cnn_zoos:
-            from model_xray.external_code.ghrp.model_definitions.def_net import NNmodule
-            zoo_dir = pm.get_small_cnn_zoo_dir_path(model_name)
-            PATH_ROOT = Path(zoo_dir)
-            config_model_path = PATH_ROOT.joinpath('config_zoo.json')
-            config_model = json.load(config_model_path.open('r'))
-            model = NNmodule(config_model)
-
-            return model
-        else:
-            raise NotImplementedError(f'ret_torch_model_by_name | model_name {model_name} not implemented')
-
     
-    if lib == ModelRepos.PYTORCH:
-        return ret_torch_model_by_name(model_name)
-    elif lib == ModelRepos.KERAS:
+    if lib == ModelRepos.KERAS:
         return ret_keras_model_by_name(model_name)
     else:
         raise NotImplementedError(f'ret_model_by_name | lib {lib} not implemented')

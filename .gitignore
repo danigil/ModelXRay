@@ -168,3 +168,6 @@ out_zenml.txt
 out*
 
 .zen/
+
+notebooks/playground.ipynb
+notebooks/zenml_playground.ipynb
