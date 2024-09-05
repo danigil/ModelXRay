@@ -95,6 +95,9 @@ def _grayscale_fourpart(data: npt.NDArray[np.float32], config: ImageRepConfig = 
 
     return _grayscale_lastmbytes(passed_data, gs_l_m_cfg)
 
+def _grayscale_fourpart_reverse(data: npt.NDArray[np.uint8], config: ImageRepConfig = None) -> npt.NDArray[np.float32]:
+    pass
+
 def _grayscale_threepart_weighted_avg(data: npt.NDArray[np.float32], config: ImageRepConfig = None) -> np.ndarray:
     assert config.image_rep_config is not None, "grayscale_weighted_avg image rep expects a config with image_rep_config, got None"
     assert isinstance(config.image_rep_config, GrayscaleThreepartWeightedAvgConfig), f"grayscale_weighted_avg image rep expects a config with GrayscaleWeightedAvgConfig, got {type(config.image_rep_config)}"

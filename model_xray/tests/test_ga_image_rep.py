@@ -20,7 +20,7 @@ def test_ga_simple():
     ]],
     dtype=dt_uint8_be)
 
-    a_input = np.array([0.123], dtype=dt_float32_ne)
+    a_input = np.array([[0.123]], dtype=dt_float32_ne)
 
     result = _grayscale_threepart_weighted_avg(a_input, config=config)
 

@@ -12,6 +12,19 @@ class MalBytes:
         self.embed_payload_config = embed_payload_config
         self._appended_bytes = appended_bytes
 
+        if self.embed_payload_config is not None:
+            if self.embed_payload_config.embed_payload_type == PayloadType.PYTHON_BYTES:
+                if self._appended_bytes is None:
+                    raise ValueError("MalBytes: appended_bytes must be provided if embed_payload_type is PYTHON_BYTES")
+
+            if self.embed_payload_config.embed_payload_type == PayloadType.BINARY_FILE:
+                if self.embed_payload_config.embed_payload_metadata is None:
+                    raise ValueError("MalBytes: embed_payload_metadata must be provided if embed_payload_type is BINARY_FILE")
+
+                if self.embed_payload_config.embed_payload_metadata.payload_filepath is None:
+                    raise ValueError("MalBytes: payload_filepath must be provided if embed_payload_type is BINARY_FILE")
+
+
     def get_bytes(self, n_bytes:Optional[int] = None) -> bytes:
         if self.embed_payload_config is None and self._appended_bytes is not None:
             return self._appended_bytes
@@ -20,12 +33,16 @@ class MalBytes:
             self.embed_payload_config = EmbedPayloadConfig()
 
         if self.embed_payload_config.embed_payload_type == PayloadType.BINARY_FILE:
-            with open(self.embed_payload_config.payload_filepath, 'rb') as f:
+            with open(self.embed_payload_config.embed_payload_metadata.payload_filepath, 'rb') as f:
                 ret_bytes = f.read()
         elif self.embed_payload_config.embed_payload_type == PayloadType.PYTHON_BYTES:
             ret_bytes = self._appended_bytes
         elif self.embed_payload_config.embed_payload_type == PayloadType.RANDOM:
             rng = np.random.default_rng()
+
+            if n_bytes is None:
+                raise ValueError("MalBytes.get_bytes: n_bytes must be provided if embed_payload_type is RANDOM")
+
             ret_bytes = rng.bytes(n_bytes)
 
         self.embed_payload_config.embed_payload_metadata = EmbedPayloadMetadata(

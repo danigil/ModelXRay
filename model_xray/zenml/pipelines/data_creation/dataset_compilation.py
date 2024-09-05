@@ -115,7 +115,7 @@ def _ret_preprocessed_images_from_registry(
     preprocessed_images_registry: pd.DataFrame,
     preprocessed_img_cfgs: List[PreprocessedImageLineage],
 ):
-    print("~~ _ret_preprocessed_images_from_registry ~~")
+    # print("~~ _ret_preprocessed_images_from_registry ~~")
     # print("preprocessed_images_registry:", preprocessed_images_registry)
     ret = {}
     for preprocessed_img_cfg in preprocessed_img_cfgs:
