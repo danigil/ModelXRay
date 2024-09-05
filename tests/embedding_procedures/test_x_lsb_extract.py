@@ -69,24 +69,3 @@ def test_x_lsb_extract_encoded_msg(
         extracted_bytes = x_lsb_extract(msg_bits_arr_bytes, config)
 
         assert extracted_bytes == msg_bytes
-
-        # msg_bits_arr_padded = np.pad(msg_bits_arr_copy, (0, (len(msg_bits_arr) - x) % 8), mode='constant', constant_values=0)
-        pass
-
-    # arr = rng.integers(0, 255, size=(len(msg),), dtype=np.uint8)
-
-    # payload = msg.encode()
-
-    # for x in range(1,8):
-    #     config = XLSBAttackConfig(
-    #         x=x,
-    #         fill=False,
-    #         payload_type=PayloadType.PYTHON_BYTES,
-    #         payload_bytes=payload
-    #     )
-
-    #     arr_attacked = _x_lsb_attack_numpy_bin(arr, config)
-
-    #     extracted_bytes = x_lsb_extract(arr_attacked, config)
-
-    #     assert extracted_bytes == config.payload_bytes
