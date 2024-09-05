@@ -1,7 +1,3 @@
-import sys
-from typing import Iterable, Literal
-from enum import Enum
-
 
 small_cnn_zoos = {
     "mnist",
@@ -113,27 +109,6 @@ model_collections = {
     "llms_bert_conll03": llms_bert_conll03,
 }
 
-
-mal_map = {
-    "famous_le_10m": "050ef",
-    "famous_le_100m": "malware_292mb",
-    "small_cnn_zoos": "malware_12584bytes",
-
-    "llms_le_500m_f16": None,
-    "llms_bert": None,
-    "llms_bert_conll03": None,
-}
-
-img_map = {
-    "famous_le_10m": "grayscale_fourpart",
-    "famous_le_100m": "grayscale_fourpart",
-    "small_cnn_zoos": "grayscale_fourpart",
-
-    "llms_le_500m_f16": "grayscale_lastbyte",
-    "llms_bert": "grayscale_lastbyte",
-    "llms_bert_conll03": "grayscale_lastbyte",
-}
-
 dataset_split = {
     'small_cnn_zoos': ({
                     "mnist",
@@ -226,31 +201,3 @@ dataset_split = {
     })
 }
 
-def _get_default_malware_name(zoo_name: str) -> str:
-    return mal_map.get(zoo_name, None)
-
-def _get_default_img_type(zoo_name: str) -> str:
-    return img_map.get(zoo_name, None)
-
-def _get_default_data_type(zoo_name: str) -> str:
-    return "weights"
-
-def get_default_params(zoo_name: str, request: Iterable[Literal['malware_name', 'img_type', 'data_type']]) -> dict:
-    ret_params = {param: getattr(sys.modules[__name__], f"_get_default_{param}")(zoo_name) for param in request}
-    if len(ret_params) == 1:
-        return next(iter(ret_params.values()))
-
-zoos = set()
-zoos.update(*model_collections.values())
-
-SUPPORTED_SCZS = Literal['cifar10', 'mnist', 'svhn', 'stl10']
-
-SUPPORTED_MCS = Literal["small_cnn_zoos", "famous_le_10m", "famous_le_100m", "llms_le_500m_f16", "llms_bert", "llms_bert_conll03"]
-
-# SUPPORTED_FEATURES = Literal["weights", "grads"]
-
-# SUPPORTED_IMG_TYPES = Literal["grayscale_fourpart", "grayscale_normalized", "rgb", "grayscale", "grayscale_fragw", "grayscale_lastbyte"]
-
-# SUPPORTED_SIAMESE_TRAIN_MODES = Literal['st', 'es', 'ub', 'none']
-# SUPPORTED_SIAMESE_EVAL_TYPES = Literal['centroid', 'knn']
-# SUPPORTED_SIAMESE_EVAL_RETURN_TYPES = Literal['accuracy', 'preds']
