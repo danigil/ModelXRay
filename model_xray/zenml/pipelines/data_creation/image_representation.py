@@ -223,15 +223,20 @@ if __name__ == "__main__":
     #     )
     # )
 
-    model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
+    # model_names = model_collections['famous_le_100m'].union(model_collections['famous_le_10m'])
+    model_names = model_collections['famous_le_10m']
     # # model_names = ['MobileNet', 'MobileNetV2']
 
     for i, model_name in enumerate(model_names):
-        for x in range(0, 24):
+        for x in range(1, 24):
             if x == 0:
                 embedding_config = None
             else:
-                embedding_config = EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x)
+                # embedding_config = EmbedPayloadConfig.ret_random_x_lsb_attack_fill_config(x)
+                embedding_config = EmbedPayloadConfig.ret_filebytes_x_lsb_attack_fill_config(
+                    x=x,
+                    payload_filepath='/mnt/exdisk2/model_xray/malware_payloads/m_77e05'
+                )
 
             try:
                 im_res = preprocessed_image_representation_from_pretrained_pipeline(
@@ -242,15 +247,17 @@ if __name__ == "__main__":
                     embed_payload_config = embedding_config,
 
                     image_preprocess_config = ImagePreprocessConfig(
-                        image_height=256,
-                        image_width=256,
+                        image_height=100,
+                        image_width=100,
                         image_reshape_algo=ImageResamplingFilter.BICUBIC
                     ),
-
                     image_rep_config = ImageRepConfig(
-                        image_type=ImageType.GRAYSCALE_THREEPART_WEIGHTED_AVG,
-                        image_rep_config=GrayscaleThreepartWeightedAvgConfig()
+                        image_type=ImageType.GRAYSCALE_FOURPART,
                     )
+                    # image_rep_config = ImageRepConfig(
+                    #     image_type=ImageType,
+                    #     image_rep_config=GrayscaleThreepartWeightedAvgConfig()
+                    # )
                 )
 
             except Exception as e:

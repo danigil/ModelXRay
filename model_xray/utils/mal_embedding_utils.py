@@ -45,9 +45,7 @@ class MalBytes:
 
             ret_bytes = rng.bytes(n_bytes)
 
-        self.embed_payload_config.embed_payload_metadata = EmbedPayloadMetadata(
-            payload_bytes_md5=self.ret_md5(ret_bytes),
-        )
+        self.embed_payload_config.embed_payload_metadata.payload_bytes_md5 = self.ret_md5(ret_bytes)
 
         return ret_bytes
 
@@ -61,6 +59,7 @@ class MalBytes:
         return hashlib.md5(mal_bytes).hexdigest()
 
 def x_lsb_attack(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False,) -> np.ndarray:
+    
     if x_lsb_attack_config.x % 8 != 0:
         return _x_lsb_attack_numpy_bin(host, x_lsb_attack_config, mal_bytes_gen=mal_bytes_gen, inplace=inplace)
     else:

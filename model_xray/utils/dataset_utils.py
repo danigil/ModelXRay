@@ -12,7 +12,15 @@ def concat_params(params: Dict[str, str]) -> str:
     concated_sorted_params = ",".join([f'{k.lower()}:{v.lower()}' for k,v in sorted(params.items(), key=lambda x: x[0])])
     return concated_sorted_params
 
-def get_dataset_name(mc: str, xs: Iterable[Union[None, int]], imsize: int, imtype: ImageType, ds_type:Literal['train', 'test']) -> str:
+def get_dataset_name(mc: str,
+                     xs: Iterable[Union[None, int]],
+                     
+                     imsize: int,
+                     imtype: ImageType,
+                     ds_type:Literal['train', 'test'],
+                     embed_type: EmbedType = EmbedType.X_LSB_ATTACK,
+                    
+                     ) -> str:
     unique_xs = list(sorted(set(map(lambda x: 0 if x is None else x ,xs))))
     if len(unique_xs) == 0:
         raise ValueError(f'xs cannot be empty, got: {xs}')

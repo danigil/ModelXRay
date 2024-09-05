@@ -26,6 +26,8 @@ def embed_payload_into_weights(
         ),
     ]
 ):
+    print(f"Embedding payload into weights with shape {weights.shape} using {embed_payload_config.embed_type} embedding with: {embed_payload_config.embed_payload_type} payload type{f' (payload_path: {embed_payload_config.embed_payload_metadata.payload_filepath})' if embed_payload_config.embed_payload_metadata and embed_payload_config.embed_payload_metadata.payload_filepath else ''}{f', with x={embed_payload_config.embed_proc_config.x}'}")
+
     embed_func = embed_type_map[embed_payload_config.embed_type]
 
     mal_bytes_gen = MalBytes(embed_payload_config=embed_payload_config, appended_bytes=None)

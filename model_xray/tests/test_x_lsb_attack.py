@@ -44,7 +44,7 @@ def test_x_lsb_attack_random(
 ):
     
 
-    config = EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x=3)
+    config = EmbedPayloadConfig.ret_random_x_lsb_attack_fill_config(x=3)
     config.embed_payload_type = PayloadType.PYTHON_BYTES
 
     mal_bytes_gen = MalBytes(embed_payload_config=config, appended_bytes=None)

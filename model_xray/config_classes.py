@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 # from pydantic.dataclasses import dataclass
 from enum import IntEnum, StrEnum
-from typing import Optional, Tuple, Union
+from typing import Literal, Optional, Tuple, Union
 
 from tensorflow.keras import Model as tfModel
 from torch.nn import Module as torchModel
@@ -57,6 +57,7 @@ class PretrainedModelConfig:
 """
 class EmbedType(StrEnum):
     X_LSB_ATTACK = 'x_lsb_attack'
+    MALEFICNET = 'maleficnet'
 
 class PayloadType(StrEnum):
     RANDOM = 'random'
@@ -69,15 +70,8 @@ class XLSBAttackConfig:
     fill: bool = True
     msb: bool = False
 
-    # def __hash__(self):
-    #     return hash(self.__repr__())
-
     def __repr__(self):
         repr_str = f'XLSBAttackConfig(x={self.x}, fill={self.fill}, msb={self.msb})'
-        # if self.payload_type == PayloadType.PYTHON_BYTES:
-        #     repr_str += f', payload_bytes_md5={hashlib.md5(self.payload_bytes).hexdigest()})'
-        # elif self.payload_type == PayloadType.BINARY_FILE:
-        #     repr_str += f', payload_filepath={self.payload_filepath})'
 
         return repr_str
 
@@ -87,25 +81,18 @@ class XLSBAttackConfig:
             x=metadata_dict['x'],
             fill=metadata_dict['fill'],
             msb=metadata_dict['msb'],
-            # payload_bytes=metadata_dict['payload_bytes'] if metadata_dict['payload_type'] == PayloadType.PYTHON_BYTES else None,
-            # payload_type=PayloadType(metadata_dict['payload_type']),
-            # payload_filepath=metadata_dict['payload_filepath'] if metadata_dict['payload_type'] == PayloadType.BINARY_FILE else None
         )
 
     def to_dict(self, short_version=False):
         if short_version:
             return {
                 'x': self.x,
-                # 'payload_type': self.payload_type
             }
         else:
             return {
                 'x': self.x,
                 'fill': self.fill,
                 'msb': self.msb,
-                # 'payload_bytes_md5': hashlib.md5(self.payload_bytes).hexdigest() if self.payload_type == PayloadType.PYTHON_BYTES else None,
-                # 'payload_type': self.payload_type,
-                # 'payload_filepath': self.payload_filepath
             }
 
 @dataclass(repr=False, frozen=True)
@@ -115,7 +102,19 @@ class XLSBExtractConfig:
     fill: bool = True
     msb: bool = False
     
+@dataclass(repr=False, unsafe_hash=True)
+class MaleficnetAttackConfig:
+    dataset: Literal['cifar10'] = 'cifar10'
+    dim: int = 32
+    num_classes: int = 10
+    only_pretrained: bool = False
+    fine_tuning: bool = False
+    epochs: int = 60
+    batch_size: int = 64
+    random_seed: int = 8
+    gamma: float = 0.0009
 
+    chunk_factor: int = 6
 
 @dataclass(frozen=False, unsafe_hash=True)
 class EmbedPayloadMetadata:
@@ -139,7 +138,7 @@ class EmbedPayloadMetadata:
 class EmbedPayloadConfig:
     embed_type: EmbedType = EmbedType.X_LSB_ATTACK
     embed_payload_type: PayloadType = PayloadType.RANDOM
-    embed_proc_config: Optional[XLSBAttackConfig] = None
+    embed_proc_config: Optional[Union[XLSBAttackConfig, MaleficnetAttackConfig]] = None
     embed_payload_metadata: Optional[EmbedPayloadMetadata] = None
 
     @staticmethod
@@ -177,7 +176,7 @@ class EmbedPayloadConfig:
         }
 
     @staticmethod
-    def ret_x_lsb_attack_fill_config(x: int):
+    def ret_random_x_lsb_attack_fill_config(x: int):
         return EmbedPayloadConfig(
             embed_type=EmbedType.X_LSB_ATTACK,
             embed_payload_type=PayloadType.RANDOM,
@@ -185,6 +184,21 @@ class EmbedPayloadConfig:
                 x=x,
                 fill=True,
                 msb=False,
+            )
+        )
+
+    @staticmethod
+    def ret_filebytes_x_lsb_attack_fill_config(x: int, payload_filepath: str):
+        return EmbedPayloadConfig(
+            embed_type=EmbedType.X_LSB_ATTACK,
+            embed_payload_type=PayloadType.BINARY_FILE,
+            embed_proc_config=XLSBAttackConfig(
+                x=x,
+                fill=True,
+                msb=False,
+            ),
+            embed_payload_metadata=EmbedPayloadMetadata(
+                payload_filepath=payload_filepath
             )
         )
 
@@ -429,7 +443,7 @@ class PreprocessedImageLineage:
             pretrained_model_config=PretrainedModelConfig() if pretrained_model_config is None else pretrained_model_config,
             image_rep_config=ImageRepConfig() if image_rep_config is None else image_rep_config,
             image_preprocess_config=ImagePreprocessConfig() if image_preprocess_config is None else image_preprocess_config,
-            embed_payload_config=EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x) if x is not None else None
+            embed_payload_config=EmbedPayloadConfig.ret_random_x_lsb_attack_fill_config(x) if x is not None else None
         )
 
     def to_dict(self):

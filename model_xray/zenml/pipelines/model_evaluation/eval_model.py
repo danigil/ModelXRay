@@ -257,6 +257,6 @@ if __name__ == "__main__":
             requested_metrics=[
                 ClassificationMetricConfig.ret_top_k_categorical_accuracy_config(k=1),
             ],
-            embed_payload_config=EmbedPayloadConfig.ret_x_lsb_attack_fill_config(x=x) if x > 0 else None
+            embed_payload_config=EmbedPayloadConfig.ret_random_x_lsb_attack_fill_config(x=x) if x > 0 else None
         )
     
