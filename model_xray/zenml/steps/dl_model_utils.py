@@ -11,7 +11,7 @@ def extract_dl_model_weights_step(
     model: DL_MODEL_TYPE,
 ) -> (
     Annotated[
-        npt.NDArray,
+        np.ndarray,
         ArtifactConfig(
             name="extracted_dl_model_weights",
         ),

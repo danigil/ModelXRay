@@ -1,11 +1,16 @@
-import hashlib
-from typing import Callable, Dict, Optional
-import numpy as np
-
-from model_xray.utils.general_utils import ndarray_to_bytes_arr, bytes_arr_to_ndarray
-from model_xray.config_classes import *
-
 from __future__ import annotations
+import hashlib
+# import logging
+# log = logging.getLogger(__name__)
+from typing import Callable, Dict, Optional, get_args, get_type_hints
+import numpy as np
+import numpy.typing as npt
+
+from model_xray.configs.types import COVER_DATA_TYPE, DL_MODEL_TYPE
+from model_xray.utils.general_utils import ndarray_to_bytes_arr, bytes_arr_to_ndarray, try_coerce_data
+from model_xray.utils.logging_utils import request_logger
+logger = request_logger(__name__)
+from model_xray.config_classes import *
 
 import math
 
@@ -150,8 +155,8 @@ def x_lsb_extract(host: np.ndarray, x_lsb_extract_config: XLSBExtractConfig) -> 
         return np.packbits(host_last_x_bits).tobytes()[:end]
 
 
-def execute_embedding_proc(*, cover_data, embed_payload_config: EmbedPayloadConfig, validate_host:bool=True, **additional_kwargs):
-    embed_type = embed_payload_config.embed_type
+def execute_embedding_proc(*, cover_data: COVER_DATA_TYPE, embed_payload_config: EmbedPayloadConfig, validate_host:bool=True, try_coerce_host=True, **additional_kwargs):
+    embed_type = embed_payload_config.embed_proc_config.attack_type
 
     mal_bytes_gen = MalBytes(embed_payload_config=embed_payload_config, appended_bytes=None)
 
@@ -159,14 +164,34 @@ def execute_embedding_proc(*, cover_data, embed_payload_config: EmbedPayloadConf
     if embed_func is None:
         raise ValueError(f"execute_embedding_proc: embed_type {embed_type} not supported")
 
-    if validate_host:
-        host_expected_type = embed_func.__annotations__.get('host', None)
-        if host_expected_type is not None:
-            if not isinstance(cover_data, host_expected_type):
+    host_expected_type = get_type_hints(embed_func).get('host', None)
+
+    data = cover_data
+    
+    if validate_host and host_expected_type is not None:
+        if not isinstance(cover_data, host_expected_type):
+            if not try_coerce_host:
                 raise ValueError(f"execute_embedding_proc: cover_data must be of type {host_expected_type}, got: {type(cover_data)}")
+            
+            coerced_cover_data = try_coerce_data(cover_data, host_expected_type)
+            if coerced_cover_data is None:
+                raise ValueError(f"execute_embedding_proc: cover_data must be of type {host_expected_type}, got: {type(cover_data)}, and could not be coerced to {host_expected_type}")
+                
+            data = coerced_cover_data
 
-    return embed_func(cover_data, embed_payload_config.embed_proc_config, mal_bytes_gen=mal_bytes_gen, **additional_kwargs)
+    data_embedded = embed_func(data, embed_payload_config.embed_proc_config, mal_bytes_gen=mal_bytes_gen, **additional_kwargs)
 
+    if data_embedded is None:
+        raise ValueError(f"execute_embedding_proc: embed_func {embed_func} returned None")
+
+    if isinstance(data_embedded, type(cover_data)):
+        return data_embedded
+
+    data_embedded_coerced = try_coerce_data(data_embedded, type(cover_data), reference_data=cover_data)
+    if data_embedded_coerced is None:
+        raise ValueError(f"execute_embedding_proc: data_embedded must be of type {type(cover_data)}, got: {type(data_embedded)}, and could not be coerced to {type(cover_data)}")
+    
+    return data_embedded_coerced
 
 embed_type_map: Dict[EmbedType, Callable] = {
     EmbedType.X_LSB_ATTACK: x_lsb_attack

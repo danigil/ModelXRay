@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.typing as npt
 
-from model_xray.utils.general_utils import ndarray_to_bytes_arr
+from model_xray.utils.general_utils import ndarray_to_bytes_arr, try_coerce_data
 
 from model_xray.config_classes import GrayscaleThreepartWeightedAvgConfig, ImageRepConfig, ImageType, GrayscaleLastMBytesConfig
 
@@ -80,7 +80,7 @@ def _grayscale_lastmbytes(data: np.ndarray, config: ImageRepConfig) -> np.ndarra
     
     return result
 
-def _grayscale_fourpart(data: npt.NDArray[np.float32], config: ImageRepConfig = None) -> np.ndarray:
+def _grayscale_fourpart(data: np.ndarray[np.float32], config: ImageRepConfig = None) -> np.ndarray:
     assert data.dtype == np.float32 or data.dtype.itemsize==4, f"grayscale_fourpart image rep expects 4-byte long data, got {data.dtype.itemsize}-byte long data"
     
     gs_l_m_cfg = ImageRepConfig(
@@ -95,10 +95,10 @@ def _grayscale_fourpart(data: npt.NDArray[np.float32], config: ImageRepConfig = 
 
     return _grayscale_lastmbytes(passed_data, gs_l_m_cfg)
 
-def _grayscale_fourpart_reverse(data: npt.NDArray[np.uint8], config: ImageRepConfig = None) -> npt.NDArray[np.float32]:
+def _grayscale_fourpart_reverse(data: np.ndarray[np.uint8], config: ImageRepConfig = None) -> np.ndarray[np.float32]:
     pass
 
-def _grayscale_threepart_weighted_avg(data: npt.NDArray[np.float32], config: ImageRepConfig = None) -> np.ndarray:
+def _grayscale_threepart_weighted_avg(data: np.ndarray[np.float32], config: ImageRepConfig = None) -> np.ndarray:
     assert config.image_rep_config is not None, "grayscale_weighted_avg image rep expects a config with image_rep_config, got None"
     assert isinstance(config.image_rep_config, GrayscaleThreepartWeightedAvgConfig), f"grayscale_weighted_avg image rep expects a config with GrayscaleWeightedAvgConfig, got {type(config.image_rep_config)}"
 
@@ -137,6 +137,25 @@ def _grayscale_threepart_weighted_avg(data: npt.NDArray[np.float32], config: Ima
     avereged_bytes = np.average(all_bytes, axis=-1, weights=[byte_1_weight, byte_2_weight, byte_3_weight]).astype(np.uint8)
 
     return ret_padded_square(avereged_bytes)
+
+def execute_image_rep_proc(data: np.ndarray, image_rep_config: ImageRepConfig, try_coerce=True) -> np.ndarray:
+    image_rep_type = image_rep_config.image_rep_proc_config.image_rep_type
+    image_rep_func = image_rep_map.get(image_rep_type, None)
+    if image_rep_func is None:
+        raise ValueError(f"execute_image_rep_proc: image_type {image_rep_type} not supported")
+
+    passed_data = data
+
+    if try_coerce:
+        data_coerced = try_coerce_data(data, np.ndarray)
+        passed_data = data_coerced
+
+    if passed_data.ndim == 1:
+        passed_data = passed_data.reshape(1, -1)
+    else:
+        passed_data = passed_data
+
+    return image_rep_func(passed_data, image_rep_config)
 
 image_rep_map = {
     ImageType.GRAYSCALE_LAST_M_BYTES: _grayscale_lastmbytes,

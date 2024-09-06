@@ -1,5 +1,5 @@
 from pprint import pprint
-from typing import Dict
+from typing import Dict, get_args
 import numpy as np
 import numpy.typing as npt
 
@@ -7,7 +7,7 @@ from collections.abc import MutableMapping
 
 import pandas as pd
 
-def ndarray_to_bytes_arr(mcwa: np.ndarray) -> npt.NDArray[np.uint8]:
+def ndarray_to_bytes_arr(mcwa: np.ndarray) -> np.ndarray[np.uint8]:
     assert isinstance(mcwa.dtype.itemsize, int) and mcwa.dtype.itemsize>=1
     newshape = mcwa.shape + (mcwa.dtype.itemsize,)
     dtype = np.dtype('=u1') # force little-endian
@@ -26,6 +26,29 @@ def bytes_arr_to_ndarray(mcwa: np.ndarray, dtype=np.uint8, shape=None):
 
     return np.frombuffer(np.flip(mcwa, axis=-1).tobytes(order='C'), dtype=dtype_new).reshape(newshape)
 
+def try_coerce_data(data, expected_type: type, **additional_kwargs):
+    from model_xray.configs.types import DL_MODEL_TYPE
+    from model_xray.utils.model_utils import extract_weights as extract_weights_util, load_weights_from_flattened_vector
+
+    # if data is already of the expected type, return it
+    if isinstance(data, expected_type):
+        return data
+
+    # data is a DL model, and expected_type is a numpy array
+    # if so, extract the weights from the model
+    if isinstance(data, get_args(DL_MODEL_TYPE)) and issubclass(expected_type, np.ndarray):
+        return extract_weights_util(model=data)
+
+    # data is a numpy array, and expected_type is a DL model
+    # if so, load the weights into the a model based on a `reference_data` kwarg
+    if isinstance(data, np.ndarray) and issubclass(expected_type, get_args(DL_MODEL_TYPE)):
+        reference_data = additional_kwargs.get('reference_data', None)
+        if reference_data is None:
+            raise ValueError(f"try_coerce_data: reference_data must be provided if expected_type is a DL_MODEL_TYPE")
+        
+        return load_weights_from_flattened_vector(reference_data, data, inplace=False)
+
+    return None
 
 def flatten_dict_old(dictionary: Dict, parent_key='', separator='_', parent_separator='_') -> Dict:
     items = []

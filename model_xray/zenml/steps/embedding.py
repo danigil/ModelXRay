@@ -11,10 +11,11 @@ from model_xray.procedures.embedding_procs import MalBytes, embed_type_map, exec
 
 # from model_xray.zenml.pipelines.data_creation.fetch_pretrained import fetch_pretrained_model_and_extract_weights
 from model_xray.options import model_collections
+from model_xray.configs.types import COVER_DATA_TYPE
 
 @step
-def embed_payload_into_cover_data(
-    cover_data,
+def embed_payload_into_cover_data_step(
+    cover_data: COVER_DATA_TYPE,
     embed_payload_config: EmbedPayloadConfig
 ):
     stego_data = execute_embedding_proc(cover_data=cover_data, embed_payload_config=embed_payload_config)

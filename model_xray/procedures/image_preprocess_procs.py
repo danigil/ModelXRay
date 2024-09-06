@@ -1,6 +1,7 @@
 
 
 import numpy as np
+import numpy.typing as npt
 
 from model_xray.configs.models import ImagePreprocessConfig
 from model_xray.configs.enums import *
@@ -20,7 +21,10 @@ def pillow_preprocess(image: np.ndarray, image_preprocess_config: ImagePreproces
     return np.asarray(im_resized)
 
 def execute_image_preprocess(image: np.ndarray, image_preprocess_config: ImagePreprocessConfig) -> np.ndarray:
-    preprocess_backend_type = image_preprocess_config.image_preprocess_backend
+    preprocess_backend_type = image_preprocess_config.image_preprocess_config.image_preprocess_backend
+
+    if image.ndim == 3:
+        image = image[0]
 
     preprocess_backend = preprocess_backend_type_map.get(preprocess_backend_type, None)
     if preprocess_backend is None:

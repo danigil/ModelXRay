@@ -2,6 +2,7 @@ import itertools
 import math
 import os
 import numpy as np
+import numpy.typing as npt
 
 from model_xray.config_classes import PayloadType, XLSBAttackConfig, EmbedPayloadConfig
 from model_xray.procedures.embedding_procs import _x_lsb_attack_numpy, _x_lsb_attack_numpy_bin, x_lsb_extract, MalBytes

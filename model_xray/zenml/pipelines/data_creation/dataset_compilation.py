@@ -1,5 +1,6 @@
 from typing import Annotated, Dict, Iterable, List, Optional, Set, Tuple, TypeVar
 import numpy as np
+import numpy.typing as npt
 
 import itertools
 

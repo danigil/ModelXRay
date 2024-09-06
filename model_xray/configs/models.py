@@ -91,7 +91,7 @@ class MaleficnetAttackConfig(BaseModel):
 """
 
 class EmbedPayloadMetadata(BaseModel):
-    model_config = ConfigDict(from_attributes=True, frozen=True)
+    model_config = ConfigDict(from_attributes=True,)
 
     payload_bytes_md5: Union[str, NA_VAL_TYPE] = Field(default_factory=ret_na_val)
     payload_filepath: Union[FilePath, NA_VAL_TYPE] = Field(default_factory=ret_na_val)

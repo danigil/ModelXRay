@@ -53,7 +53,7 @@ def extract_weights(
         model: Union[torchModule, tfModel, HFPreTrainedModel, HFTFPreTrainedModel],
     ) -> (
     Annotated[
-        npt.NDArray,
+        np.ndarray,
         ArtifactConfig(
             name="extracted_weights",
         ),

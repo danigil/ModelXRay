@@ -1,6 +1,7 @@
 import dataclasses
 from typing import Optional
 import numpy as np
+import numpy.typing as npt
 
 from zenml import ArtifactConfig, Model, get_pipeline_context, get_step_context, log_artifact_metadata, step, pipeline, log_model_metadata
 from zenml.client import Client
@@ -16,7 +17,7 @@ from typing_extensions import Annotated
 from PIL import Image
 
 @step(enable_cache=True)
-def image_preprocessing(
+def image_preprocessing_step(
     image: np.ndarray,
     image_preprocess_config: ImagePreprocessConfig,
 ) -> (
@@ -26,10 +27,7 @@ def image_preprocessing(
             name="image_preprocessed",
         ),
     ]
-):
-    if image.ndim == 3:
-        image = image[0]
-    
+):  
     im_preprocessed = execute_image_preprocess(image, image_preprocess_config)
 
     log_artifact_metadata(

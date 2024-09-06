@@ -3,6 +3,7 @@ from typing import Dict, Type
 
 import h5py
 import numpy as np
+import numpy.typing as npt
 
 
 from zenml.enums import ArtifactType

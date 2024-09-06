@@ -1,6 +1,7 @@
 import dataclasses
 from typing import Optional
 import numpy as np
+import numpy.typing as npt
 from zenml import ArtifactConfig, Model, get_pipeline_context, get_step_context, log_artifact_metadata, step, pipeline, log_model_metadata
 from zenml.client import Client
 from zenml.new.pipelines.pipeline import Pipeline
