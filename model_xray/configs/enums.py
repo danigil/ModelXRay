@@ -75,6 +75,10 @@ class ImageResamplingFilter(StrEnum):
         else:
             raise NotImplementedError(f'to_pil_image_resampling_filter | got {self}, not implemented')
 
+class ImagePreprocessBackend(StrEnum):
+    PILLOW = 'pillow'
+    OPENCV = 'opencv'
+
 class PreprocessedImageDatasetLabel(IntEnum):
     BENIGN = 0
     ATTACKED = 1

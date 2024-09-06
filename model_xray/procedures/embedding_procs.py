@@ -5,6 +5,8 @@ import numpy as np
 from model_xray.utils.general_utils import ndarray_to_bytes_arr, bytes_arr_to_ndarray
 from model_xray.config_classes import *
 
+from __future__ import annotations
+
 import math
 
 class MalBytes:
@@ -148,7 +150,22 @@ def x_lsb_extract(host: np.ndarray, x_lsb_extract_config: XLSBExtractConfig) -> 
         return np.packbits(host_last_x_bits).tobytes()[:end]
 
 
+def execute_embedding_proc(*, cover_data, embed_payload_config: EmbedPayloadConfig, validate_host:bool=True, **additional_kwargs):
+    embed_type = embed_payload_config.embed_type
 
+    mal_bytes_gen = MalBytes(embed_payload_config=embed_payload_config, appended_bytes=None)
+
+    embed_func = embed_type_map.get(embed_type, None)
+    if embed_func is None:
+        raise ValueError(f"execute_embedding_proc: embed_type {embed_type} not supported")
+
+    if validate_host:
+        host_expected_type = embed_func.__annotations__.get('host', None)
+        if host_expected_type is not None:
+            if not isinstance(cover_data, host_expected_type):
+                raise ValueError(f"execute_embedding_proc: cover_data must be of type {host_expected_type}, got: {type(cover_data)}")
+
+    return embed_func(cover_data, embed_payload_config.embed_proc_config, mal_bytes_gen=mal_bytes_gen, **additional_kwargs)
 
 
 embed_type_map: Dict[EmbedType, Callable] = {

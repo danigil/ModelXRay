@@ -63,17 +63,26 @@ def extract_weights(model: Union[tfModel, torchModel], model_repo: ModelRepos = 
 
     return func_map[model_repo](model)
 
-def ret_pretrained_model_by_name(model_name, lib:ModelRepos):
+def ret_pretrained_model_by_name(
+    model_name,
+    lib:ModelRepos,
+
+    train_dataset:Literal['imagenet12'] = 'imagenet12'
+):
     def ret_keras_model_by_name(model_name):
         import tensorflow.keras.applications
         import tensorflow.keras
+
+        train_dataset_map = {
+            'imagenet12': 'imagenet',
+        }
 
         ret_class = getattr(tensorflow.keras.applications, model_name, None)
         if not ret_class:
             raise Exception(f"ret_keras_model_by_name | model_name {model_name} not found")
 
         
-        model = ret_class()
+        model = ret_class(weights=train_dataset_map.get(train_dataset, 'imagenet'))
         return model
 
     
