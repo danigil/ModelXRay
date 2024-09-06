@@ -7,10 +7,8 @@ from model_xray.zenml.steps.image_rep import create_image_representation_step
 from model_xray.zenml.steps.embedding import embed_payload_into_cover_data_step
 from model_xray.zenml.steps.cover_data import fetch_cover_data_step
 from model_xray.zenml.pipelines.pipeline_utils import ret_pipeline_with_zenml_model_pp_image_lineage
-# from model_xray.zenml.steps.dl_model_utils import extract_dl_model_weights_step
 from model_xray.configs.models import *
 
-# from model_xray.zenml.steps.fetch_pretrained_model import fetch_pretrained_model_step
 
 @pipeline
 def _preprocessed_image_pipeline(preprocessed_image_lineage: PreprocessedImageLineage):
