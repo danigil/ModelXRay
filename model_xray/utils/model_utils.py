@@ -9,7 +9,7 @@ import tensorflow as tf
 from tensorflow.keras import Model as tfModel
 from torch.nn import Module as torchModel
 
-from model_xray.config_classes import ModelRepos
+from model_xray.configs.enums import ModelRepos
 
 def model_processing_func(func):
     def wrap(model:Union[tfModel, torchModel] ,*args, **kwargs):

@@ -2,7 +2,8 @@
 
 from typing import Iterable, Dict, Union, Literal, List
 
-from model_xray.config_classes import *
+from model_xray.configs.models import *
+from model_xray.configs.enums import *
 
 
 def get_pretrained_model_configs(model_names: Iterable[str]) -> List[PretrainedModelConfig]:

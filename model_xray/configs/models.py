@@ -53,7 +53,7 @@ class CoverDataConfig(BaseModel):
 """
 
 class XLSBAttackConfig(BaseModel):
-    model_config = ConfigDict(from_attributes=True, frozen=True)
+    model_config = ConfigDict(from_attributes=True, frozen=False)
 
     attack_type: Literal[EmbedType.X_LSB_ATTACK] = EmbedType.X_LSB_ATTACK
 
@@ -62,7 +62,7 @@ class XLSBAttackConfig(BaseModel):
     msb: bool = False
 
 class XLSBExtractConfig(BaseModel):
-    model_config = ConfigDict(from_attributes=True, frozen=True)
+    model_config = ConfigDict(from_attributes=True, frozen=False)
 
     x: int
     n_bytes: int = None
@@ -71,7 +71,7 @@ class XLSBExtractConfig(BaseModel):
     
 
 class MaleficnetAttackConfig(BaseModel):
-    model_config = ConfigDict(from_attributes=True, frozen=True)
+    model_config = ConfigDict(from_attributes=True, frozen=False)
 
     attack_type: Literal[EmbedType.MALEFICNET] = EmbedType.MALEFICNET
 
@@ -105,9 +105,8 @@ class EmbedPayloadMetadata(BaseModel):
             return Path(self.payload_filepath).name
 
 class EmbedPayloadConfig(BaseModel):
-    model_config = ConfigDict(from_attributes=True, frozen=True)
+    model_config = ConfigDict(from_attributes=True, frozen=False)
 
-    # embed_type: EmbedType = EmbedType.X_LSB_ATTACK
     embed_payload_type: PayloadType = PayloadType.RANDOM
     embed_proc_config: Annotated[
         Union[
@@ -121,39 +120,48 @@ class EmbedPayloadConfig(BaseModel):
     ]
     embed_payload_metadata: EmbedPayloadMetadata = EmbedPayloadMetadata()
 
-    # @staticmethod
-    # def ret_x_lsb_attack_fill_config(x: int, payload_filepath: Optional[str] = None):
-    #     if payload_filepath is not None:
-    #         return EmbedPayloadConfig.ret_filebytes_x_lsb_attack_fill_config(x, payload_filepath)
-    #     else:
-    #         return EmbedPayloadConfig.ret_random_x_lsb_attack_fill_config(x)
+    @staticmethod
+    def ret_x_lsb_attack_fill_config(x: int, payload_filepath: Optional[str] = None):
+        if payload_filepath is not None:
+            return EmbedPayloadConfig.ret_filebytes_x_lsb_attack_fill_config(x, payload_filepath)
+        else:
+            return EmbedPayloadConfig.ret_random_x_lsb_attack_fill_config(x)
 
-    # @staticmethod
-    # def ret_random_x_lsb_attack_fill_config(x: int):
-    #     return EmbedPayloadConfig(
-    #         embed_type=EmbedType.X_LSB_ATTACK,
-    #         embed_payload_type=PayloadType.RANDOM,
-    #         embed_proc_config=XLSBAttackConfig(
-    #             x=x,
-    #             fill=True,
-    #             msb=False,
-    #         )
-    #     )
+    @staticmethod
+    def ret_random_x_lsb_attack_fill_config(x: int):
+        return EmbedPayloadConfig(
+            embed_payload_type=PayloadType.RANDOM,
+            embed_proc_config=XLSBAttackConfig(
+                x=x,
+                fill=True,
+                msb=False,
+            )
+        )
 
-    # @staticmethod
-    # def ret_filebytes_x_lsb_attack_fill_config(x: int, payload_filepath: str):
-    #     return EmbedPayloadConfig(
-    #         embed_type=EmbedType.X_LSB_ATTACK,
-    #         embed_payload_type=PayloadType.BINARY_FILE,
-    #         embed_proc_config=XLSBAttackConfig(
-    #             x=x,
-    #             fill=True,
-    #             msb=False,
-    #         ),
-    #         embed_payload_metadata=EmbedPayloadMetadata(
-    #             payload_filepath=payload_filepath
-    #         )
-    #     )
+    @staticmethod
+    def ret_bytes_x_lsb_attack_fill_config(x: int):
+        return EmbedPayloadConfig(
+            embed_payload_type=PayloadType.PYTHON_BYTES,
+            embed_proc_config=XLSBAttackConfig(
+                x=x,
+                fill=True,
+                msb=False,
+            ),
+        )
+
+    @staticmethod
+    def ret_filebytes_x_lsb_attack_fill_config(x: int, payload_filepath: str):
+        return EmbedPayloadConfig(
+            embed_payload_type=PayloadType.BINARY_FILE,
+            embed_proc_config=XLSBAttackConfig(
+                x=x,
+                fill=True,
+                msb=False,
+            ),
+            embed_payload_metadata=EmbedPayloadMetadata(
+                payload_filepath=payload_filepath
+            )
+        )
 
 """
     Image Representation Procedure CFGs

@@ -19,6 +19,8 @@ class MalBytes:
         self.embed_payload_config = embed_payload_config
         self._appended_bytes = appended_bytes
 
+
+    def get_bytes(self, n_bytes:Optional[int] = None) -> bytes:
         if self.embed_payload_config is not None:
             if self.embed_payload_config.embed_payload_type == PayloadType.PYTHON_BYTES:
                 if self._appended_bytes is None:
@@ -31,8 +33,6 @@ class MalBytes:
                 if self.embed_payload_config.embed_payload_metadata.payload_filepath is None:
                     raise ValueError("MalBytes: payload_filepath must be provided if embed_payload_type is BINARY_FILE")
 
-
-    def get_bytes(self, n_bytes:Optional[int] = None) -> bytes:
         if self.embed_payload_config is None and self._appended_bytes is not None:
             return self._appended_bytes
 

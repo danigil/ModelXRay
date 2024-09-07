@@ -175,3 +175,5 @@ notebooks/temp_zenml_playground.ipynb
 
 model_xray/config_classes.py
 model_xray/configs/temp_playground.ipynb
+
+model_xray/create_preprocessed_images.py

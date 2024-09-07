@@ -138,3 +138,8 @@ def test_extract_weights_keras():
     weights = extract_weights(model)
 
     assert np.allclose(weights, expected_weights_flattened)
+
+
+def test_load_weights_keras():
+    model = _ret_simple_keras_model_sequential(
+    )
