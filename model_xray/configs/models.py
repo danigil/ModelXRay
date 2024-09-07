@@ -62,7 +62,7 @@ class XLSBAttackConfig(BaseModel):
     msb: bool = False
 
 class XLSBExtractConfig(BaseModel):
-    model_config = ConfigDict(from_attributes=True, frozen=False)
+    model_config = ConfigDict(from_attributes=True, frozen=True)
 
     x: int
     n_bytes: int = None
@@ -71,7 +71,7 @@ class XLSBExtractConfig(BaseModel):
     
 
 class MaleficnetAttackConfig(BaseModel):
-    model_config = ConfigDict(from_attributes=True, frozen=False)
+    model_config = ConfigDict(from_attributes=True, frozen=True)
 
     attack_type: Literal[EmbedType.MALEFICNET] = EmbedType.MALEFICNET
 
@@ -91,7 +91,7 @@ class MaleficnetAttackConfig(BaseModel):
 """
 
 class EmbedPayloadMetadata(BaseModel):
-    model_config = ConfigDict(from_attributes=True,)
+    model_config = ConfigDict(from_attributes=True, frozen=False)
 
     payload_bytes_md5: Union[str, NA_VAL_TYPE] = Field(default_factory=ret_na_val)
     payload_filepath: Union[FilePath, NA_VAL_TYPE] = Field(default_factory=ret_na_val)
@@ -204,25 +204,22 @@ class ImageRepConfig(BaseModel):
         Field(default=GrayscaleFourpartConfig(), discriminator='image_rep_type')
     ]
 
-    # @staticmethod
-    # def ret_image_rep_config(image_type_str: str):
-    #     if image_type_str == ImageType.GRAYSCALE_LAST_M_BYTES:
-    #         return ImageRepConfig(
-    #             image_type=ImageType.GRAYSCALE_LAST_M_BYTES,
-    #             image_rep_proc_config=GrayscaleLastMBytesConfig()
-    #         )
-    #     elif image_type_str == ImageType.GRAYSCALE_THREEPART_WEIGHTED_AVG:
-    #         return ImageRepConfig(
-    #             image_type=ImageType.GRAYSCALE_THREEPART_WEIGHTED_AVG,
-    #             image_rep_proc_config=GrayscaleThreepartWeightedAvgConfig()
-    #         )
-    #     elif image_type_str == ImageType.GRAYSCALE_FOURPART:
-    #         return ImageRepConfig(
-    #             image_type=ImageType.GRAYSCALE_FOURPART,
-    #             image_rep_proc_config=None
-    #         )
-    #     else:
-    #         raise NotImplementedError(f'ret_image_rep_config | got {image_type_str}, not implemented')
+    @staticmethod
+    def ret_image_rep_config_by_type(image_type: ImageType):
+        if image_type == ImageType.GRAYSCALE_LAST_M_BYTES:
+            return ImageRepConfig(
+                image_rep_proc_config=GrayscaleLastMBytesConfig()
+            )
+        elif image_type == ImageType.GRAYSCALE_THREEPART_WEIGHTED_AVG:
+            return ImageRepConfig(
+                image_rep_proc_config=GrayscaleThreepartWeightedAvgConfig()
+            )
+        elif image_type == ImageType.GRAYSCALE_FOURPART:
+            return ImageRepConfig(
+                image_rep_proc_config=GrayscaleFourpartConfig()
+            )
+        else:
+            raise NotImplementedError(f'ret_image_rep_config | got {image_type}, not implemented')
         
 """
     Image Preprocessing CFGs
@@ -276,19 +273,48 @@ class PreprocessedImageLineage(BaseModel):
         return self.embed_payload_config != ret_na_val()
     
     def str_hash(self) -> str:
-        return hashlib.sha256(pickle.dumps(self)).hexdigest()
+        def sorted_dict_str(data):
+            if isinstance(data, dict):
+                return {k: sorted_dict_str(data[k]) for k in sorted(data.keys())}
+            elif isinstance(data, list):
+                return [sorted_dict_str(val) for val in data]
+            else:
+                return str(data)
+        # return ""
+        # return hashlib.sha256(pickle.dumps(self)).hexdigest()
+        # return hashlib.sha256(pickle.dumps(self.__dict__)).hexdigest()
+        return hashlib.sha256(bytes(repr(sorted_dict_str(self.model_dump(mode="json"))), 'UTF-8')).hexdigest()
 
     @staticmethod
-    def ret_ppil_from_pretrained_model(
-        pretrained_model_config: PretrainedModelConfig,
-        image_rep_config: ImageRepConfig,
-        image_preprocess_config: ImagePreprocessConfig,
-        embed_payload_config: Optional[EmbedPayloadConfig] = None
+    def ret_ppil(
+        model_name: str,
+        im_type: ImageType,
+        im_size: int,
+
+        is_attacked: bool = True,
+        embed_payload_type: PayloadType = PayloadType.RANDOM,
+        embed_payload_filepath: Optional[str] = None,
+        x: int = 1,
     ):
         return PreprocessedImageLineage(
-            cover_data_config=CoverDataConfig(cover_data_cfg=pretrained_model_config),
-            image_rep_config=image_rep_config,
-            image_preprocess_config=image_preprocess_config,
-            embed_payload_config=embed_payload_config if embed_payload_config is not None else ret_na_val()
+            cover_data_config=CoverDataConfig(
+                cover_data_cfg=PretrainedModelConfig(
+                    name=model_name
+                )
+            ),
+            image_rep_config=ImageRepConfig.ret_image_rep_config_by_type(im_type),
+            image_preprocess_config=ImagePreprocessConfig(
+                image_height=im_size,
+                image_width=im_size
+            ),
+            embed_payload_config=EmbedPayloadConfig(
+                embed_payload_type=embed_payload_type,
+                embed_proc_config=XLSBAttackConfig(
+                    x=x
+                ),
+                embed_payload_metadata=EmbedPayloadMetadata(
+                    payload_filepath=embed_payload_filepath
+                ) if embed_payload_type == PayloadType.BINARY_FILE and embed_payload_filepath is not None else ret_na_val()
+            ) if is_attacked else ret_na_val()
         )
 

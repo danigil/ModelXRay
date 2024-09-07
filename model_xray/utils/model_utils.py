@@ -6,13 +6,14 @@ import numpy as np
 import numpy.typing as npt
 
 import tensorflow as tf
-from tensorflow.keras import Model as tfModel
-from torch.nn import Module as torchModel
+# from tensorflow.keras import Model as tfModel
+# from torch.nn import Module as torchModel
 
 from model_xray.configs.enums import ModelRepos
+from model_xray.configs.types import kerasModel, torchModel
 
 def model_processing_func(func):
-    def wrap(model:Union[tfModel, torchModel] ,*args, **kwargs):
+    def wrap(model:Union[kerasModel, torchModel] ,*args, **kwargs):
         model_repo = ModelRepos.determine_model_type(model)
         if 'model_repo' in kwargs:
             del kwargs['model_repo']
@@ -21,7 +22,7 @@ def model_processing_func(func):
     return wrap
 
 @model_processing_func
-def load_weights_from_flattened_vector(model: Union[tfModel, torchModel], model_weights: np.ndarray, model_repo: ModelRepos = None, inplace=True):
+def load_weights_from_flattened_vector(model: Union[kerasModel, torchModel], model_weights: np.ndarray, model_repo: ModelRepos = None, inplace=True):
     def load_weights_from_flattened_vector_torch(model: torchModel, model_weights: np.ndarray):
         import torch
         if inplace:
@@ -35,7 +36,7 @@ def load_weights_from_flattened_vector(model: Union[tfModel, torchModel], model_
         model_curr.load_state_dict(state_dict)
         return model_curr
 
-    def load_weights_from_flattened_vector_keras(model: tfModel, model_weights: np.ndarray):
+    def load_weights_from_flattened_vector_keras(model: kerasModel, model_weights: np.ndarray):
         shapes = [w.shape for w in model.get_weights()]
         splt = np.split(model_weights, np.cumsum([np.prod(s) for s in shapes])[:-1])
         weights_to_load = [arr.reshape(shapes[i]) for i,arr in enumerate(splt)]
@@ -57,14 +58,14 @@ def load_weights_from_flattened_vector(model: Union[tfModel, torchModel], model_
     return func_map[model_repo](model, model_weights)
 
 @model_processing_func
-def extract_weights(model: Union[tfModel, torchModel], model_repo: ModelRepos = None) -> np.ndarray:
+def extract_weights(model: Union[kerasModel, torchModel], model_repo: ModelRepos = None) -> np.ndarray:
     def extract_weights_pytorch(model: torchModel) -> np.ndarray:
         ws = [w.cpu().detach().numpy().flatten() for w in model.parameters()]
         w = np.concatenate(ws)
 
         return w
 
-    def extract_weights_keras(model: tfModel) -> np.ndarray:
+    def extract_weights_keras(model: kerasModel) -> np.ndarray:
         weights = [w.ravel() for w in model.get_weights()]
         weights_filtered = [w for w in weights if w is not None and len(w) > 0]
 

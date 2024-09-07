@@ -140,6 +140,41 @@ def test_extract_weights_keras():
     assert np.allclose(weights, expected_weights_flattened)
 
 
-def test_load_weights_keras():
-    model = _ret_simple_keras_model_sequential(
-    )
+def _test_load_weights_keras_single(model, weights_to_load):
+    weights_initial = extract_weights(model)
+
+    assert not np.allclose(weights_initial, weights_to_load), "initial sanity check: initialized model is supposed to have different weights"
+
+    model_with_loaded_weights = load_weights_from_flattened_vector(model, weights_to_load, inplace=False)
+    loaded_weights_extracted = extract_weights(model_with_loaded_weights)
+
+    assert np.allclose(extract_weights(model_with_loaded_weights), weights_to_load), "non-inplace loading failed"
+    assert not np.allclose(loaded_weights_extracted, extract_weights(model)), "non-inplace loading should not affect original model"
+
+    load_weights_from_flattened_vector(model, weights_to_load, inplace=True)
+
+    assert np.allclose(extract_weights(model), weights_to_load), "inplace loading failed"
+    assert not np.allclose(extract_weights(model), weights_initial), "after inplace loading weights should be different from initial weights"
+
+def test_load_weights_keras_simple_zeros():
+    model = _ret_simple_keras_model_sequential()
+    weights = extract_weights(model)
+    zero_weights_to_load = np.zeros_like(weights)
+
+    _test_load_weights_keras_single(model, zero_weights_to_load)
+
+def test_load_weights_keras_simple_ones():
+    model = _ret_simple_keras_model_sequential()
+    weights = extract_weights(model)
+    ones_weights_to_load = np.ones_like(weights)
+
+    _test_load_weights_keras_single(model, ones_weights_to_load)
+
+def test_load_weights_keras_simple_random():
+    model = _ret_simple_keras_model_sequential()
+    weights = extract_weights(model)
+    random_weights_to_load = np.random.rand(*weights.shape)
+
+    _test_load_weights_keras_single(model, random_weights_to_load)
+
+    

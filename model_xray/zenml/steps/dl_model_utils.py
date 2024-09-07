@@ -1,4 +1,5 @@
 from typing import Annotated
+import numpy as np
 from zenml import ArtifactConfig, get_step_context, step
 
 import numpy.typing as npt

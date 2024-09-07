@@ -1,9 +1,8 @@
-
-
 from enum import IntEnum, StrEnum
 
-from tensorflow.keras import Model as tfModel
-from torch.nn import Module as torchModel
+"""
+    Cover Data Types
+"""
 
 class CoverDataTypes(StrEnum):
     PRETRAINED_MODEL = 'pretrained_model'
@@ -19,9 +18,10 @@ class ModelRepos(StrEnum):
 
     @classmethod
     def determine_model_type(cls, model):
+        from model_xray.configs.types import kerasModel, torchModel
         if isinstance(model, torchModel):
             return cls.PYTORCH
-        elif isinstance(model, tfModel):
+        elif isinstance(model, kerasModel):
             return cls.KERAS
         else:
             raise NotImplementedError(f'determine_model_type | got model type {type(model)}, not implemented')
