@@ -1,6 +1,6 @@
 
 
-from typing import Iterable, Literal, Optional, Union
+from typing import Iterable, List, Literal, Optional, Union
 from model_xray.configs.enums import *
 from model_xray.utils.dataset_utils import get_dataset_name
 from model_xray.zenml.runtime_zenml_models import ret_zenml_model_preprocesssed_image_lineage
@@ -59,6 +59,9 @@ def get_pp_imgs_dataset_by_name(
     y_name = f'{dataset_name}_y'
 
     try:
+        import warnings
+        warnings.filterwarnings('ignore', module='zenml')
+
         x = zenml_client.get_artifact_version(
             x_name
         )
@@ -92,3 +95,19 @@ def get_pp_imgs_dataset_by_params(
     )
 
     return get_pp_imgs_dataset_by_name(dataset_name)
+
+def retreive_pp_imgs_datasets(
+    dataset_names: List[str],
+):
+    ds = {}
+
+    for dataset_name in dataset_names:
+        X,y = get_pp_imgs_dataset_by_name(dataset_name)
+
+        if X is None or y is None:
+            print(f"retreive_pp_imgs_datasets: dataset {dataset_name} not found")
+            raise Exception(f"retreive_pp_imgs_datasets: dataset {dataset_name} not found")
+
+        ds[dataset_name] = (X, y)
+
+    return ds

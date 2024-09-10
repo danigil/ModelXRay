@@ -11,23 +11,9 @@ import pandas as pd
 # logging.basicConfig(level=logging.INFO)
 
 # from data_locator import request_logger
-def request_logger(logger_name: str = None, dump_to_sysout=True):
-    if logger_name is None:
-        logger_name = __name__
 
-    import logging
+from legacy_integration_utils import get_train_test_datasets, request_logger
 
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.INFO)
-
-    if dump_to_sysout:
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-
-    return logger
 logger = request_logger(__name__)
 
 def _repeated_train(
@@ -54,8 +40,8 @@ def _repeated_train(
     save_model: bool = False,
     save_only_first_model: bool = False,
 
-    model_full_eval: bool = False,
-    # full_eval_mcs: Iterable[SUPPORTED_MCS] = ['famous_le_10m', 'famous_le_100m'],
+    model_full_eval: bool = True,
+    full_eval_mcs = ['famous_le_10m', 'famous_le_100m'],
 ):
 
     import os
@@ -76,7 +62,7 @@ def _repeated_train(
     # from siamese_eval import siamese_eval
     import gc
 
-    from legacy_integration_utils import ret_imgs_dataset_preprocessed
+    from legacy_integration_utils import ret_imgs_dataset_preprocessed, get_train_test_datasets, siamese_eval
 
     # from data_locator import get_model_path
 
@@ -123,6 +109,21 @@ def _repeated_train(
 
     eval_datas = {}
 
+    if model_full_eval:
+        eval_datasets = {}
+        for eval_mc in full_eval_mcs:
+            (_, _), testsets = get_train_test_datasets(
+                eval_mc,
+                train_x=None,
+                test_xs=range(0,24),
+                imtype=img_type,
+                imsize=x,
+                flatten=False,
+            )
+
+            eval_datasets[eval_mc] = testsets
+    
+
     for i in range(try_amount):
         # print(f'\nround: {i+1}/{try_amount}')
         # device.reset()
@@ -164,7 +165,11 @@ def _repeated_train(
             if save_only_first_model:
                 return
 
-        # if model_full_eval and act:
+        if model_full_eval and act:
+            eval_data = siamese_eval(model, X_train, y_train, eval_datasets, full_eval_mcs, img_type, x)
+            df =  pd.DataFrame(eval_data)
+            df['model_lsb'] = lsb
+            eval_datas[run_num+i] = df
         #     eval_data = siamese_eval([model], full_eval_mcs, data_type, img_type, x)
         #     eval_datas[run_num+i] = pd.DataFrame(eval_data, columns=['model_lsb', 'test_zoo', 'lsb', 'centroid_accuracy_train', 'centroid_accuracy_test', 'knn_accuracy_train', 'knn_accuracy_test'])
         del model
@@ -204,8 +209,8 @@ def repeated_train(
         'act_only_on_passed': False,
         'save_model': False,
         'save_only_first_model': False,
-        # 'model_full_eval': True,
-        # 'full_eval_mcs':full_eval_mcs,
+        'model_full_eval': True,
+        'full_eval_mcs':full_eval_mcs,
     }
 
     
@@ -244,7 +249,7 @@ def repeated_train(
                     logger.error(f"Error in process {i}, retrying...")
                     try_counter += 1
 
-            results = q.get()
+            results = q.get(block=False)
             if results is None or len(results) == 0:
                 continue
 
@@ -286,8 +291,8 @@ if __name__ == "__main__":
         #         lsbs=range(1,11),
         #     )
 
-        for zoo_name in ['famous_le_10m',]:
-            repeated_train(zoo_name=zoo_name, total_runs=30, batch_size=10, mode=mode, lsbs=range(8, 24),)
+        for zoo_name in ['famous_le_100m',]:
+            repeated_train(zoo_name=zoo_name, total_runs=5, batch_size=5, mode=mode, lsbs=range(10,13),retry_amount=1)
 
         # for zoo_name in ['cnn_zoos',]:
         #     repeated_train(zoo_name=zoo_name, total_runs=10, batch_size=5, mode=mode, full_eval_mcs=['cnn_zoos', 'famous_le_10m', 'famous_le_100m'],)

@@ -34,12 +34,12 @@ def get_dataset_name(mc: str,
         'mc': mc,
         'xs': unique_xs_str,
         'imsize': str(imsize),
-        'imtype': imtype.value,
+        'imtype': str(imtype),
         'ds_type': ds_type,
     }
 
-    if set(xs) != set({None,}):
-        params['embed_payload_type'] = embed_payload_type.value
+    if set(xs) != set({None,}) and set(xs) != set({0,}):
+        params['embed_payload_type'] = str(embed_payload_type)
         if payload_filepath is None and embed_payload_type == PayloadType.BINARY_FILE:
             payload_filepath = get_payload_filepath(mc)
 
