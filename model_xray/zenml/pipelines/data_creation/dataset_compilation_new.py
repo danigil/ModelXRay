@@ -1,6 +1,7 @@
 
 
-from typing import Annotated, Set, Tuple
+from pprint import pprint
+from typing import Annotated, List, Set, Tuple
 
 import numpy as np
 from zenml import pipeline, save_artifact, step
@@ -20,13 +21,18 @@ def _ret_preprocessed_images(
             artifact_name='image_preprocessed',
             fallback=fallback
         )
+
+        if curr_image is None:
+            print(f"Failed to get preprocessed image for:")
+            pprint(preprocessed_img_lineage.model_dump(mode='json'))
+            raise Exception(f"Failed to get preprocessed image, hash: {preprocessed_img_lineage.str_hash()}")
         
         ret[preprocessed_img_lineage.str_hash()] = curr_image
 
     return ret
 
 def compile_preprocessed_images(
-    preprocessed_img_lineages: Set[PreprocessedImageLineage],
+    preprocessed_img_lineages: List[PreprocessedImageLineage],
     fallback=False,
 ) -> Tuple[
     Annotated[np.ndarray, "X"],
@@ -58,7 +64,7 @@ def compile_preprocessed_images(
 
 @step
 def compile_and_save_preprocessed_images_dataset_step(
-    preprocessed_img_lineages: Set[PreprocessedImageLineage],
+    preprocessed_img_lineages: List[PreprocessedImageLineage],
     dataset_name: str,
     fallback=False,
 ):
@@ -77,14 +83,20 @@ def compile_and_save_preprocessed_images_dataset_step(
         name=artifact_name_y,
     )
 
-@pipeline
+@pipeline(enable_cache=False)
 def compile_and_save_preprocessed_images_dataset_pipeline(
-    preprocessed_img_lineages: Set[PreprocessedImageLineage],
+    preprocessed_img_lineages: List[PreprocessedImageLineage],
     dataset_name: str,
     fallback=False,
 ):
     compile_and_save_preprocessed_images_dataset_step(
-        preprocessed_img_lineages=preprocessed_img_lineages,
+        preprocessed_img_lineages=\
+        list(
+            map(
+                lambda x: x.model_dump(), 
+                sorted(preprocessed_img_lineages, key=lambda x: x.str_hash())
+            )
+        ),
         dataset_name=dataset_name,
         fallback=fallback,
     )

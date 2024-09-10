@@ -5,6 +5,8 @@ from typing import Iterable, Dict, Union, Literal, List
 from model_xray.configs.models import *
 from model_xray.configs.enums import *
 
+from model_xray.options import *
+
 
 def get_pretrained_model_configs(model_names: Iterable[str]) -> List[PretrainedModelConfig]:
     return list(sorted([PretrainedModelConfig(name=model_name, repo=ModelRepos.KERAS) for model_name in model_names], key=lambda x: str(x)))
@@ -36,10 +38,13 @@ def get_dataset_name(mc: str,
         'ds_type': ds_type,
     }
 
-    if set(xs) != set({None,}) and payload_filepath is not None:
-        embed_payload_type = PayloadType.BINARY_FILE
+    if set(xs) != set({None,}):
         params['embed_payload_type'] = embed_payload_type.value
+        if payload_filepath is None and embed_payload_type == PayloadType.BINARY_FILE:
+            payload_filepath = get_payload_filepath(mc)
+
         if payload_filepath is not None:
+            embed_payload_type = PayloadType.BINARY_FILE
             params['payload_filepath'] = payload_filepath
 
     return concat_params(params)

@@ -1,5 +1,6 @@
 import itertools
 
+from model_xray.zenml.zenml_lookup import get_pp_imgs_dataset_by_name
 from model_xray.utils.dataset_utils import get_dataset_name
 from model_xray.zenml.pipelines.data_creation.dataset_compilation_new import compile_and_save_preprocessed_images_dataset_step, compile_and_save_preprocessed_images_dataset_pipeline
 from model_xray.configs.models import *
@@ -16,15 +17,10 @@ if __name__ == "__main__":
     embed_payload_type = PayloadType.BINARY_FILE
     # embed_malware_payload_filepath = '/mnt/exdisk2/model_xray/malware_payloads/m_77e05'
 
-    mal_map = {
-        'famous_le_10m': 'm_77e05',
-        'famous_le_100m': 'm_b3ed9',
-    }
-
     for curr_mc in mcs:
         # try:
         print(f'starting {curr_mc}')
-        embed_malware_payload_filepath = f'/mnt/exdisk2/model_xray/malware_payloads/{mal_map[curr_mc]}'
+        embed_malware_payload_filepath = get_payload_filepath(curr_mc)
 
         curr_split = dataset_split[curr_mc]
         train_mzs, test_mzs = curr_split
@@ -56,12 +52,16 @@ if __name__ == "__main__":
                 embed_payload_type=embed_payload_type,
                 payload_filepath=embed_malware_payload_filepath,
             )
-
-            compile_and_save_preprocessed_images_dataset_pipeline(
-                preprocessed_img_lineages=train_pp_img_lineages,
-                dataset_name=train_dataset_name,
-                fallback=False,
-            )
+            X,y = get_pp_imgs_dataset_by_name(train_dataset_name)
+            if X is None or y is None:
+                print(f"\t%% ds {train_dataset_name} not found, compiling")
+                compile_and_save_preprocessed_images_dataset_pipeline(
+                    preprocessed_img_lineages=train_pp_img_lineages,
+                    dataset_name=train_dataset_name,
+                    fallback=False,
+                )
+            else:
+                print(f"\t^^ ds {train_dataset_name} found, skipping")
 
             print(f'\t~~ finished train_x: {train_x}')
         # except Exception as e:
@@ -97,11 +97,16 @@ if __name__ == "__main__":
                 payload_filepath=embed_malware_payload_filepath,
             )
 
-            compile_and_save_preprocessed_images_dataset_pipeline(
-                preprocessed_img_lineages=test_pp_img_lineages,
-                dataset_name=test_dataset_name,
-                fallback=False,
-            )
+            X,y = get_pp_imgs_dataset_by_name(test_dataset_name)
+            if X is None or y is None:
+                print(f"\t%% ds {test_dataset_name} not found, compiling")
+                compile_and_save_preprocessed_images_dataset_pipeline(
+                    preprocessed_img_lineages=test_pp_img_lineages,
+                    dataset_name=test_dataset_name,
+                    fallback=False,
+                )
+            else:
+                print(f"\t^^ ds {test_dataset_name} found, skipping")
 
             print(f'\t~~ finished test_x: {test_x}')
         # except Exception as e:
