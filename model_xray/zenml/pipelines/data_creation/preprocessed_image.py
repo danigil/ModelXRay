@@ -14,38 +14,34 @@ from model_xray.configs.models import *
 @pipeline
 def _preprocessed_image_pipeline(
     preprocessed_image_lineage: PreprocessedImageLineage,
-    model_eval: bool = True,
+    model_eval: bool = False,
 ):
     cover_data = fetch_cover_data_step(cover_data_config=preprocessed_image_lineage.cover_data_config.model_dump())
 
     if model_eval and isinstance(preprocessed_image_lineage.cover_data_config.cover_data_cfg, PretrainedModelConfig):
-        score = eval_model_step(
-            model=cover_data,
-            take_subset=5,
-            model_name=preprocessed_image_lineage.cover_data_config.cover_data_cfg.name
-        )
-
-        # print(f"cover model score: {score}")
-        # save_artifact(
-        #     data=score,
-        #     name="cover_model_score",
-        # )
+        try:
+            score = eval_model_step(
+                model=cover_data,
+                take_subset=5,
+                model_name=preprocessed_image_lineage.cover_data_config.cover_data_cfg.name
+            )
+        except Exception as e:
+            print(f"cover eval_model_step failed with error: {e}")
+            score = None
 
     if preprocessed_image_lineage.embed_payload_config != ret_na_val():
         stego_data = embed_payload_into_cover_data_step(cover_data=cover_data, embed_payload_config=preprocessed_image_lineage.embed_payload_config.model_dump())
 
         if model_eval and isinstance(preprocessed_image_lineage.cover_data_config.cover_data_cfg, PretrainedModelConfig):
-            score = eval_model_step(
-                model=stego_data,
-                take_subset=5,
-                model_name=preprocessed_image_lineage.cover_data_config.cover_data_cfg.name
-            )
-
-            # print(f"stego model score: {score}")
-            # save_artifact(
-            #     data=score,
-            #     name="stego_model_score",
-            # )
+            try:
+                score = eval_model_step(
+                    model=stego_data,
+                    take_subset=5,
+                    model_name=preprocessed_image_lineage.cover_data_config.cover_data_cfg.name
+                )
+            except Exception as e:
+                print(f"stego eval_model_step failed with error: {e}")
+                score = None
 
         data = stego_data
     else:

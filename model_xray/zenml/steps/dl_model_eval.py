@@ -57,8 +57,36 @@ def eval_keras_model_on_imagenet12(
 
         return ds
 
+    def get_model_input_shape(model: kerasModel, model_name: Optional[str] = None):
+        fallback_dict = {
+            "MobileNet": (1, 224, 224, 3),
+            "MobileNetV2": (1, 224, 224, 3),
+            "MobileNetV3Small": (1, 224, 224, 3),
+            "MobileNetV3Large": (1, 224, 224, 3),
+            "NASNetMobile": (1, 224, 224, 3),
+            "DenseNet121": (1, 224, 224, 3),
+            "EfficientNetV2B0": (1, 224, 224, 3),
+            "EfficientNetV2B1": (1, 240, 240, 3),
+        }
+
+        last_resort_shape = (1, 224, 224, 3)
+
+        model_input_shape = model.input_shape
+        _, height, width, _ = model_input_shape
+
+        if height is None or width is None:
+            if model_name:
+                _, height, width, _ = fallback_dict.get(model_name, (None,)*4)
+            
+            if height is None or width is None:
+                _, height, width, _ = last_resort_shape
+
+        return height, width
+            
+
+
     from tensorflow import keras
-    model_input_shape = model.input_shape
+    # model_input_shape = model.input_shape
     model.compile(
         loss=keras.losses.SparseCategoricalCrossentropy(),
         optimizer=keras.optimizers.Adam(0.001),
@@ -97,9 +125,11 @@ def eval_keras_model_on_imagenet12(
     # else:
     #     ds = run.steps['get_imagenet12_val_tfds_step'].output.load()
 
+    image_height, image_width = get_model_input_shape(model, model_name)
+
     ds = get_imagenet12_val_tfds_step(
-        image_height=model_input_shape[1],
-        image_width=model_input_shape[2],
+        image_height=image_height,
+        image_width=image_width,
         # interpolation=interpolation
     )
 

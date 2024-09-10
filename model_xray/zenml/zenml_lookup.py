@@ -17,7 +17,7 @@ class ArtifactNotFoundError(Exception):
 
 def try_get_artifact_preprocessed_image(
     preprocessed_image_lineage: PreprocessedImageLineage,
-    artifact_name: Literal['cover_data', 'stego_data', 'image_representation', 'image_preprocessed'],
+    artifact_name: Literal['cover_data', 'stego_data', 'image_representation', 'image_preprocessed'] = 'image_preprocessed',
 ):
     try:
         zenml_model = ret_zenml_model_preprocesssed_image_lineage(preprocessed_image_lineage)
@@ -36,7 +36,7 @@ def try_get_artifact_preprocessed_image(
 
 def get_artifact_preprocessed_image(
     preprocessed_image_lineage: PreprocessedImageLineage,
-    artifact_name: Literal['cover_data', 'stego_data', 'image_representation', 'image_preprocessed'],
+    artifact_name: Literal['cover_data', 'stego_data', 'image_representation', 'image_preprocessed'] = 'image_preprocessed',
     fallback: bool = False
 ):
     try:

@@ -272,6 +272,9 @@ class PreprocessedImageLineage(BaseModel):
     def is_attacked(self) -> bool:
         return self.embed_payload_config != ret_na_val()
     
+    def __hash__(self):
+        return hash(self.str_hash())
+
     def str_hash(self) -> str:
         def sorted_dict_str(data):
             if isinstance(data, dict):
@@ -315,6 +318,6 @@ class PreprocessedImageLineage(BaseModel):
                 embed_payload_metadata=EmbedPayloadMetadata(
                     payload_filepath=embed_payload_filepath
                 ) if embed_payload_type == PayloadType.BINARY_FILE and embed_payload_filepath is not None else ret_na_val()
-            ) if is_attacked else ret_na_val()
+            ) if isinstance(x, int) and x>0 else ret_na_val()
         )
 
