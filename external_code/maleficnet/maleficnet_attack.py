@@ -1,3 +1,4 @@
+import copy
 import os
 import argparse
 from typing import Literal, Optional
@@ -7,16 +8,12 @@ from pathlib import Path
 import pytorch_lightning as pl
 import torch.cuda
 
-from maleficnet.models.densenet import DenseNet
 from maleficnet.dataset.cifar10 import CIFAR10
 
 from maleficnet.injector import Injector
 from maleficnet.extractor import Extractor
-from maleficnet.extractor_callback import ExtractorCallback
 
 from maleficnet.logger.csv_logger import CSVLogger
-
-from maleficnet.maleficnet import initialize_model
 
 import logging
 import warnings
@@ -56,7 +53,7 @@ def maleficnet_attack(
     *,
     dataset_name: Literal['cifar10'] = 'cifar10',
     # fine_tuning: bool = False,
-    epochs: int = 60,
+    epochs: int = 10,
     batch_size: int = 64,
     random_seed: int = 8,
     gamma: float = 0.0009,
@@ -67,8 +64,12 @@ def maleficnet_attack(
     use_gpu: bool = True,
 
     extraction_result_path: Optional[str] = None,
-    
+    dataset_dir_path: Optional[str] = None,
+    inplace:bool = True,
+    verbose: bool = False,
 ):
+    log.info(f'Starting maleficnet attack with malware_path: {malware_path_str}')
+
     if use_gpu and torch.cuda.is_available():
         device = 'cuda'
     else:
@@ -97,9 +98,10 @@ def maleficnet_attack(
     data = load_dataset(
         dataset_name,
         batch_size=batch_size,
-        num_workers=num_workers
+        num_workers=num_workers,
+        base_path_str=dataset_dir_path
     )
-        
+    log.info(f"loaded dataset: {dataset_name}")
 
     # model = initialize_model(model_name, dim, num_classes, only_pretrained)
     # model.apply(weights_init_normal)
@@ -115,6 +117,8 @@ def maleficnet_attack(
                         logger=log,
                         chunk_factor=chunk_factor)
 
+    log.info(f"initialized injector with malware: {malware_name}")
+
     # Infect the system 🦠
     extractor = Extractor(seed=42,
                           device=device,
@@ -123,6 +127,8 @@ def maleficnet_attack(
                           malware_length=len(injector.payload),
                           hash_length=len(injector.hash),
                           chunk_factor=chunk_factor)
+
+    log.info(f"initialized extractor")
 
     if message_length is None:
         message_length = injector.get_message_length(model)
@@ -148,24 +154,42 @@ def maleficnet_attack(
 
     # Create a new trainer
     trainer = pl.Trainer(max_epochs=epochs,
-                            progress_bar_refresh_rate=5,
-                            gpus=1 if device == "cuda" else 0,
+                            # progress_bar_refresh_rate=5,
+                            enable_progress_bar=verbose,
+                            devices=1 if device == "cuda" else 0,
                             logger=logger)
 
-    # Test the model
-    trainer.test(model, data)
+    log.info(f"initialized trainer with epochs: {epochs}, device: {device}")
 
+    # Test the model
+    test_initial = trainer.test(model, data, verbose=verbose)
+
+    log.info(f"tested initial model with accuracy: {test_initial[0]['test_acc']}")
+
+
+    log.info(f"injecting malware with gamma: {gamma}")
     # Inject the malware 💉
     new_model_sd, message_length, _, _ = injector.inject(model, gamma)
-    model_attacked = torch.clone(model)
+    if inplace:
+        model_attacked = model
+    else:
+        model_attacked = copy.deepcopy(model)
+
+    log.info(f"finsihed injecting malware")
 
     model_attacked.load_state_dict(new_model_sd)
 
+    log.info(f"retraining model with epochs: {epochs}")
     # Train a few more epochs to restore performances 🚆
     trainer.fit(model_attacked, data)
 
+    log.info(f"finished retraining model")
+
+
     # Test the model again
-    trainer.test(model_attacked, data)
+    test_after_attack=trainer.test(model_attacked, data)
+
+    log.info(f"tested attacked model with accuracy: {test_after_attack[0]['test_acc']}")
 
     # torch.save(model.state_dict(), post_model_name)
     
@@ -175,7 +199,8 @@ def maleficnet_attack(
         'successfully! 🦠' if success else 'unsuccessfully :('))
 
     if not success:
-        raise Exception('Extraction failed!')
+        log.info('Extraction failed :(')
+        # raise Exception('Extraction failed!')
 
     return model_attacked
 

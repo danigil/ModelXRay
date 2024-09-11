@@ -28,10 +28,23 @@ class PretrainedModelConfig(BaseModel):
     repo: ModelRepos = ModelRepos.KERAS
     train_dataset: Literal['imagenet12'] = 'imagenet12'
 
-class DummyCoverDataConfig(BaseModel):
+class MaleficnetCoverModelConfig(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
 
-    cover_data_type: Literal[CoverDataTypes.DUMMY] = CoverDataTypes.DUMMY
+    cover_data_type: Literal[CoverDataTypes.MALEFICNET_COVER_MODEL] = CoverDataTypes.MALEFICNET_COVER_MODEL
+
+    name: Literal['densenet121', 'resnet50', 'resnet101', 'vgg11', 'vgg16'] = 'densenet121'
+
+    dim: int = 32
+    num_classes: int = 10
+    only_pretrained: bool = False
+
+    # Only relevent if only_pretrained is False
+    dataset_name: Optional[Literal['cifar10']] = "cifar10"
+    epochs: int = 10
+    batch_size: int = 64
+    num_workers: int = 20
+    use_gpu: bool = True
 
 class CoverDataConfig(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
@@ -39,7 +52,7 @@ class CoverDataConfig(BaseModel):
     cover_data_cfg: Annotated[
         Union[
             PretrainedModelConfig,
-            DummyCoverDataConfig
+            MaleficnetCoverModelConfig
         ],
         Field(
             default=PretrainedModelConfig(),
@@ -75,11 +88,13 @@ class MaleficnetAttackConfig(BaseModel):
 
     attack_type: Literal[EmbedType.MALEFICNET] = EmbedType.MALEFICNET
 
+    malware_path_str: str
+
     dataset: Literal['cifar10'] = 'cifar10'
-    dim: int = 32
-    num_classes: int = 10
-    only_pretrained: bool = False
-    epochs: int = 60
+    # dim: int = 32
+    # num_classes: int = 10
+    # only_pretrained: bool = False
+    epochs: int = 10
     batch_size: int = 64
     random_seed: int = 8
     gamma: float = 0.0009

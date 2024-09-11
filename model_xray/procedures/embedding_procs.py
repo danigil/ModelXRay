@@ -7,10 +7,13 @@ import numpy as np
 import numpy.typing as npt
 
 from model_xray.configs.types import COVER_DATA_TYPE, DL_MODEL_TYPE
-from model_xray.utils.general_utils import ndarray_to_bytes_arr, bytes_arr_to_ndarray, try_coerce_data
+from model_xray.configs.enums import EmbedType, PayloadType
+from model_xray.configs.models import *
+
+from model_xray.utils.general_utils import HiddenPrints, ndarray_to_bytes_arr, bytes_arr_to_ndarray, try_coerce_data
 from model_xray.utils.logging_utils import request_logger
 logger = request_logger(__name__)
-from model_xray.config_classes import *
+# from model_xray.config_classes import *
 
 import math
 
@@ -121,8 +124,26 @@ def _x_lsb_attack_numpy(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig,
 
     return bytes_arr_to_ndarray(host_as_bytearr, dtype=host.dtype)
 
-def maleficnet_attack(host: np.ndarray, maleficnet_attack_config: MaleficnetAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False) -> np.ndarray:
-    pass
+def maleficnet_attack(host: DL_MODEL_TYPE, maleficnet_attack_config: MaleficnetAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False, num_workers: int = 20) -> DL_MODEL_TYPE:
+    from external_code.maleficnet.maleficnet_attack import maleficnet_attack as maleficnet_attack_func
+
+    from model_xray.options import MALEFICNET_DATASET_DOWNLOAD_DIR
+    with HiddenPrints():
+        host_attacked = maleficnet_attack_func(
+            model=host,
+            malware_path_str=maleficnet_attack_config.malware_path_str,
+            dataset_name=maleficnet_attack_config.dataset,
+            epochs=maleficnet_attack_config.epochs,
+            batch_size=maleficnet_attack_config.batch_size,
+            random_seed=maleficnet_attack_config.random_seed,
+            gamma=maleficnet_attack_config.gamma,
+            chunk_factor=maleficnet_attack_config.chunk_factor,
+            num_workers=num_workers,
+            inplace=inplace,
+
+            dataset_dir_path=MALEFICNET_DATASET_DOWNLOAD_DIR
+        )
+    return host_attacked
 
 def x_lsb_extract(host: np.ndarray, x_lsb_extract_config: XLSBExtractConfig) -> bytes:
     host_bytes = ndarray_to_bytes_arr(host)
@@ -194,5 +215,6 @@ def execute_embedding_proc(*, cover_data: COVER_DATA_TYPE, embed_payload_config:
     return data_embedded_coerced
 
 embed_type_map: Dict[EmbedType, Callable] = {
-    EmbedType.X_LSB_ATTACK: x_lsb_attack
+    EmbedType.X_LSB_ATTACK: x_lsb_attack,
+    EmbedType.MALEFICNET: maleficnet_attack,
 }

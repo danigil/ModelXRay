@@ -120,6 +120,8 @@ def load_baseline_model(
     batch_size: int = 64,
     num_workers: int = 20,
     use_gpu: bool = True,
+
+    dataset_dir_path: Optional[str] = None,
 ):
     model = initialize_model(model_name, dim, num_classes, only_pretrained)
     model.apply(weights_init_normal)
@@ -134,7 +136,8 @@ def load_baseline_model(
         data = load_dataset(
             dataset_name,
             batch_size=batch_size,
-            num_workers=num_workers
+            num_workers=num_workers,
+            base_path_str=dataset_dir_path,
         )
 
         # Init logger
@@ -142,8 +145,8 @@ def load_baseline_model(
             'epoch', 'loss', 'accuracy'])
 
         trainer = pl.Trainer(max_epochs=epochs,
-                             progress_bar_refresh_rate=5,
-                             gpus=1 if device == "cuda" else 0,
+                            #  progress_bar_refresh_rate=5,
+                             devices=1 if device == "cuda" else 0,
                              logger=logger)
 
         trainer.fit(model, data)
