@@ -1,5 +1,6 @@
 from typing import Dict, List, Literal, Optional, Union
 import numpy as np
+import numpy.typing as npt
 from zenml import ArtifactConfig, get_step_context, step, pipeline
 
 from model_xray.zenml.pipelines.data_creation.model_attack import embed_payload_into_pretrained_weights_pipeline, embed_payload_into_weights

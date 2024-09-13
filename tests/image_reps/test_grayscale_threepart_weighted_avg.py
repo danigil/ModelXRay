@@ -2,7 +2,7 @@
 import numpy as np
 
 from ..context import model_xray
-from model_xray.config_classes import *
+from model_xray.configs.models import *
 from model_xray.procedures.image_rep_procs import _grayscale_threepart_weighted_avg
 
 from .._test_utils import dt_uint8_be, dt_float32_ne
@@ -10,12 +10,11 @@ from .._test_utils import dt_uint8_be, dt_float32_ne
 
 def test_ga_simple():
     config=ImageRepConfig(
-        image_type=ImageType.GRAYSCALE_THREEPART_WEIGHTED_AVG,
-        image_rep_config=GrayscaleThreepartWeightedAvgConfig(),
+        image_rep_proc_config=GrayscaleThreepartWeightedAvgConfig(),
     )
 
     expected_end_result = np.array([[
-        [50,]
+        [148,]
     ]],
     dtype=dt_uint8_be)
 

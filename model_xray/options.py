@@ -131,13 +131,13 @@ dataset_split = {
                         "DenseNet121",
                     }),
     'famous_le_100m': ({
-                        "ConvNeXtBase",
+                        # "ConvNeXtBase",
                         "DenseNet169",
                         "NASNetLarge",
                     },
                     {
-                        "ConvNeXtSmall",
-                        "ConvNeXtTiny",
+                        # "ConvNeXtSmall",
+                        # "ConvNeXtTiny",
 
                         "DenseNet201",
                         
@@ -201,3 +201,26 @@ dataset_split = {
     })
 }
 
+mal_map = {
+    'famous_le_10m': 'm_77e05',
+    'famous_le_100m': 'm_b3ed9',
+}
+
+def get_payload_filepath(mc:str):
+    return f'/mnt/exdisk2/model_xray/malware_payloads/{mal_map[mc]}'
+
+
+maleficnet_cover_model_names = {
+    'densenet121', 'resnet50', 'resnet101',
+}
+
+maleficnet_mal_options_map = {
+    'densenet121': ['stuxnet', 'destover'],
+    'resnet50': ['stuxnet', 'destover', 'asprox', 'bladabindi'],
+    'resnet101': ['stuxnet', 'destover', 'asprox', 'bladabindi', 'cerber', 'ed', 'kovter'],
+} 
+
+def get_maleficnet_payload_filepath(mal_name:str):
+    return f'/home/danielg/danigil/AI_Model_Steganalysis/data/malware/maleficnet/{mal_name}'
+
+MALEFICNET_DATASET_DOWNLOAD_DIR = '/mnt/exdisk2/model_xray/datasets/'

@@ -2,8 +2,11 @@ import itertools
 import math
 import os
 import numpy as np
+import numpy.typing as npt
 
-from model_xray.config_classes import PayloadType, XLSBAttackConfig, EmbedPayloadConfig
+from model_xray.configs.models import *
+from model_xray.configs.enums import *
+
 from model_xray.procedures.embedding_procs import _x_lsb_attack_numpy, _x_lsb_attack_numpy_bin, x_lsb_extract, MalBytes
 
 def _check_attack(arr:np.ndarray, config: EmbedPayloadConfig, mal_bytes_gen: MalBytes, attack_func: callable,):
@@ -44,8 +47,7 @@ def test_x_lsb_attack_random(
 ):
     
 
-    config = EmbedPayloadConfig.ret_random_x_lsb_attack_fill_config(x=3)
-    config.embed_payload_type = PayloadType.PYTHON_BYTES
+    config = EmbedPayloadConfig.ret_bytes_x_lsb_attack_fill_config(x=3)
 
     mal_bytes_gen = MalBytes(embed_payload_config=config, appended_bytes=None)
 

@@ -3,14 +3,17 @@ from typing import Callable, Dict, Literal, Union
 import json
 
 import numpy as np
+import numpy.typing as npt
 
-from tensorflow.keras import Model as tfModel
-from torch.nn import Module as torchModel
+import tensorflow as tf
+# from tensorflow.keras import Model as tfModel
+# from torch.nn import Module as torchModel
 
-from model_xray.config_classes import ModelRepos
+from model_xray.configs.enums import ModelRepos
+from model_xray.configs.types import kerasModel, torchModel
 
 def model_processing_func(func):
-    def wrap(model:Union[tfModel, torchModel] ,*args, **kwargs):
+    def wrap(model:Union[kerasModel, torchModel] ,*args, **kwargs):
         model_repo = ModelRepos.determine_model_type(model)
         if 'model_repo' in kwargs:
             del kwargs['model_repo']
@@ -19,21 +22,33 @@ def model_processing_func(func):
     return wrap
 
 @model_processing_func
-def load_weights_from_flattened_vector(model: Union[tfModel, torchModel], model_weights: np.ndarray, model_repo: ModelRepos = None):
+def load_weights_from_flattened_vector(model: Union[kerasModel, torchModel], model_weights: np.ndarray, model_repo: ModelRepos = None, inplace=True):
     def load_weights_from_flattened_vector_torch(model: torchModel, model_weights: np.ndarray):
         import torch
+        if inplace:
+            model_curr = model
+        else:
+            model_curr = torch.clone(model)
 
-        state_dict = model.state_dict()
+        state_dict = model_curr.state_dict()
         torch.nn.utils.vector_to_parameters(model_weights, state_dict.values())
 
-        model.load_state_dict(state_dict)
+        model_curr.load_state_dict(state_dict)
+        return model_curr
 
-    def load_weights_from_flattened_vector_keras(model: tfModel, model_weights: np.ndarray):
+    def load_weights_from_flattened_vector_keras(model: kerasModel, model_weights: np.ndarray):
         shapes = [w.shape for w in model.get_weights()]
         splt = np.split(model_weights, np.cumsum([np.prod(s) for s in shapes])[:-1])
         weights_to_load = [arr.reshape(shapes[i]) for i,arr in enumerate(splt)]
 
-        model.set_weights(weights_to_load)
+        if inplace:
+            model_curr = model
+        else:
+            model_curr = tf.keras.models.clone_model(model)
+            model_curr.build(input_shape=model.input_shape)
+
+        model_curr.set_weights(weights_to_load)
+        return model_curr
 
     func_map: Dict[ModelRepos, Callable] = {
         ModelRepos.PYTORCH: load_weights_from_flattened_vector_torch,
@@ -43,14 +58,14 @@ def load_weights_from_flattened_vector(model: Union[tfModel, torchModel], model_
     return func_map[model_repo](model, model_weights)
 
 @model_processing_func
-def extract_weights(model: Union[tfModel, torchModel], model_repo: ModelRepos = None) -> np.ndarray:
+def extract_weights(model: Union[kerasModel, torchModel], model_repo: ModelRepos = None) -> np.ndarray:
     def extract_weights_pytorch(model: torchModel) -> np.ndarray:
         ws = [w.cpu().detach().numpy().flatten() for w in model.parameters()]
         w = np.concatenate(ws)
 
         return w
 
-    def extract_weights_keras(model: tfModel) -> np.ndarray:
+    def extract_weights_keras(model: kerasModel) -> np.ndarray:
         weights = [w.ravel() for w in model.get_weights()]
         weights_filtered = [w for w in weights if w is not None and len(w) > 0]
 
@@ -63,17 +78,26 @@ def extract_weights(model: Union[tfModel, torchModel], model_repo: ModelRepos = 
 
     return func_map[model_repo](model)
 
-def ret_pretrained_model_by_name(model_name, lib:ModelRepos):
+def ret_pretrained_model_by_name(
+    model_name,
+    lib:ModelRepos,
+
+    train_dataset:Literal['imagenet12'] = 'imagenet12'
+):
     def ret_keras_model_by_name(model_name):
         import tensorflow.keras.applications
         import tensorflow.keras
+
+        train_dataset_map = {
+            'imagenet12': 'imagenet',
+        }
 
         ret_class = getattr(tensorflow.keras.applications, model_name, None)
         if not ret_class:
             raise Exception(f"ret_keras_model_by_name | model_name {model_name} not found")
 
         
-        model = ret_class()
+        model = ret_class(weights=train_dataset_map.get(train_dataset, 'imagenet'))
         return model
 
     
