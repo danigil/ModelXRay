@@ -137,7 +137,7 @@ def _repeated_train(
         act = not act_only_on_passed or model_passed
 
         if model_full_eval and act:
-            eval_data = siamese_eval(model, X_train, y_train, eval_datasets, full_eval_mcs, img_type, x)
+            eval_data = siamese_eval(model, X_train, y_train, eval_datasets, full_eval_mcs)
 
             df =  pd.DataFrame(eval_data)
             df['model_lsb'] = lsb
@@ -178,7 +178,14 @@ def repeated_train(
         filename = f"results_siamese_{mc_name}_{imtype}_{imsize}{f'_{mode}' if mode!='none' else ''}"
         return filename
 
-    logger.info(f"Starting repeated train for zoo_name: {zoo_name}, imtype: {imtype}, imsize: {imsize}, embed_payload_type: {embed_payload_type}, mode: {mode}")
+    results_dir = os.path.join(siamese_results_dir, "results")
+    os.makedirs(results_dir, exist_ok=True)
+
+    tmp_results_dir = os.path.join(results_dir, "tmp")
+    if save_temp:
+        os.makedirs(tmp_results_dir, exist_ok=True)
+
+    logger.info(f"Starting repeated train for mc_name: {mc_name}, imtype: {imtype}, imsize: {imsize}, embed_payload_type: {embed_payload_type}, mode: {mode}")
     loop_amount = total_runs // batch_size
 
     kwargs = {
@@ -249,7 +256,7 @@ def repeated_train(
 
         df_curr_batch = pd.concat(dfs_curr_batch, ignore_index=False)
         if save_temp:
-            tmp_save_path = os.path.join(siamese_results_dir, "experiments", "tmp", f"{get_results_filename()}_tmp_batch{i}.csv")
+            tmp_save_path = os.path.join(tmp_results_dir, f"{get_results_filename()}_tmp_batch{i}.csv")
             tmp_save_paths.append(tmp_save_path)
             df_curr_batch.to_csv(tmp_save_path, index=False)
 
@@ -257,13 +264,17 @@ def repeated_train(
 
     if len(dfs) > 0:
         df_final = pd.concat(dfs, ignore_index=False)
-        df_final.to_csv(os.path.join(siamese_results_dir, "experiments", f"{get_results_filename()}.csv"), index=False)
+        df_final.to_csv(os.path.join(results_dir, f"{get_results_filename()}.csv"), index=False)
 
     if save_temp:
         for tmp_save_path in tmp_save_paths:
             os.remove(tmp_save_path)
 
 if __name__ == "__main__":
+    results_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, "results", "siamese"))
+    print("starting siamese repeated train")
+    print(f"Results dir: {results_dir}")
+
     modes = ['es',]
     for mode in modes:
         # for zoo_name in ['llms_bert_conll03',]:
@@ -277,11 +288,12 @@ if __name__ == "__main__":
         #         lsbs=range(1,11),
         #     )
 
-        for zoo_name in ['famous_le_10m',]:
-            repeated_train(zoo_name=zoo_name, total_runs=10, batch_size=10, mode=mode,
-                           lsbs=range(1,3),
-                           retry_amount=1,
-                           full_eval_mcs=['maleficnet_benigns', 'maleficnet_mals'],
+        for mc_name in ['famous_le_10m',]:
+            repeated_train(mc_name=mc_name, total_runs=10, batch_size=10, mode=mode,
+                           lsbs=range(1,24),
+                           retry_amount=2,
+                           full_eval_mcs=['famous_le_10m','famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals'],
+                            siamese_results_dir=results_dir,
             )
 
         # for zoo_name in ['cnn_zoos',]:
