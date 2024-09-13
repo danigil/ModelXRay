@@ -1,7 +1,5 @@
 import itertools
 
-from script_utils import add_module_path
-add_module_path()
 
 from model_xray.zenml.zenml_lookup import try_get_artifact_preprocessed_image
 from model_xray.configs.models import *

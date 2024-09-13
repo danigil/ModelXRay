@@ -1,0 +1,8 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "model_xray"
+version = "0.1"
+description = "Framework for AI model stegnography dataset creation and development of detection techniques for such attacks"
