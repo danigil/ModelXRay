@@ -24,21 +24,24 @@ def get_dataset_name(mc: str,
                      embed_payload_type: PayloadType = PayloadType.RANDOM,
                      payload_filepath: Optional[str] = None,
                      ) -> str:
-    unique_xs = list(sorted(set(map(lambda x: 0 if x is None else x ,xs))))
-    if len(unique_xs) == 0:
-        raise ValueError(f'xs cannot be empty, got: {xs}')
-
-    unique_xs_str = str(unique_xs).replace(' ','').replace('[','').replace(']','').replace(',','|')
 
     params = {
         'mc': mc,
-        'xs': unique_xs_str,
         'imsize': str(imsize),
         'imtype': str(imtype),
         'ds_type': ds_type,
     }
 
-    if set(xs) != set({None,}) and set(xs) != set({0,}):
+    unique_xs = list(sorted(set(map(lambda x: 0 if x is None else x ,xs))))
+    if len(unique_xs) == 0:
+        unique_xs_str = None
+    else:
+        unique_xs_str = str(unique_xs).replace(' ','').replace('[','').replace(']','').replace(',','|')
+        params['xs'] = unique_xs_str
+
+    
+
+    if set(xs) != set({None,}) and set(xs) != set({0,}) and set(xs) != set():
         params['embed_payload_type'] = str(embed_payload_type)
         if payload_filepath is None and embed_payload_type == PayloadType.BINARY_FILE:
             payload_filepath = get_payload_filepath(mc)

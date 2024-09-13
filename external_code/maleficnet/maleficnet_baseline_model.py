@@ -122,6 +122,8 @@ def load_baseline_model(
     use_gpu: bool = True,
 
     dataset_dir_path: Optional[str] = None,
+
+    verbose:bool = False,
 ):
     model = initialize_model(model_name, dim, num_classes, only_pretrained)
     model.apply(weights_init_normal)
@@ -146,6 +148,7 @@ def load_baseline_model(
 
         trainer = pl.Trainer(max_epochs=epochs,
                             #  progress_bar_refresh_rate=5,
+                            enable_progress_bar=verbose,
                              devices=1 if device == "cuda" else 0,
                              logger=logger)
 

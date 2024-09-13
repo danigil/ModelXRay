@@ -71,15 +71,26 @@ def get_train_test_datasets(mc: str, train_x:int, test_xs:Iterable[Union[None, i
         if normalize:
             X_train = normalize_img(X_train)
 
-    testset_names = {i: get_dataset_name(
-        mc=mc,
-        ds_type='test',
-        xs=[i,],
-        imsize=imsize,
-        imtype=imtype,
-        embed_payload_type=embed_payload_type,
-        payload_filepath=payload_filepath,
-    ) for i in test_xs}
+    if len(test_xs) == 0:
+        testset_names = {0: get_dataset_name(
+            mc=mc,
+            ds_type='test',
+            xs=[],
+            imsize=imsize,
+            imtype=imtype,
+            embed_payload_type=embed_payload_type,
+            payload_filepath=payload_filepath,
+        )}
+    else:
+        testset_names = {i: get_dataset_name(
+            mc=mc,
+            ds_type='test',
+            xs=[i,],
+            imsize=imsize,
+            imtype=imtype,
+            embed_payload_type=embed_payload_type,
+            payload_filepath=payload_filepath,
+        ) for i in test_xs}
 
     ret = retreive_pp_imgs_datasets(
         dataset_names=list(testset_names.values())
@@ -155,8 +166,8 @@ def siamese_eval(
         #     flatten=False,
         # )
 
-        for lsb in range(0, 24):
-            X_test, y_test = testsets_curr[lsb]
+        if 'maleficnet' in mc:
+            X_test, y_test = next(iter(testsets_curr.values()))
 
             test_results = model.test_all(X_train_ref, y_train_ref, X_test, y_test, is_print=False,)
 
@@ -165,10 +176,25 @@ def siamese_eval(
 
             data.append({
                 'mc': mc,
-                'lsb': lsb,
+                'lsb': 0 if mc=='maleficnet_benigns' else 1,
                 'test_acc_centroid': acc_centroid,
                 'test_acc_nn': acc_nn,
             })
+        else:
+            for lsb in range(0, 24):
+                X_test, y_test = testsets_curr[lsb]
+
+                test_results = model.test_all(X_train_ref, y_train_ref, X_test, y_test, is_print=False,)
+
+                acc_centroid = test_results['centroid']
+                acc_nn = test_results['nn']
+
+                data.append({
+                    'mc': mc,
+                    'lsb': lsb,
+                    'test_acc_centroid': acc_centroid,
+                    'test_acc_nn': acc_nn,
+                })
 
     return data
     

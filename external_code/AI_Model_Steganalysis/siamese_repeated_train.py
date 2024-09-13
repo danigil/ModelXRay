@@ -112,10 +112,15 @@ def _repeated_train(
     if model_full_eval:
         eval_datasets = {}
         for eval_mc in full_eval_mcs:
+            if eval_mc in ('maleficnet_benigns', 'maleficnet_mals'):
+                test_xs = []
+            else:
+                test_xs = range(0,24)
+
             (_, _), testsets = get_train_test_datasets(
                 eval_mc,
                 train_x=None,
-                test_xs=range(0,24),
+                test_xs=test_xs,
                 imtype=img_type,
                 imsize=x,
                 flatten=False,
@@ -278,7 +283,7 @@ def repeated_train(
             os.remove(tmp_save_path)
 
 if __name__ == "__main__":
-    modes = ['ub',]
+    modes = ['es',]
     for mode in modes:
         # for zoo_name in ['llms_bert_conll03',]:
         #     repeated_train(
@@ -291,8 +296,12 @@ if __name__ == "__main__":
         #         lsbs=range(1,11),
         #     )
 
-        for zoo_name in ['famous_le_100m',]:
-            repeated_train(zoo_name=zoo_name, total_runs=5, batch_size=5, mode=mode, lsbs=range(10,13),retry_amount=1)
+        for zoo_name in ['famous_le_10m',]:
+            repeated_train(zoo_name=zoo_name, total_runs=10, batch_size=10, mode=mode,
+                           lsbs=range(1,3),
+                           retry_amount=1,
+                           full_eval_mcs=['maleficnet_benigns', 'maleficnet_mals'],
+            )
 
         # for zoo_name in ['cnn_zoos',]:
         #     repeated_train(zoo_name=zoo_name, total_runs=10, batch_size=5, mode=mode, full_eval_mcs=['cnn_zoos', 'famous_le_10m', 'famous_le_100m'],)
