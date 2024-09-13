@@ -43,181 +43,6 @@ from tqdm import tqdm
 # logger = request_logger(__name__, dump_to_sysout=False)
 tf.keras.saving.get_custom_objects().clear()
 
-# def store_imgs_dataset(zoo_name="famous_le_10m", data_type="grads", img_type="rgb", shape_x=100, lsb=23, train_size=1, reshape="pad"):
-#     X_train, y_train, X_test, y_test = ret_imgs_dataset_preprocessed(zoo_name, data_type, img_type, shape_x, lsb=lsb, train_size=train_size, reshape=reshape)
-
-#     save_path = f"./data/datasets/zoo_name:{zoo_name},data_type:{data_type},img_type:{img_type},shape_x:{shape_x},lsb:{lsb},train_size:{train_size},reshape:{reshape}.npz"
-#     # print(X_train.dtype, y_train.dtype, X_test.dtype, y_test.dtype)
-
-#     np.savez_compressed(save_path, X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
-
-def initialize_weights(shape, name=None, dtype=None, dummy=False):
-    """
-        The paper, http://www.cs.utoronto.ca/~gkoch/files/msc-thesis.pdf
-        suggests to initialize CNN layer weights with mean as 0.0 and standard deviation of 0.01
-    """
-    if dummy:
-        return np.zeros(shape)
-    return np.random.normal(loc = 0.0, scale = 1e-2, size = shape)
-
-def initialize_bias(shape, name=None, dtype=None, dummy=False):
-    """
-        The paper, http://www.cs.utoronto.ca/~gkoch/files/msc-thesis.pdf
-        suggests to initialize CNN layer bias with mean as 0.5 and standard deviation of 0.01
-    """
-    if dummy:
-        return np.zeros(shape)
-    return np.random.normal(loc = 0.5, scale = 1e-2, size = shape)
-
-def get_siamese_model(input_shape, model=None, dist="l1", sigmoid=True, weights_init="random"):
-
-    def dist_l1(vects):
-        x,y = vects
-        return K.sum( K.abs(x-y),axis=1,keepdims=True)
-
-    def dist_l2(vects):
-        x, y = vects
-        sum_square = K.sum(K.square(x - y), axis=1, keepdims=True)
-        return K.sqrt(K.maximum(sum_square, K.epsilon()))
-        # return K.sqrt(K.maximum(sum_square, K.epsilon()))
-
-    def dist_cosine(vects):
-        x, y = vects
-        # return CosineSimilarity()(x,y)
-        x = K.l2_normalize(x, axis=-1)
-        y = K.l2_normalize(y, axis=-1)
-        return -K.mean(x * y, axis=-1, keepdims=True)
-
-    def dist_euc_tripltet(vects):
-        x, y = vects
-        return tf.reduce_sum(tf.square(x - y), -1)
-
-    # Define the tensors for the two input images
-    left_input = Input(input_shape)
-    right_input = Input(input_shape)
-    
-    if model is None:
-        if weights_init == "random":
-            initialize_weights = tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.01)
-            initialize_bias = tf.keras.initializers.RandomNormal(mean=0.5, stddev=0.01)
-        else:
-            initialize_weights = tf.keras.initializers.Zeros()
-            initialize_bias = tf.keras.initializers.Zeros()
-
-    # Convolutional Neural Network
-        model = Sequential()
-        model.add(Conv2D(64, (10,10), activation='relu', input_shape=input_shape,
-                    kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
-        model.add(MaxPooling2D())
-        model.add(Conv2D(128, (7,7), activation='relu',
-                        kernel_initializer=initialize_weights,
-                        bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-        model.add(MaxPooling2D())
-        model.add(Conv2D(128, (4,4), activation='relu', kernel_initializer=initialize_weights,
-                        bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-        model.add(MaxPooling2D())
-        model.add(Conv2D(256, (4,4), activation='relu', kernel_initializer=initialize_weights,
-                        bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-        model.add(Flatten())
-        model.add(Dense(4096, activation=None,
-                    kernel_regularizer=l2(1e-3),
-                    kernel_initializer=initialize_weights,bias_initializer=initialize_bias))
-    
-    encoded_l = model(left_input)
-    encoded_r = model(right_input)
-
-    if dist == "l1":
-        dist_layer = Lambda(dist_l1)
-    elif dist == "l2":
-        dist_layer = Lambda(dist_l2)
-    elif dist == "cosine":
-        dist_layer = Lambda(dist_cosine)
-    elif dist == "euc_triplet":
-        dist_layer = Lambda(dist_euc_tripltet)
-    
-    distance = dist_layer([encoded_l, encoded_r])
-    
-    # Add a dense layer with a sigmoid unit to generate the similarity score
-    if sigmoid:
-        prediction = Dense(1,activation='sigmoid',bias_initializer=initialize_bias)(distance)
-    else:
-        prediction = distance
-    
-    # Connect the inputs with the outputs
-    siamese_net = Model(inputs=[left_input,right_input],outputs=prediction)
-    
-    # return the model
-    return siamese_net
-
-
-
-# make pairs
-def make_pairs_random(x, y):
-    num_classes = max(y) + 1
-    digit_indices = [np.where(y == i)[0] for i in range(num_classes)]
-
-    pairs = []
-    labels = []
-
-    for idx1 in range(len(x)):
-        # add a matching example
-        x1 = x[idx1]
-        label1 = y[idx1]
-        idx2 = random.choice(digit_indices[label1])
-        x2 = x[idx2]
-        
-        pairs += [[x1, x2]]
-        labels += [1]
-    
-        label2 = 0 if label1==1 else 1
-        # add a not matching example
-        # label2 = random.randint(0, num_classes-1)
-        # while label2 == label1:
-        #     label2 = random.randint(0, num_classes-1)
-
-        idx2 = random.choice(digit_indices[label2])
-        x2 = x[idx2]
-        
-        pairs += [[x1, x2]]
-        labels += [0]
-
-    return np.array(pairs), np.array(labels)
-
-def make_pairs_all(x,y, is_shuffle=False):
-    benign_idxs = np.where(y==0)[0]
-    mal_idxs = np.where(y==1)[0]
-
-    pairs = []
-    labels = []
-
-    for x_ben_1_idx, x_ben_2_idx in combinations(benign_idxs, 2):
-        x_ben_1 = x[x_ben_1_idx]
-        x_ben_2 = x[x_ben_2_idx]
-        pairs.append((x_ben_1, x_ben_2))
-        labels.append(1)
-
-    for x_mal_1_idx, x_mal_2_idx in combinations(mal_idxs, 2):
-        x_mal_1 = x[x_mal_1_idx]
-        x_mal_2 = x[x_mal_2_idx]
-        pairs.append((x_mal_1, x_mal_2))
-        labels.append(1)
-
-    for x_ben_idx, x_mal_idx in product(benign_idxs, mal_idxs):
-        x_ben = x[x_ben_idx]
-        x_mal = x[x_mal_idx]
-        pairs.append((x_ben, x_mal))
-        labels.append(0)
-
-    if is_shuffle:
-        pairs, labels = shuffle(pairs, labels)
-
-    return np.array(pairs), np.array(labels)
-
-def make_pairs_custom(x,y):
-    pass
-
-def identity(x,y):
-    return x,y
 
 def make_triplets(x,y, size=None, is_shuffle=False):
     def preprocess_sample(sample):
@@ -253,132 +78,6 @@ def make_triplets(x,y, size=None, is_shuffle=False):
         anchors, positives, negatives = shuffle(anchors, positives, negatives)
     return [np.array(anchors), np.array(positives), np.array(negatives)]
 
-pairs_func_map = {
-    "random": make_pairs_random,
-    "custom": make_pairs_custom,
-    "all": make_pairs_all,
-    "none": identity,
-}
-
-f = lambda x: 1 if x>0.5 else 0
-vf = np.vectorize(f)
-class Siamese:
-    def __init__(self, input_shape=(100,100,1), model=None, dist="l1", pairs_function="random", lr=0.00006, sigmoid=True) -> None:
-        
-        assert dist in ("l1", "l2", "cosine", "euc_triplet")
-        assert pairs_function in ("random", "custom", "none", "all")
-
-        self.sigmoid = sigmoid
-
-        self.model = get_siamese_model(input_shape, model=model, dist=dist, sigmoid=sigmoid)
-        optimizer = Adam(learning_rate = lr)
-        self.model.compile(loss="binary_crossentropy",optimizer=optimizer)
-
-        self.pairs_fun = pairs_func_map[pairs_function]
-
-    def fit(self, x,y, batch_size=16, epochs=10, verbose=None):
-        pairs_train, labels_train = self.pairs_fun(x, y)
-        # print(f"pairs_train all shape: {pairs_train.shape} pairs_train left shape: {pairs_train[:,0].shape}")
-        # return
-        # print(f"pairs_train shape: {pairs_train[:,0].shape}")
-        self.model.fit([pairs_train[:,0], pairs_train[:,1]], labels_train[:], batch_size=batch_size, epochs=epochs, validation_split=0.1,verbose=verbose)
-
-    def test(self, x,y, verbose=1, ref_idxs=[0]):
-
-        if self.sigmoid:
-            op = operator.gt
-        else:
-            op = operator.lt
-
-        benign_idxs = np.where(y==0)[0]
-        mal_idxs = np.where(y==1)[0]
-
-        def test_single(ref_idx=0):
-            benign_sample = np.array([x[benign_idxs[ref_idx]]])
-            mal_sample = np.array([x[mal_idxs[ref_idx]]])
-
-            benign_left = np.broadcast_to(benign_sample, (len(benign_idxs)-1, *(benign_sample.shape[1:])))
-            benign_right = np.vstack([x[benign_idxs[0:ref_idx]], x[benign_idxs[ref_idx+1:]]])
-
-            mal_left = np.broadcast_to(mal_sample, (len(mal_idxs)-1, *(mal_sample.shape[1:])))
-            mal_right = np.vstack([x[mal_idxs[0:ref_idx]], x[mal_idxs[ref_idx+1:]]])
-
-            y_pred_benign_benign = self.model.predict([benign_left, benign_right] ,batch_size=16, verbose=verbose)
-            y_pred_benign_mal = self.model.predict([mal_left, benign_right] ,batch_size=16,verbose=verbose)
-            benign_success = np.count_nonzero(op(y_pred_benign_benign,y_pred_benign_mal))
-
-            y_pred_mal_benign = self.model.predict([benign_left, mal_right] ,batch_size=16,verbose=verbose)
-            y_pred_mal_mal = self.model.predict([mal_left, mal_right] ,batch_size=16,verbose=verbose)
-
-            mal_success = np.count_nonzero(op(y_pred_mal_mal,y_pred_mal_benign))
-
-            print(f'\t\t\tbenign success: {benign_success/(len(benign_idxs)-1)}')
-            print(f'\t\t\tmal success: {mal_success/(len(mal_idxs)-1)}')
-
-        assert ref_idxs is None or isinstance(ref_idxs, (int, list, str))
-
-        if ref_idxs is None:
-            return test_single(0)
-        elif isinstance(ref_idxs, int):
-            return test_single(ref_idxs)
-        elif isinstance(ref_idxs, list):
-            for ref_idx in ref_idxs:
-                print(f"test with ref_idx: {ref_idx}")
-                return test_single(ref_idx)
-        elif isinstance(ref_idxs, str):
-            if ref_idxs == "all":
-                for ref_idx in range(len(benign_idxs)):
-                    print(f"test with ref_idx: {ref_idx}")
-                    return test_single(ref_idx)
-            else:
-                raise ValueError(f"ref_idxs must be all, random or None, not {ref_idxs}")
-
-        return
-
-    def test_actual(self, x_train, y_train, x_test, y_test, verbose=1):
-
-        if self.sigmoid:
-            op = operator.gt
-        else:
-            op = operator.lt
-
-        benign_idxs_test = np.where(y_test==0)[0]
-        mal_idxs_test = np.where(y_test==1)[0]
-
-        benign_right = x_test[benign_idxs_test]
-        mal_right = x_test[mal_idxs_test]
-
-        benign_results = []
-        mal_results = []
-
-        def test_single(benign_sample, mal_sample):
-            benign_left = np.broadcast_to(benign_sample, (len(benign_idxs_test), *(benign_sample.shape[1:])))
-            
-            mal_left = np.broadcast_to(mal_sample, (len(mal_idxs_test), *(mal_sample.shape[1:])))
-
-            y_pred_benign_benign = self.model.predict([benign_left, benign_right] ,batch_size=16, verbose=verbose)
-            y_pred_benign_mal = self.model.predict([mal_left, benign_right] ,batch_size=16,verbose=verbose)
-            benign_result = op(y_pred_benign_benign,y_pred_benign_mal)
-
-            y_pred_mal_benign = self.model.predict([benign_left, mal_right] ,batch_size=16,verbose=verbose)
-            y_pred_mal_mal = self.model.predict([mal_left, mal_right] ,batch_size=16,verbose=verbose)
-
-            mal_result =  op(y_pred_mal_mal,y_pred_mal_benign)
-
-            benign_results.append(benign_result)
-            mal_results.append(mal_result)
-
-        benign_idxs_train = np.where(y_train==0)[0]
-        mal_idxs_train = np.where(y_train==1)[0]
-
-        for benign_idx, mal_idx in tqdm(product(benign_idxs_train, mal_idxs_train)):
-            # print(f"test with benign_idx: {benign_idx}, mal_idx: {mal_idx}")
-            test_single(x_train[benign_idx], x_train[mal_idx])
-
-        benign_results = np.array(benign_results)
-        mal_results = np.array(mal_results)
-
-        return benign_results, mal_results
 
 
 class MyThresholdCallback(tf.keras.callbacks.Callback):
@@ -430,10 +129,6 @@ class DistanceLayer(tf.keras.layers.Layer):
             self.dist=dist
 
         def call(self, anchor, positive, negative):
-            # ap_distance = tf.reduce_sum(tf.square(anchor - positive), -1)
-            # an_distance = tf.reduce_sum(tf.square(anchor - negative), -1)
-            # return (ap_distance, an_distance)
-
             ap_distance = calc_dist(anchor, positive, dist=self.dist)
             an_distance = calc_dist(anchor, negative, dist=self.dist)
             return (ap_distance, an_distance)
@@ -458,8 +153,21 @@ def ret_initializer_bias_rand():
     return tf.keras.initializers.RandomNormal(mean=0.5, stddev=0.01)
 
 @tf.keras.saving.register_keras_serializable(package="MyModels")
-class Siamese2(Model):
-    def __init__(self,dropout_rate=0.5, pretrained=False, model=None, optimizer=None, dist:Literal["l2", "cosine"]="l2", img_input_shape=(100,100,1), margin=0.5, weights_init = "random", lr=0.0001):
+class Siamese(Model):
+    # partially based on code from https://keras.io/examples/vision/siamese_network/
+    def __init__(self,
+                 margin=0.5,
+                #  pretrained=False,
+                 
+                 dist:Literal["l2", "cosine"]="l2",
+                 img_input_shape=(100,100,1),
+                 lr=0.0001,
+                 
+                 weights_init = "random", 
+                 dropout_rate=0.5,
+                 model=None,
+                 optimizer=None,
+                 ):
         super().__init__()
         
         if model is None:
@@ -475,90 +183,37 @@ class Siamese2(Model):
                 initialize_bias = tf.keras.initializers.Ones()
             else:
                 raise ValueError(f"weights_init must be random, zeros or ones, not {weights_init}")
-
-            if pretrained:
-                # base_cnn = tf.keras.applications.densenet.DenseNet121(
-                #     weights='imagenet', input_shape=img_input_shape, include_top=False
-                # )
-                # base_cnn = tf.keras.applications.resnet.ResNet50(
-                #     weights='imagenet', input_shape=img_input_shape, include_top=False
-                # )
-                
-                base_cnn = tf.keras.applications.MobileNetV3Small(
-                    weights='imagenet', input_shape=img_input_shape, include_top=False, include_preprocessing=False
-                )
-
-                # base_cnn = tf.keras.applications.resnet_v2.ResNet101V2(
-                #     weights=None, input_shape=img_input_shape, include_top=False
-                # )
-                
-                # w_old = extract_weights_keras(base_cnn)
-                # base_cnn = tf.keras.applications.vgg19.VGG19(
-                #     weights=None, input_shape=img_input_shape, include_top=False
-                # )
-
-                flatten = tf.keras.layers.Flatten()(base_cnn.output)
-                # dense1 = tf.keras.layers.Dense(512, activation="relu")(flatten)
-                # # dense1 = tf.keras.layers.BatchNormalization()(dense1)
-                # dense2 = tf.keras.layers.Dense(256, activation="relu")(dense1)
-                # # dense2 = tf.keras.layers.BatchNormalization()(dense2)
-                # output = tf.keras.layers.Dense(256)(dense2)
-                # dense = tf.keras.layers.Dense(4096, activation=None,
-                #     kernel_regularizer=l2(1e-3),
-                #     kernel_initializer=initialize_weights,bias_initializer=initialize_bias)(flatten)
-                # output=dense
-                output = flatten
-                
-                # trainable = True
-                # for layer in base_cnn.layers:
-                #     if hasattr(layer, 'kernel_initializer'):
-                #         # print(f"layer: {layer.name} has kernel_initializer")
-                #         layer.kernel_initializer = initialize_weights
-                #     if hasattr(layer, 'bias_initializer'):
-                #         # print(f"layer: {layer.name} has bias_initializer")
-                #         layer.bias_initializer = initialize_bias
-                #     if hasattr(layer, 'kernel_regularizer'):
-                #         layer.kernel_regularizer = l2(2e-4)
-
-                    # if layer.name == "conv5_block1_out":
-                    #     trainable = True
-                    # layer.trainable = trainable
-
-                # reset_weights(base_cnn)
-
-                model = Model(base_cnn.input, output, name="Embedding")
-
-                
-            else:
-                model = Sequential()
-                model.add(Conv2D(64, (10,10), activation='relu', input_shape=img_input_shape,
-                            kernel_initializer=ret_initializer_weights_rand(), kernel_regularizer=l2(2e-4)))
-                model.add(MaxPooling2D())
-                if dropout_rate > 0:
-                    model.add(Dropout(dropout_rate))
-                
-                model.add(Conv2D(128, (7,7), activation='relu',
-                                kernel_initializer=ret_initializer_weights_rand(),
-                                bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4)))
-                model.add(MaxPooling2D())
-                if dropout_rate > 0:
-                    model.add(Dropout(dropout_rate))
-                
-                model.add(Conv2D(128, (4,4), activation='relu', kernel_initializer=ret_initializer_weights_rand(),
-                                bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4)))
-                model.add(MaxPooling2D())
-                if dropout_rate > 0:
-                    model.add(Dropout(dropout_rate))
-                
-                model.add(Conv2D(256, (4,4), activation='relu', kernel_initializer=ret_initializer_weights_rand(),
-                                bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4)))
-                if dropout_rate > 0:
-                    model.add(Dropout(dropout_rate))
-                
-                model.add(Flatten())
-                model.add(Dense(4096, activation=None,
-                    kernel_regularizer=l2(1e-3),
-                    kernel_initializer=ret_initializer_bias_rand(),bias_initializer=ret_initializer_bias_rand()))
+ 
+            
+            model = Sequential()
+            model.add(Conv2D(64, (10,10), activation='relu', input_shape=img_input_shape,
+                        kernel_initializer=ret_initializer_weights_rand(), kernel_regularizer=l2(2e-4)))
+            model.add(MaxPooling2D())
+            if dropout_rate > 0:
+                model.add(Dropout(dropout_rate))
+            
+            model.add(Conv2D(128, (7,7), activation='relu',
+                            kernel_initializer=ret_initializer_weights_rand(),
+                            bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4)))
+            model.add(MaxPooling2D())
+            if dropout_rate > 0:
+                model.add(Dropout(dropout_rate))
+            
+            model.add(Conv2D(128, (4,4), activation='relu', kernel_initializer=ret_initializer_weights_rand(),
+                            bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4)))
+            model.add(MaxPooling2D())
+            if dropout_rate > 0:
+                model.add(Dropout(dropout_rate))
+            
+            model.add(Conv2D(256, (4,4), activation='relu', kernel_initializer=ret_initializer_weights_rand(),
+                            bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4)))
+            if dropout_rate > 0:
+                model.add(Dropout(dropout_rate))
+            
+            model.add(Flatten())
+            model.add(Dense(4096, activation=None,
+                kernel_regularizer=l2(1e-3),
+                kernel_initializer=ret_initializer_bias_rand(),bias_initializer=ret_initializer_bias_rand()))
         
         embedding = model
 
@@ -582,27 +237,17 @@ class Siamese2(Model):
 
         if optimizer is None:
             optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-        # self.siamese_network.compile(loss=None, optimizer=optimizer, weighted_metrics=[tf.keras.losses.categorical_crossentropy])
         self.compile(loss=None ,optimizer=optimizer, weighted_metrics=[tf.keras.losses.categorical_crossentropy])
-
-        # self.model = Siamese(input_shape=img_input_shape, model=embedding, sigmoid=False, dist=dist)
 
         self.img_input_shape = img_input_shape
         self.embedding = embedding
-        self.pretrained=pretrained
-        
-        # w_new = extract_weights_keras(self.embedding)
-        
-        # print(f"weights are equal: {np.array_equal(w_old, w_new)}")
-        
-        # self.model_inference = get_siamese_model(input_shape, model=embedding, dist="l1")
+        # self.pretrained=pretrained
+
 
     def call(self, inputs):
         return self.siamese_network(inputs)
 
     def test(self, x,y, verbose=None, ref_idxs=None):
-        # return self.model.test(x,y, verbose=verbose, ref_idxs=ref_idxs)
-
         triplets_test = make_triplets(x,y, size=None, is_shuffle=False)
         ap_distance, an_distance =  self.siamese_network(triplets_test)
         loss = ap_distance - an_distance
@@ -862,11 +507,9 @@ class Siamese2(Model):
     def get_config(self):
         base_config = super().get_config()
         config = {
-            # "siamese_network": tf.keras.saving.serialize_keras_object(self.siamese_network),
-            # "loss_tracker": tf.keras.saving.serialize_keras_object(self.loss_tracker),
             "embedding": tf.keras.saving.serialize_keras_object(self.embedding),
             "optimizer": tf.keras.saving.serialize_keras_object(self.optimizer),
-            "pretrained": self.pretrained,
+            # "pretrained": self.pretrained,
             "img_input_shape": self.img_input_shape,
             "dist": self.dist
         }
@@ -874,11 +517,10 @@ class Siamese2(Model):
 
     @classmethod
     def from_config(cls, config):
-        # print(cls)
+
         embedding_config = config.pop("embedding")
         optimizer_config = config.pop("optimizer")
-        # from pprint import pprint
-        # pprint(config)
+
         embedding = tf.keras.saving.deserialize_keras_object(embedding_config)
         optimizer = tf.keras.saving.deserialize_keras_object(optimizer_config)
         return cls(model=embedding, optimizer=optimizer, **config)

@@ -2,27 +2,23 @@ import os
 import pprint
 import sys
 from typing import Iterable, Literal, Union
-import operator as op
+
+from model_xray.configs.enums import ImageType, PayloadType
+from model_xray.utils.logging_utils import request_logger
+logger = request_logger(__name__)
 
 import pandas as pd
-# from options import SUPPORTED_FEATURES, SUPPORTED_IMG_TYPES, SUPPORTED_MCS
 
-# import logging
-# logging.basicConfig(level=logging.INFO)
-
-# from data_locator import request_logger
-
-from legacy_integration_utils import get_train_test_datasets, request_logger
-
-logger = request_logger(__name__)
 
 def _repeated_train(
     q,
-    lsb = 1,
-    zoo_name = "famous_le_10m",
-    data_type = "weights",
-    img_type = "grayscale_fourpart",
-    x=100,
+    lsb: int,
+
+    mc_name:Literal['famous_le_10m', 'famous_le_100m']="famous_le_10m",
+    
+    imtype:ImageType=ImageType.GRAYSCALE_FOURPART,
+    imsize=100,
+    embed_payload_type: PayloadType = PayloadType.BINARY_FILE,
     
     mode: Literal['st', 'es' 'ub', 'none'] = 'ub',
 
@@ -36,46 +32,34 @@ def _repeated_train(
     run_num = 0,
 
     act_only_on_passed: bool = False,
-
-    save_model: bool = False,
-    save_only_first_model: bool = False,
+    act_only_on_first_passed: bool = False,
 
     model_full_eval: bool = True,
     full_eval_mcs = ['famous_le_10m', 'famous_le_100m'],
 ):
-
-    import os
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-    from typing import Literal
-    from siamese import Siamese2, MyThresholdCallback
-    import numpy as np
-    from sklearn.model_selection import train_test_split
-    # from data_locator import ret_imgs_dataset_preprocessed
-    import tensorflow as tf
-
-    from itertools import combinations
-    import numpy as np
-    import tensorflow as tf
-
-    from tensorflow.keras.callbacks import EarlyStopping
-    from siamese import make_triplets
-    # from siamese_eval import siamese_eval
-    import gc
-
-    from legacy_integration_utils import ret_imgs_dataset_preprocessed, get_train_test_datasets, siamese_eval
-
-    # from data_locator import get_model_path
+    import operator as op
 
     import logging
     logging.basicConfig(level=logging.CRITICAL)
 
+    import gc
+    import os
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
+    from model_xray.models.siamese import Siamese, MyThresholdCallback, make_triplets
+
+    import tensorflow as tf
+
+    from utils import ret_imgs_dataset_preprocessed, get_train_test_datasets, siamese_eval
+
+    # siamese model params
+    dist: Literal['l2', 'cosine'] = "l2"
+    lr:float =0.00006
+
+
     epochs = 5
-
-    pretrained = True if img_type=='rgb' else False
-    n_channels = 3 if img_type=='rgb' else 1
-
+    n_channels = 1
     cb = None
-
     bool_op = op.and_ if test_acc_op == 'and' else op.or_
 
 
@@ -86,26 +70,24 @@ def _repeated_train(
     elif mode == 'es':
         epochs = 1
 
-    # print(f"mode: {mode}")
-    # print(f"epochs: {epochs}")
-
     cb = MyThresholdCallback(ub_mode=True if mode=='ub' else False, threshold_lower=train_loss_threshold_lower, threshold_upper=train_loss_threshold_upper)
 
-    X_train, y_train, X_test, y_test = ret_imgs_dataset_preprocessed(zoo_name, data_type, img_type, x, lsb=lsb, train_size=1, reshape="resize")
-    # path = get_model_path(zoo_name, data_type, img_type, x, lsb, 1, "resize", mode=mode)
+    X_train, y_train, X_test, y_test = ret_imgs_dataset_preprocessed(
+        mc_name=mc_name,
+
+        lsb=lsb,
+        
+        imtype=imtype,
+        imsize=imsize,
+        embed_payload_type=embed_payload_type,
+
+        normalize=True,
+        split=True,
+    )
 
     triplets_train = make_triplets(X_train, y_train, is_shuffle=True)
-    # callback = EarlyStopping(monitor='loss',patience=10, restore_best_weights=True)
     gc.collect()
 
-    # train_info = SiameseTrainInfo(
-    #     mode = mode,
-    #     zoo_name = zoo_name,
-    #     data_type = data_type,
-    #     img_type = img_type,
-    #     x = x,
-    #     lsb = lsb,
-    # )
 
     eval_datas = {}
 
@@ -121,8 +103,8 @@ def _repeated_train(
                 eval_mc,
                 train_x=None,
                 test_xs=test_xs,
-                imtype=img_type,
-                imsize=x,
+                imtype=imtype,
+                imsize=imsize,
                 flatten=False,
             )
 
@@ -130,21 +112,13 @@ def _repeated_train(
     
 
     for i in range(try_amount):
-        # print(f'\nround: {i+1}/{try_amount}')
-        # device.reset()
         gc.collect()
         tf.keras.backend.clear_session()
         
         
-        model = Siamese2(pretrained=pretrained, img_input_shape=(x,x,n_channels), dist="l2", lr=0.00006,)
+        model = Siamese(img_input_shape=(imsize,imsize,n_channels), dist=dist, lr=lr,)
         model.fit(triplets_train, epochs=epochs, batch_size=16, verbose=0, callbacks=[cb])
-        # model.train_info = train_info
 
-        # mean_train_loss = model.loss_tracker.result().numpy()
-        train_loss = cb.last_loss
-        # print("\ttrain loss:", train_loss)
-        # if train_loss <= threshold_lower or train_loss >= threshold_upper:
-        #     continue
         train_results = model.test_all(X_train, y_train, X_train, y_train, is_print=False,)
 
         acc_centroid_train = train_results['centroid']
@@ -161,32 +135,31 @@ def _repeated_train(
 
         model_passed = bool_op(acc_centroid >= test_acc_threshold, acc_nn >= test_acc_threshold)
         act = not act_only_on_passed or model_passed
-        
-        if save_model and act:
-            print(f"~~ Model saved with acc_c:{acc_centroid},acc:k:{acc_nn} ~~")
-            # model.save(f'{path.replace(".keras","")}_acc_c:{acc_centroid},acc:k:{acc_nn}.keras')
-            # model.save(f'{path.replace(".keras","")}_es.keras')
-            # model.save(path)
-            if save_only_first_model:
-                return
 
         if model_full_eval and act:
-            eval_data = siamese_eval(model, X_train, y_train, eval_datasets, full_eval_mcs, img_type, x)
+            eval_data = siamese_eval(model, X_train, y_train, eval_datasets, full_eval_mcs)
+
             df =  pd.DataFrame(eval_data)
             df['model_lsb'] = lsb
+
             eval_datas[run_num+i] = df
-        #     eval_data = siamese_eval([model], full_eval_mcs, data_type, img_type, x)
-        #     eval_datas[run_num+i] = pd.DataFrame(eval_data, columns=['model_lsb', 'test_zoo', 'lsb', 'centroid_accuracy_train', 'centroid_accuracy_test', 'knn_accuracy_train', 'knn_accuracy_test'])
+
+            if model_passed and act_only_on_first_passed:
+                break
+
         del model
 
     q.put(eval_datas)
+
 import multiprocessing
 
 def repeated_train(
-    zoo_name = "famous_le_10m",
-    data_type = "weights",
-    img_type = "grayscale_fourpart",
-    x=100,
+    mc_name:Literal['famous_le_10m', 'famous_le_100m']="famous_le_10m",
+    
+    imtype:ImageType=ImageType.GRAYSCALE_FOURPART,
+    imsize=100,
+    embed_payload_type: PayloadType = PayloadType.BINARY_FILE,
+    
     mode = 'ub',
 
     full_eval_mcs = ['famous_le_10m', 'famous_le_100m'],
@@ -198,27 +171,42 @@ def repeated_train(
     timeout=240,
     retry_amount = 3,
     save_temp:bool = True,
-    
+
+    siamese_results_dir: str = ".",
 ):
-    logger.info(f"Starting repeated train for zoo_name: {zoo_name} data_type: {data_type} img_type: {img_type} x: {x} mode: {mode}")
+    def get_results_filename():
+        filename = f"results_siamese_{mc_name}_{imtype}_{imsize}{f'_{mode}' if mode!='none' else ''}"
+        return filename
+
+    results_dir = os.path.join(siamese_results_dir, "results")
+    os.makedirs(results_dir, exist_ok=True)
+
+    tmp_results_dir = os.path.join(results_dir, "tmp")
+    if save_temp:
+        os.makedirs(tmp_results_dir, exist_ok=True)
+
+    logger.info(f"Starting repeated train for mc_name: {mc_name}, imtype: {imtype}, imsize: {imsize}, embed_payload_type: {embed_payload_type}, mode: {mode}")
     loop_amount = total_runs // batch_size
 
     kwargs = {
-        'zoo_name':zoo_name,
-        'data_type':data_type,
-        'img_type':img_type,
-        'x':x,
+        'mc_name':mc_name,
+        'imtype':imtype,
+        'imsize':imsize,
+        'embed_payload_type':embed_payload_type,
+
         'mode':mode,
+
         'test_acc_threshold':0.75,
+
         'try_amount':batch_size,
+
         'act_only_on_passed': False,
-        'save_model': False,
-        'save_only_first_model': False,
+        'act_only_on_first_passed': False,
+
         'model_full_eval': True,
         'full_eval_mcs':full_eval_mcs,
     }
 
-    
     assert retry_amount > 0
 
     q = multiprocessing.Queue()
@@ -268,7 +256,7 @@ def repeated_train(
 
         df_curr_batch = pd.concat(dfs_curr_batch, ignore_index=False)
         if save_temp:
-            tmp_save_path = os.path.join("results", "experiments", "tmp", f"results_siamese_{zoo_name}_{data_type}_{img_type}_{x}{f'_{mode}' if mode!='none' else ''}_tmp_batch{i}.csv")
+            tmp_save_path = os.path.join(tmp_results_dir, f"{get_results_filename()}_tmp_batch{i}.csv")
             tmp_save_paths.append(tmp_save_path)
             df_curr_batch.to_csv(tmp_save_path, index=False)
 
@@ -276,13 +264,17 @@ def repeated_train(
 
     if len(dfs) > 0:
         df_final = pd.concat(dfs, ignore_index=False)
-        df_final.to_csv(os.path.join("results", "experiments", f"results_siamese_{zoo_name}_{data_type}_{img_type}_{x}{f'_{mode}' if mode!='none' else ''}.csv"), index=False)
+        df_final.to_csv(os.path.join(results_dir, f"{get_results_filename()}.csv"), index=False)
 
     if save_temp:
         for tmp_save_path in tmp_save_paths:
             os.remove(tmp_save_path)
 
 if __name__ == "__main__":
+    results_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, "results", "siamese"))
+    print("starting siamese repeated train")
+    print(f"Results dir: {results_dir}")
+
     modes = ['es',]
     for mode in modes:
         # for zoo_name in ['llms_bert_conll03',]:
@@ -296,11 +288,12 @@ if __name__ == "__main__":
         #         lsbs=range(1,11),
         #     )
 
-        for zoo_name in ['famous_le_10m',]:
-            repeated_train(zoo_name=zoo_name, total_runs=10, batch_size=10, mode=mode,
-                           lsbs=range(1,3),
-                           retry_amount=1,
-                           full_eval_mcs=['maleficnet_benigns', 'maleficnet_mals'],
+        for mc_name in ['famous_le_10m',]:
+            repeated_train(mc_name=mc_name, total_runs=10, batch_size=10, mode=mode,
+                           lsbs=range(1,24),
+                           retry_amount=2,
+                           full_eval_mcs=['famous_le_10m','famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals'],
+                            siamese_results_dir=results_dir,
             )
 
         # for zoo_name in ['cnn_zoos',]:
