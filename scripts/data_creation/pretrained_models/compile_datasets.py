@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     mcs = ['famous_le_10m', 'famous_le_100m']
 
-    imsize = 100
+    imsize = 256
     imtype = ImageType.GRAYSCALE_FOURPART
     embed_payload_type = PayloadType.BINARY_FILE
     # embed_malware_payload_filepath = '/mnt/exdisk2/model_xray/malware_payloads/m_77e05'

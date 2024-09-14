@@ -1,6 +1,7 @@
 # Code from https://github.com/hlamba28/One-Shot-Learning-with-Siamese-Networks/blob/master/Siamese%20on%20Omniglot%20Dataset.ipynb
 
 from typing import Literal
+from model_xray.models.srnet import SRNet
 import numpy as np
 from numpy import linalg as LA
 from sklearn.neighbors import KNeighborsClassifier
@@ -163,57 +164,48 @@ class Siamese(Model):
                  img_input_shape=(100,100,1),
                  lr=0.0001,
                  
-                 weights_init = "random", 
+                #  weights_init = "random", 
                  dropout_rate=0.5,
                  model=None,
+                 model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
                  optimizer=None,
                  ):
         super().__init__()
         
         if model is None:
-
-            if weights_init == "random":
-                initialize_weights = tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.01)
-                initialize_bias = tf.keras.initializers.RandomNormal(mean=0.5, stddev=0.01)
-            elif weights_init == "zeros":
-                initialize_weights = tf.keras.initializers.Zeros()
-                initialize_bias = tf.keras.initializers.Zeros()
-            elif weights_init == 'ones':
-                initialize_weights = tf.keras.initializers.Ones()
-                initialize_bias = tf.keras.initializers.Ones()
-            else:
-                raise ValueError(f"weights_init must be random, zeros or ones, not {weights_init}")
- 
-            
-            model = Sequential()
-            model.add(Conv2D(64, (10,10), activation='relu', input_shape=img_input_shape,
-                        kernel_initializer=ret_initializer_weights_rand(), kernel_regularizer=l2(2e-4)))
-            model.add(MaxPooling2D())
-            if dropout_rate > 0:
-                model.add(Dropout(dropout_rate))
-            
-            model.add(Conv2D(128, (7,7), activation='relu',
-                            kernel_initializer=ret_initializer_weights_rand(),
-                            bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4)))
-            model.add(MaxPooling2D())
-            if dropout_rate > 0:
-                model.add(Dropout(dropout_rate))
-            
-            model.add(Conv2D(128, (4,4), activation='relu', kernel_initializer=ret_initializer_weights_rand(),
-                            bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4)))
-            model.add(MaxPooling2D())
-            if dropout_rate > 0:
-                model.add(Dropout(dropout_rate))
-            
-            model.add(Conv2D(256, (4,4), activation='relu', kernel_initializer=ret_initializer_weights_rand(),
-                            bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4)))
-            if dropout_rate > 0:
-                model.add(Dropout(dropout_rate))
-            
-            model.add(Flatten())
-            model.add(Dense(4096, activation=None,
-                kernel_regularizer=l2(1e-3),
-                kernel_initializer=ret_initializer_bias_rand(),bias_initializer=ret_initializer_bias_rand()))
+            if model_arch == 'osl_siamese_cnn':
+                model = Sequential()
+                model.add(Conv2D(64, (10,10), activation='relu', input_shape=img_input_shape,
+                            kernel_initializer=ret_initializer_weights_rand(), kernel_regularizer=l2(2e-4)))
+                model.add(MaxPooling2D())
+                if dropout_rate > 0:
+                    model.add(Dropout(dropout_rate))
+                
+                model.add(Conv2D(128, (7,7), activation='relu',
+                                kernel_initializer=ret_initializer_weights_rand(),
+                                bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4)))
+                model.add(MaxPooling2D())
+                if dropout_rate > 0:
+                    model.add(Dropout(dropout_rate))
+                
+                model.add(Conv2D(128, (4,4), activation='relu', kernel_initializer=ret_initializer_weights_rand(),
+                                bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4)))
+                model.add(MaxPooling2D())
+                if dropout_rate > 0:
+                    model.add(Dropout(dropout_rate))
+                
+                model.add(Conv2D(256, (4,4), activation='relu', kernel_initializer=ret_initializer_weights_rand(),
+                                bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4)))
+                if dropout_rate > 0:
+                    model.add(Dropout(dropout_rate))
+                
+                model.add(Flatten())
+                model.add(Dense(4096, activation=None,
+                    kernel_regularizer=l2(1e-3),
+                    kernel_initializer=ret_initializer_bias_rand(),bias_initializer=ret_initializer_bias_rand()))
+            elif model_arch == 'srnet':
+                assert img_input_shape == (256,256,1), "srnet only supports 256x256x1 images"
+                model = SRNet(include_top=False)
         
         embedding = model
 

@@ -1,10 +1,14 @@
 import os
 import pprint
 import sys
-from typing import Iterable, Literal, Union
+from typing import Iterable, Literal, Optional, Union
 
 from model_xray.configs.enums import ImageType, PayloadType
+from model_xray.options import RESULTS_SIAMESE_DIR
 from model_xray.utils.logging_utils import request_logger
+
+from model_xray.utils.script_utils import get_siamese_results_filename
+
 logger = request_logger(__name__)
 
 import pandas as pd
@@ -21,6 +25,8 @@ def _repeated_train(
     embed_payload_type: PayloadType = PayloadType.BINARY_FILE,
     
     mode: Literal['st', 'es' 'ub', 'none'] = 'ub',
+
+    model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
 
     train_loss_threshold_lower = 0.1,
     train_loss_threshold_upper = 2,
@@ -50,7 +56,7 @@ def _repeated_train(
 
     import tensorflow as tf
 
-    from utils import ret_imgs_dataset_preprocessed, get_train_test_datasets, siamese_eval
+    from model_xray.utils.script_utils import ret_imgs_dataset_preprocessed, get_train_test_datasets, siamese_eval
 
     # siamese model params
     dist: Literal['l2', 'cosine'] = "l2"
@@ -116,8 +122,16 @@ def _repeated_train(
         tf.keras.backend.clear_session()
         
         
-        model = Siamese(img_input_shape=(imsize,imsize,n_channels), dist=dist, lr=lr,)
-        model.fit(triplets_train, epochs=epochs, batch_size=16, verbose=0, callbacks=[cb])
+        model = Siamese(
+            img_input_shape=(imsize,imsize,n_channels),
+            dist=dist,
+            lr=lr,
+            model_arch=model_arch,
+        )
+
+        batch_size = 2 if model_arch == 'srnet' else 16
+
+        model.fit(triplets_train, epochs=epochs, batch_size=batch_size, verbose=0, callbacks=[cb])
 
         train_results = model.test_all(X_train, y_train, X_train, y_train, is_print=False,)
 
@@ -141,6 +155,7 @@ def _repeated_train(
 
             df =  pd.DataFrame(eval_data)
             df['model_lsb'] = lsb
+            df['model_arch'] = model_arch
 
             eval_datas[run_num+i] = df
 
@@ -162,6 +177,8 @@ def repeated_train(
     
     mode = 'ub',
 
+    model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
+
     full_eval_mcs = ['famous_le_10m', 'famous_le_100m'],
     lsbs=range(1,24),
 
@@ -172,13 +189,14 @@ def repeated_train(
     retry_amount = 3,
     save_temp:bool = True,
 
-    siamese_results_dir: str = ".",
+    siamese_results_dir: Optional[str] = None,
 ):
-    def get_results_filename():
-        filename = f"results_siamese_{mc_name}_{imtype}_{imsize}{f'_{mode}' if mode!='none' else ''}"
-        return filename
+    if model_arch == 'srnet':
+        assert imsize == 256, "SRNet only supports 256x256 images"
 
-    results_dir = os.path.join(siamese_results_dir, "results")
+    if siamese_results_dir is None:
+        siamese_results_dir = RESULTS_SIAMESE_DIR
+    results_dir = siamese_results_dir
     os.makedirs(results_dir, exist_ok=True)
 
     tmp_results_dir = os.path.join(results_dir, "tmp")
@@ -196,6 +214,8 @@ def repeated_train(
 
         'mode':mode,
 
+        'model_arch':model_arch,
+
         'test_acc_threshold':0.75,
 
         'try_amount':batch_size,
@@ -208,6 +228,16 @@ def repeated_train(
     }
 
     assert retry_amount > 0
+
+    results_filename = get_siamese_results_filename(
+        mc_name=mc_name,
+        imtype=imtype,
+        imsize=imsize,
+        mode=mode,
+
+        embed_payload_type=embed_payload_type,
+        model_arch=model_arch,
+    )
 
     q = multiprocessing.Queue()
     dfs = []
@@ -256,7 +286,7 @@ def repeated_train(
 
         df_curr_batch = pd.concat(dfs_curr_batch, ignore_index=False)
         if save_temp:
-            tmp_save_path = os.path.join(tmp_results_dir, f"{get_results_filename()}_tmp_batch{i}.csv")
+            tmp_save_path = os.path.join(tmp_results_dir, f"{results_filename}_tmp_batch{i}.csv")
             tmp_save_paths.append(tmp_save_path)
             df_curr_batch.to_csv(tmp_save_path, index=False)
 
@@ -264,18 +294,18 @@ def repeated_train(
 
     if len(dfs) > 0:
         df_final = pd.concat(dfs, ignore_index=False)
-        df_final.to_csv(os.path.join(results_dir, f"{get_results_filename()}.csv"), index=False)
+        df_final.to_csv(os.path.join(results_dir, f"{results_filename}.csv"), index=False)
 
     if save_temp:
         for tmp_save_path in tmp_save_paths:
             os.remove(tmp_save_path)
 
-if __name__ == "__main__":
-    results_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, "results", "siamese"))
-    print("starting siamese repeated train")
-    print(f"Results dir: {results_dir}")
+        os.rmdir(tmp_results_dir)
 
-    modes = ['es',]
+if __name__ == "__main__":
+    print("starting siamese repeated train")
+
+    modes = ['es','ub', 'st']
     for mode in modes:
         # for zoo_name in ['llms_bert_conll03',]:
         #     repeated_train(
@@ -288,12 +318,15 @@ if __name__ == "__main__":
         #         lsbs=range(1,11),
         #     )
 
-        for mc_name in ['famous_le_10m',]:
+        for mc_name in ['famous_le_10m','famous_le_100m']:
             repeated_train(mc_name=mc_name, total_runs=10, batch_size=10, mode=mode,
-                           lsbs=range(1,24),
+
+                            imsize=256,
+                            model_arch='srnet',
+
+                           lsbs=range(1,2),
                            retry_amount=2,
-                           full_eval_mcs=['famous_le_10m','famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals'],
-                            siamese_results_dir=results_dir,
+                           full_eval_mcs=['famous_le_10m','famous_le_100m'],
             )
 
         # for zoo_name in ['cnn_zoos',]:

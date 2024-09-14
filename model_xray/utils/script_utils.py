@@ -158,4 +158,71 @@ def siamese_eval(
                 })
 
     return data
+
+def get_siamese_results_filename(
+    mc_name:Literal['famous_le_10m', 'famous_le_100m']="famous_le_10m",
+    imtype:ImageType=ImageType.GRAYSCALE_FOURPART,
+    imsize:int=100,
+    mode:Literal['st', 'es', 'ub', 'none']='st',
+
+    embed_payload_type: PayloadType = PayloadType.BINARY_FILE,
+    model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
+):
     
+    filename = f"results_siamese_{mc_name}_{imtype}_{imsize}{f'_{mode}' if mode!='none' else ''}_{str(embed_payload_type).lower()}_{model_arch}"
+    return filename
+
+def get_siamese_results_filepath(
+    mc_name:Literal['famous_le_10m', 'famous_le_100m']="famous_le_10m",
+    imtype:ImageType=ImageType.GRAYSCALE_FOURPART,
+    imsize:int=100,
+    mode:Literal['st', 'es', 'ub', 'none']='st',
+
+    embed_payload_type: PayloadType = PayloadType.BINARY_FILE,
+    model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
+
+    results_dir:Optional[str] = None,
+):
+    filename = get_siamese_results_filename(
+        mc_name=mc_name,
+        imtype=imtype,
+        imsize=imsize,
+        mode=mode,
+
+        embed_payload_type=embed_payload_type,
+        model_arch=model_arch,
+    )
+
+    filename_w_ext = f"{filename}.csv"
+
+    if results_dir is None:
+        results_dir = RESULTS_SIAMESE_DIR
+
+    return os.path.join(results_dir, filename_w_ext)
+
+def get_siamese_results_dataframe(
+    mc_name:Literal['famous_le_10m', 'famous_le_100m']="famous_le_10m",
+    imtype:ImageType=ImageType.GRAYSCALE_FOURPART,
+    imsize:int=100,
+    mode:Literal['st', 'es', 'ub', 'none']='st',
+
+    embed_payload_type: PayloadType = PayloadType.BINARY_FILE,
+    model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
+
+    results_dir:Optional[str] = None,
+):
+    import pandas as pd
+    
+    filepath = get_siamese_results_filepath(
+        mc_name=mc_name,
+        imtype=imtype,
+        imsize=imsize,
+        mode=mode,
+
+        embed_payload_type=embed_payload_type,
+        model_arch=model_arch,
+        
+        results_dir=results_dir,
+    )
+
+    return pd.read_csv(filepath)

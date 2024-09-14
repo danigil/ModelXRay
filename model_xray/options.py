@@ -1,3 +1,15 @@
+import os
+
+"""
+    Result dir paths
+"""
+
+RESULTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, 'results'))
+RESULTS_SIAMESE_DIR = os.path.join(RESULTS_DIR, 'siamese')
+
+"""
+    Model Collection definitions
+"""
 
 small_cnn_zoos = {
     "mnist",
@@ -109,6 +121,10 @@ model_collections = {
     "llms_bert_conll03": llms_bert_conll03,
 }
 
+"""
+    Train/Test split by model zoo
+"""
+
 dataset_split = {
     'small_cnn_zoos': ({
                     "mnist",
@@ -201,14 +217,26 @@ dataset_split = {
     })
 }
 
+"""
+    Malware Payloads
+"""
+
+MALWARE_PAYLOADS_DIR = '/mnt/exdisk2/model_xray/malware_payloads/'
+
 mal_map = {
     'famous_le_10m': 'm_77e05',
     'famous_le_100m': 'm_b3ed9',
 }
 
 def get_payload_filepath(mc:str):
-    return f'/mnt/exdisk2/model_xray/malware_payloads/{mal_map[mc]}'
+    return os.path.join(MALWARE_PAYLOADS_DIR, mal_map[mc])
 
+"""
+    MaleficNet https://github.com/pagiux/maleficnet
+"""
+
+MALEFICNET_DATASET_DOWNLOAD_DIR = '/mnt/exdisk2/model_xray/datasets/'
+MALEFICNET_PAYLOADS_DIR = '/home/danielg/danigil/AI_Model_Steganalysis/data/malware/maleficnet/'
 
 maleficnet_cover_model_names = {
     'densenet121', 'resnet50', 'resnet101',
@@ -221,6 +249,5 @@ maleficnet_mal_options_map = {
 } 
 
 def get_maleficnet_payload_filepath(mal_name:str):
-    return f'/home/danielg/danigil/AI_Model_Steganalysis/data/malware/maleficnet/{mal_name}'
+    return os.path.join(MALEFICNET_PAYLOADS_DIR, mal_name)
 
-MALEFICNET_DATASET_DOWNLOAD_DIR = '/mnt/exdisk2/model_xray/datasets/'
