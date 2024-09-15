@@ -306,6 +306,7 @@ if __name__ == "__main__":
     print("starting siamese repeated train")
 
     modes = ['es','ub', 'st']
+    # modes=['es',]
     for mode in modes:
         # for zoo_name in ['llms_bert_conll03',]:
         #     repeated_train(
@@ -319,14 +320,14 @@ if __name__ == "__main__":
         #     )
 
         for mc_name in ['famous_le_10m','famous_le_100m']:
-            repeated_train(mc_name=mc_name, total_runs=10, batch_size=10, mode=mode,
+            repeated_train(mc_name=mc_name, total_runs=20, batch_size=10, mode=mode,
 
                             imsize=256,
                             model_arch='srnet',
 
-                           lsbs=range(1,2),
+                           lsbs=range(1,24),
                            retry_amount=2,
-                           full_eval_mcs=['famous_le_10m','famous_le_100m'],
+                           full_eval_mcs=['famous_le_10m','famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals'],
             )
 
         # for zoo_name in ['cnn_zoos',]:

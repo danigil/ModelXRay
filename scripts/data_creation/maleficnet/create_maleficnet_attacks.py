@@ -18,8 +18,8 @@ if __name__ == "__main__":
 
     im_preprocesses = [
         ImagePreprocessConfig(
-            image_height=100,
-            image_width=100,
+            image_height=256,
+            image_width=256,
         ),
     ]
 

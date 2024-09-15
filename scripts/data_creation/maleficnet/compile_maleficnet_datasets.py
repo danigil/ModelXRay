@@ -24,7 +24,7 @@ from model_xray.options import *
 
 if __name__ == "__main__":
 
-    imsize = 100
+    imsize = 256
     imtype = ImageType.GRAYSCALE_FOURPART
 
     benign_pp_img_lineages = set()
