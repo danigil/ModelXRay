@@ -181,9 +181,15 @@ def get_siamese_results_filename(
 
     embed_payload_type: PayloadType = PayloadType.BINARY_FILE,
     model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
+
+    is_tmp:bool=False,
+    tmp_num:Optional[int]=None,
 ):
+    tmp_str = ''
+    if is_tmp:
+        tmp_str = f'_tmp_batch{tmp_num}'
     
-    filename = f"results_siamese_{mc_name}_{imtype}_{imsize}{f'_{mode}' if mode!='none' else ''}_{str(embed_payload_type).lower()}_{model_arch}"
+    filename = f"results_siamese_{mc_name}_{imtype}_{imsize}{f'_{mode}' if mode!='none' else ''}_{str(embed_payload_type).lower()}_{model_arch}{tmp_str}"
     return filename
 
 def get_siamese_results_filepath(
@@ -195,6 +201,9 @@ def get_siamese_results_filepath(
     embed_payload_type: PayloadType = PayloadType.BINARY_FILE,
     model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
 
+    is_tmp:bool=False,
+    tmp_num:Optional[int]=None,
+
     results_dir:Optional[str] = None,
 ):
     filename = get_siamese_results_filename(
@@ -205,6 +214,9 @@ def get_siamese_results_filepath(
 
         embed_payload_type=embed_payload_type,
         model_arch=model_arch,
+
+        is_tmp=is_tmp,
+        tmp_num=tmp_num,
     )
 
     filename_w_ext = f"{filename}.csv"
@@ -212,6 +224,9 @@ def get_siamese_results_filepath(
     if results_dir is None:
         results_dir = RESULTS_SIAMESE_DIR
 
+    if is_tmp:
+        results_dir = os.path.join(results_dir, 'tmp')
+        
     return os.path.join(results_dir, filename_w_ext)
 
 def get_siamese_results_dataframe(
@@ -222,6 +237,9 @@ def get_siamese_results_dataframe(
 
     embed_payload_type: PayloadType = PayloadType.BINARY_FILE,
     model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
+
+    is_tmp:bool=False,
+    tmp_num:Optional[int]=None,
 
     results_dir:Optional[str] = None,
 ):
@@ -237,6 +255,9 @@ def get_siamese_results_dataframe(
         model_arch=model_arch,
         
         results_dir=results_dir,
+
+        is_tmp=is_tmp,
+        tmp_num=tmp_num,
     )
 
     return pd.read_csv(filepath)
