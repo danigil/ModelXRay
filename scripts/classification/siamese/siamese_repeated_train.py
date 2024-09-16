@@ -319,15 +319,17 @@ if __name__ == "__main__":
         #         lsbs=range(1,11),
         #     )
 
-        for mc_name in ['famous_le_10m','famous_le_100m']:
-            repeated_train(mc_name=mc_name, total_runs=20, batch_size=10, mode=mode,
+        # for mc_name in ['famous_le_10m','famous_le_100m']:
+        for mc_name in ['ghrp_stl10',]:
+            repeated_train(mc_name=mc_name, total_runs=10, batch_size=10, mode=mode,
 
-                            imsize=256,
-                            model_arch='srnet',
+                            imsize=100,
+                            model_arch='osl_siamese_cnn',
 
                            lsbs=range(1,24),
                            retry_amount=2,
-                           full_eval_mcs=['famous_le_10m','famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals'],
+                        #    full_eval_mcs=['famous_le_10m','famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals'],
+                            full_eval_mcs=['ghrp_stl10'],
             )
 
         # for zoo_name in ['cnn_zoos',]:

@@ -7,6 +7,7 @@ from enum import IntEnum, StrEnum
 class CoverDataTypes(StrEnum):
     PRETRAINED_MODEL = 'pretrained_model'
     MALEFICNET_COVER_MODEL = 'maleficnet'
+    GHRP_MODEL_ZOO = 'ghrp'
 
 """
     Pretrained Model Repositories

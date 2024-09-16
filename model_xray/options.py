@@ -226,6 +226,7 @@ MALWARE_PAYLOADS_DIR = '/mnt/exdisk2/model_xray/malware_payloads/'
 mal_map = {
     'famous_le_10m': 'm_77e05',
     'famous_le_100m': 'm_b3ed9',
+    'ghrp_stl10': 'm_6054f',
 }
 
 def get_payload_filepath(mc:str):
@@ -251,3 +252,8 @@ maleficnet_mal_options_map = {
 def get_maleficnet_payload_filepath(mal_name:str):
     return os.path.join(MALEFICNET_PAYLOADS_DIR, mal_name)
 
+"""
+    ghrp https://github.com/HSG-AIML/NeurIPS_2022-Generative_Hyper_Representations
+"""
+
+GHRP_MZS_DIR = '/mnt/exdisk2/model_xray/ghrp_mzs/'

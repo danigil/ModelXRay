@@ -3,8 +3,16 @@ import numpy as np
 from model_xray.zenml.zenml_lookup import retreive_pp_imgs_datasets
 from model_xray.utils.dataset_utils import *
 
+from model_xray.zenml.zenml_lookup import try_get_artifact_preprocessed_image
+
 def img_flatten(arr):
     return arr.reshape(arr.shape[0], -1)
+
+def normalize_img(img):
+    if 0 <= img.min() and img.max() <= 1:
+        return img
+
+    return img / 255.0
 
 def get_train_test_datasets(mc: str,
                             train_x:int, test_xs:Iterable[Union[None, int]] = range(0,24),
@@ -13,11 +21,7 @@ def get_train_test_datasets(mc: str,
                             embed_payload_type: PayloadType = PayloadType.BINARY_FILE,
                             payload_filepath: Optional[str] = None):
 
-    def normalize_img(img):
-        if 0 <= img.min() and img.max() <= 1:
-            return img
-
-        return img / 255.0
+    
 
     X_train, y_train = None, None
     if train_x:
@@ -83,7 +87,7 @@ def get_train_test_datasets(mc: str,
     return ((X_train, y_train), testsets)
 
 def ret_imgs_dataset_preprocessed(
-    mc_name:Literal['famous_le_10m', 'famous_le_100m']="famous_le_10m",
+    mc_name:Literal['famous_le_10m', 'famous_le_100m', 'ghrp_stl10']="famous_le_10m",
 
     imtype:ImageType=ImageType.GRAYSCALE_FOURPART,
     imsize=100,
@@ -94,7 +98,6 @@ def ret_imgs_dataset_preprocessed(
     normalize=True,
     split=True,
 ):
-
     (X_train, y_train), testsets = get_train_test_datasets(
         mc_name,
         lsb,

@@ -56,4 +56,9 @@ preprocessed_image_pipeline = ret_pipeline_with_zenml_model_pp_image_lineage(
     _preprocessed_image_pipeline
 )
 
+preprocessed_image_pipeline_wo_cache = ret_pipeline_with_zenml_model_pp_image_lineage(
+    _preprocessed_image_pipeline,
+    enable_cache=False
+)
+
 

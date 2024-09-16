@@ -76,9 +76,15 @@ def x_lsb_attack(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, mal_by
         return _x_lsb_attack_numpy(host, x_lsb_attack_config, mal_bytes_gen=mal_bytes_gen, inplace=inplace)    
 
 def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False) -> np.ndarray:
+    host_orig_shape = host.shape
+    if host.ndim == 1:
+        host = host.reshape((1, -1,))
+
+    n_m, n_w = host.shape
+
     host_bytes = ndarray_to_bytes_arr(host)
 
-    n_w = len(host_bytes)
+    # n_w = len(host_bytes)
     capacity = x_lsb_attack_config.x*n_w
     byte_capacity = math.ceil(capacity / 8)
 
@@ -96,19 +102,28 @@ def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackCon
     host_bytes_unpacked = np.unpackbits(host_bytes, axis=-1, count=n_unattacked_bits, bitorder='big')
 
     mal_bits = np.unpackbits(mal_bytes, bitorder='big')[:capacity].reshape((n_w, x_lsb_attack_config.x))
+    mal_bits = np.broadcast_to(mal_bits, (n_m, n_w, x_lsb_attack_config.x))
 
-    stacked = np.hstack((host_bytes_unpacked, mal_bits))
+    stacked = np.concatenate((host_bytes_unpacked, mal_bits), axis=-1)
 
     host_bytes_packed = np.packbits(stacked, axis=-1, bitorder='big')
 
-    return bytes_arr_to_ndarray(host_bytes_packed, dtype=host.dtype, shape=host.shape)
+    return bytes_arr_to_ndarray(host_bytes_packed, dtype=host.dtype, shape=host_orig_shape)
 
 def _x_lsb_attack_numpy(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False) -> np.ndarray:
     assert x_lsb_attack_config.x % 8 == 0, "_x_lsb_attack_numpy: x must be a multiple of 8"
 
+    host_orig_shape = host.shape
+
+    if host.ndim == 1:
+        host = host.reshape((1, -1,))
+
+    n_m, n_w = host.shape
+
+
     host_as_bytearr = ndarray_to_bytes_arr(host).copy()
 
-    n_w = len(host_as_bytearr)
+    # n_w = len(host_as_bytearr)
     n_bytes_to_change_in_each_weight = x_lsb_attack_config.x//8
     n_bytes_total = n_bytes_to_change_in_each_weight * n_w
 
@@ -122,7 +137,7 @@ def _x_lsb_attack_numpy(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig,
 
     host_as_bytearr[..., -n_bytes_to_change_in_each_weight:] = mal_bytes
 
-    return bytes_arr_to_ndarray(host_as_bytearr, dtype=host.dtype)
+    return bytes_arr_to_ndarray(host_as_bytearr, dtype=host.dtype, shape=host_orig_shape)
 
 def maleficnet_attack(host: DL_MODEL_TYPE, maleficnet_attack_config: MaleficnetAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False, num_workers: int = 20) -> DL_MODEL_TYPE:
     from external_code.maleficnet.maleficnet_attack import maleficnet_attack as maleficnet_attack_func

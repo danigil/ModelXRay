@@ -19,6 +19,13 @@ def ret_na_val() -> NA_VAL_TYPE:
     Cover Data CFGs
 """
 
+class GHRPModelZooConfig(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+
+    cover_data_type: Literal[CoverDataTypes.GHRP_MODEL_ZOO] = CoverDataTypes.GHRP_MODEL_ZOO
+
+    mz_name: Literal['mnist', 'svhn', 'cifar10', 'stl10']
+
 class PretrainedModelConfig(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
 
@@ -52,7 +59,8 @@ class CoverDataConfig(BaseModel):
     cover_data_cfg: Annotated[
         Union[
             PretrainedModelConfig,
-            MaleficnetCoverModelConfig
+            MaleficnetCoverModelConfig,
+            GHRPModelZooConfig
         ],
         Field(
             default=PretrainedModelConfig(),

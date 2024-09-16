@@ -1,0 +1,25 @@
+run num,mc,lsb,test_acc_centroid,test_acc_nn,model_lsb,model_arch
+0,ghrp_stl10,0,0.7380428256954172,0.0,1,osl_siamese_cnn
+0,ghrp_stl10,1,0.26255753452071245,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,2,0.262157294376626,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,3,0.26295777466479886,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,4,0.2723634180508305,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,5,0.2631578947368421,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,6,0.2715629377626576,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,7,0.3263958375025015,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,8,0.9801881128677207,0.9991995197118271,1,osl_siamese_cnn
+0,ghrp_stl10,9,0.3151891134680809,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,10,0.29337602561536924,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,11,0.3444066439863918,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,12,0.9453672203321993,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,13,0.3133880328196918,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,14,0.40844506704022415,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,15,0.8753251951170702,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,16,1.0,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,17,0.9823894336601962,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,18,0.952171302781669,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,19,0.8975385231138683,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,20,1.0,0.9991995197118271,1,osl_siamese_cnn
+0,ghrp_stl10,21,0.964578747248349,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,22,0.8435061036621974,1.0,1,osl_siamese_cnn
+0,ghrp_stl10,23,0.667000200120072,1.0,1,osl_siamese_cnn

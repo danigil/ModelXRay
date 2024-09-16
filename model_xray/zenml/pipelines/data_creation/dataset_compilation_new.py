@@ -5,6 +5,7 @@ from typing import Annotated, List, Set, Tuple
 
 import numpy as np
 from zenml import pipeline, save_artifact, step
+from zenml.client import Client
 from model_xray.zenml.zenml_lookup import get_artifact_preprocessed_image
 from model_xray.configs.models import PreprocessedImageLineage
 
@@ -61,6 +62,21 @@ def compile_preprocessed_images(
     y = np.array(ys)
 
     return X, y
+
+def save_dataset(
+    X: np.ndarray,
+    y: np.ndarray,
+    dataset_name: str,
+):
+    save_artifact(
+        data=X,
+        name=f"{dataset_name}_x",
+    )
+
+    save_artifact(
+        data=y,
+        name=f"{dataset_name}_y",
+    )
 
 @step
 def compile_and_save_preprocessed_images_dataset_step(
