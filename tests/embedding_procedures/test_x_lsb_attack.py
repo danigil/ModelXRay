@@ -43,17 +43,20 @@ rng = np.random.default_rng()
 
 def test_x_lsb_attack_random(
     dtypes = [np.uint16, np.uint32, np.uint64, np.float32, np.float64],
-    n_ws = [8, 16, 32, 64, 128]
+    n_ws = [8, 16, 32, 64, 128],
+
+    n_ms = [None, 1, 20, 100,]
 ):
-    
 
     config = EmbedPayloadConfig.ret_bytes_x_lsb_attack_fill_config(x=3)
 
     mal_bytes_gen = MalBytes(embed_payload_config=config, appended_bytes=None)
 
-    for dtype, n_w in itertools.product(dtypes, n_ws):
+    for dtype, n_w, n_m in itertools.product(dtypes, n_ws, n_ms):
         dtype_str = dtype.__name__
         n_bits = np.dtype(dtype).itemsize * 8
+
+        shape_curr = (n_w, ) if n_m is None else (n_m, n_w)
 
         for x in range(1, n_bits-1):
             capacity = x*n_w
@@ -65,14 +68,24 @@ def test_x_lsb_attack_random(
             mal_bytes_gen.set_appended_bytes(randbytes)
 
             if np.issubdtype(dtype, np.floating):
-                arr = rng.random(size=(n_w, ), dtype=dtype)
+                arr = rng.random(size=shape_curr, dtype=dtype)
             elif np.issubdtype(dtype, np.integer):
-                arr = rng.integers(low=0, high = 2**n_bits, size=(n_w,), dtype=dtype)
+                arr = rng.integers(low=0, high = 2**n_bits, size=shape_curr, dtype=dtype)
             else:
                 raise ValueError(f"Unknown dtype {dtype}")
 
-            arr_attacked_np_bin = _test_x_lsb_attack_single(arr, config, mal_bytes_gen, _x_lsb_attack_numpy_bin)
+            if arr.ndim == 2:
+                for arr_curr in arr:
+                    arr_attacked_np_bin = _test_x_lsb_attack_single(arr_curr, config, mal_bytes_gen, _x_lsb_attack_numpy_bin)
 
-            if x % 8 == 0:
-                arr_attacked_numpy = _test_x_lsb_attack_single(arr, config, mal_bytes_gen, _x_lsb_attack_numpy)
-                assert np.array_equal(arr_attacked_numpy, arr_attacked_np_bin)
+                    if x % 8 == 0:
+                        arr_attacked_numpy = _test_x_lsb_attack_single(arr_curr, config, mal_bytes_gen, _x_lsb_attack_numpy)
+                        assert np.array_equal(arr_attacked_numpy, arr_attacked_np_bin)
+
+            else:
+                arr_attacked_np_bin = _test_x_lsb_attack_single(arr, config, mal_bytes_gen, _x_lsb_attack_numpy_bin)
+
+                if x % 8 == 0:
+                    arr_attacked_numpy = _test_x_lsb_attack_single(arr, config, mal_bytes_gen, _x_lsb_attack_numpy)
+                    assert np.array_equal(arr_attacked_numpy, arr_attacked_np_bin)
+

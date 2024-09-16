@@ -28,6 +28,8 @@ def _repeated_train(
 
     model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
 
+    test_subset:Optional[int] = 300,
+
     train_loss_threshold_lower = 0.1,
     train_loss_threshold_upper = 2,
 
@@ -40,6 +42,7 @@ def _repeated_train(
     act_only_on_passed: bool = False,
     act_only_on_first_passed: bool = False,
 
+    model_partial_eval: bool = False,
     model_full_eval: bool = True,
     full_eval_mcs = ['famous_le_10m', 'famous_le_100m'],
 ):
@@ -57,6 +60,8 @@ def _repeated_train(
     import tensorflow as tf
 
     from model_xray.utils.script_utils import ret_imgs_dataset_preprocessed, get_train_test_datasets, siamese_eval
+
+    from sklearn.model_selection import train_test_split
 
     # siamese model params
     dist: Literal['l2', 'cosine'] = "l2"
@@ -76,9 +81,7 @@ def _repeated_train(
     elif mode == 'es':
         epochs = 1
 
-    cb = MyThresholdCallback(ub_mode=True if mode=='ub' else False, threshold_lower=train_loss_threshold_lower, threshold_upper=train_loss_threshold_upper)
-
-    X_train, y_train, X_test, y_test = ret_imgs_dataset_preprocessed(
+    ret = ret_imgs_dataset_preprocessed(
         mc_name=mc_name,
 
         lsb=lsb,
@@ -88,8 +91,23 @@ def _repeated_train(
         embed_payload_type=embed_payload_type,
 
         normalize=True,
-        split=True,
+        split=True if mc_name != 'ghrp_stl10' else False,
+
+        test_subset=test_subset,
     )
+
+    if mc_name == 'ghrp_stl10':
+        X, y = ret
+        train_size = 3
+        X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=train_size*2, stratify=y)
+    else:
+        X_train, y_train, X_test, y_test = ret
+
+    X_test_benign = X_test[y_test == 0]
+    X_test_mal = X_test[y_test == 1]
+    y_test_benign = y_test[y_test == 0]
+    y_test_mal = y_test[y_test == 1]
+
 
     triplets_train = make_triplets(X_train, y_train, is_shuffle=True)
     gc.collect()
@@ -112,6 +130,8 @@ def _repeated_train(
                 imtype=imtype,
                 imsize=imsize,
                 flatten=False,
+
+                test_subset=test_subset,
             )
 
             eval_datasets[eval_mc] = testsets
@@ -120,6 +140,10 @@ def _repeated_train(
     for i in range(try_amount):
         gc.collect()
         tf.keras.backend.clear_session()
+
+        print(f"\tRun: {run_num+i}")
+
+        cb = MyThresholdCallback(ub_mode=True if mode=='ub' else False, threshold_lower=train_loss_threshold_lower, threshold_upper=train_loss_threshold_upper)
         
         
         model = Siamese(
@@ -138,20 +162,49 @@ def _repeated_train(
         acc_centroid_train = train_results['centroid']
         acc_nn_train = train_results['nn']
         
-        print(f"\tTrain Centroid: {acc_centroid_train}, Train NN: {acc_nn_train}")
+        print(f"\t\tTrain Centroid: {acc_centroid_train}, Train NN: {acc_nn_train}, Train Loss: {cb.last_loss}")
 
-        test_results = model.test_all(X_train, y_train, X_test, y_test, is_print=False,)
+        model_passed = True
+        if model_partial_eval:
+            test_results_benign = model.test_all(X_train, y_train, X_test_benign, y_test_benign, is_print=False,)
 
-        acc_centroid = test_results['centroid']
-        acc_nn = test_results['nn']
-        
-        print(f"\tTest Centroid: {acc_centroid}, Test NN: {acc_nn}")
+            acc_centroid_benign = test_results_benign['centroid']
+            acc_nn_benign = test_results_benign['nn']
+            
+            print(f"\t\tTest (benign): Centroid: {acc_centroid_benign}, Test NN: {acc_nn_benign}")
 
-        model_passed = bool_op(acc_centroid >= test_acc_threshold, acc_nn >= test_acc_threshold)
+            test_results_mal = model.test_all(X_train, y_train, X_test_mal, y_test_mal, is_print=False,)
+            acc_centroid_mal = test_results_mal['centroid']
+            acc_nn_mal = test_results_mal['nn']
+
+            print(f"\t\tTest (mal): Centroid: {acc_centroid_mal}, Test NN: {acc_nn_mal}")
+
+            acc_centroid = (acc_centroid_benign + acc_centroid_mal) / 2
+            acc_nn = (acc_nn_benign + acc_nn_mal) / 2
+
+            model_passed = bool_op(acc_centroid >= test_acc_threshold, acc_nn >= test_acc_threshold)
+            
         act = not act_only_on_passed or model_passed
 
-        if model_full_eval and act:
-            eval_data = siamese_eval(model, X_train, y_train, eval_datasets, full_eval_mcs)
+        if act:
+            if model_full_eval:
+                eval_data = siamese_eval(model, X_train, y_train, eval_datasets, full_eval_mcs)
+            elif model_partial_eval:
+                eval_data_benign = {
+                    'mc': mc_name,
+                    'lsb': 0,
+                    'test_acc_centroid': acc_centroid_benign,
+                    'test_acc_nn': acc_nn_benign,
+                }
+
+                eval_data_mal = {
+                    'mc': mc_name,
+                    'lsb': lsb,
+                    'test_acc_centroid': acc_centroid_mal,
+                    'test_acc_nn': acc_nn_mal,
+                }
+
+                eval_data = [eval_data_benign, eval_data_mal]
 
             df =  pd.DataFrame(eval_data)
             df['model_lsb'] = lsb
@@ -178,6 +231,8 @@ def repeated_train(
     mode = 'ub',
 
     model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
+
+    model_partial_eval: bool = False,
 
     full_eval_mcs = ['famous_le_10m', 'famous_le_100m'],
     lsbs=range(1,24),
@@ -223,7 +278,9 @@ def repeated_train(
         'act_only_on_passed': False,
         'act_only_on_first_passed': False,
 
-        'model_full_eval': True,
+        'model_partial_eval': model_partial_eval,
+
+        'model_full_eval': True if full_eval_mcs is not None else False,
         'full_eval_mcs':full_eval_mcs,
     }
 
@@ -270,6 +327,7 @@ def repeated_train(
                     break
                 else:
                     logger.error(f"Error in process {i}, retrying...")
+                    p.terminate()
                     try_counter += 1
 
             results = q.get(block=False)
@@ -305,8 +363,8 @@ def repeated_train(
 if __name__ == "__main__":
     print("starting siamese repeated train")
 
-    modes = ['es','ub', 'st']
-    # modes=['es',]
+    # modes = ['es','ub', 'st']
+    modes=['ub',]
     for mode in modes:
         # for zoo_name in ['llms_bert_conll03',]:
         #     repeated_train(
@@ -321,15 +379,18 @@ if __name__ == "__main__":
 
         # for mc_name in ['famous_le_10m','famous_le_100m']:
         for mc_name in ['ghrp_stl10',]:
-            repeated_train(mc_name=mc_name, total_runs=10, batch_size=10, mode=mode,
+            repeated_train(mc_name=mc_name, total_runs=30, batch_size=5, mode=mode,
 
                             imsize=100,
                             model_arch='osl_siamese_cnn',
 
                            lsbs=range(1,24),
-                           retry_amount=2,
+                           retry_amount=3,
+                           timeout=2400,
                         #    full_eval_mcs=['famous_le_10m','famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals'],
-                            full_eval_mcs=['ghrp_stl10'],
+                            # full_eval_mcs=['ghrp_stl10'],
+                            full_eval_mcs=None,
+                            model_partial_eval=True,
             )
 
         # for zoo_name in ['cnn_zoos',]:

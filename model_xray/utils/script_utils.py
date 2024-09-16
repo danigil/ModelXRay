@@ -19,7 +19,10 @@ def get_train_test_datasets(mc: str,
                             imsize:int=100, imtype:ImageType=ImageType.GRAYSCALE_FOURPART,
                             flatten:bool=True, normalize:bool=True,
                             embed_payload_type: PayloadType = PayloadType.BINARY_FILE,
-                            payload_filepath: Optional[str] = None):
+                            payload_filepath: Optional[str] = None,
+                            
+                            test_subset: Optional[int] = None,
+                            ):
 
     
 
@@ -82,6 +85,10 @@ def get_train_test_datasets(mc: str,
         if normalize:
             X_test = normalize_img(X_test)
 
+        if test_subset is not None:
+            X_test = X_test[:test_subset]
+            y_test = y_test[:test_subset]
+
         testsets[i] = (X_test, y_test)
 
     return ((X_train, y_train), testsets)
@@ -97,6 +104,8 @@ def ret_imgs_dataset_preprocessed(
 
     normalize=True,
     split=True,
+
+    test_subset: Optional[int] = None,
 ):
     (X_train, y_train), testsets = get_train_test_datasets(
         mc_name,
@@ -108,6 +117,8 @@ def ret_imgs_dataset_preprocessed(
 
         flatten=False,
         normalize=normalize,
+
+        test_subset=test_subset,
     )
 
     X_tests, y_tests = zip(*testsets.values())

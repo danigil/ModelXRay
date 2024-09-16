@@ -28,10 +28,10 @@ if __name__ == "__main__":
             image_height=100,
             image_width=100,
         ),
-        ImagePreprocessConfig(
-            image_height=256,
-            image_width=256,
-        ),
+        # ImagePreprocessConfig(
+        #     image_height=256,
+        #     image_width=256,
+        # ),
     ]
 
     na_embed_payload_configs = [ret_na_val()]
@@ -42,7 +42,7 @@ if __name__ == "__main__":
         )
         for x in range(1,24)
     ]
-    # random_embed_payload_configs=[]
+    random_embed_payload_configs=[]
     file_embed_payload_configs_ghrp = [
         EmbedPayloadConfig(
             embed_payload_type=PayloadType.BINARY_FILE,
@@ -83,13 +83,13 @@ if __name__ == "__main__":
             embed_payload_config=embed_payload
         )
 
-        try:
-            artifact_lookup = try_get_artifact_preprocessed_image(pp_img_lineage)
-            print(f'\t\t## found artifact, skipping pipeline execution')
-        except Exception as e:
-            print(f'\t\t%% didn\'t find artifact')
-            preprocessed_image_pipeline(pp_img_lineage)
-        # preprocessed_image_pipeline_wo_cache(pp_img_lineage)
+        # try:
+        #     artifact_lookup = try_get_artifact_preprocessed_image(pp_img_lineage)
+        #     print(f'\t\t## found artifact, skipping pipeline execution')
+        # except Exception as e:
+        #     print(f'\t\t%% didn\'t find artifact')
+        #     preprocessed_image_pipeline(pp_img_lineage)
+        preprocessed_image_pipeline_wo_cache(pp_img_lineage)
             
         print(f'\t~~ finished {i+1}/{ghrp_total_product_amount}')
     

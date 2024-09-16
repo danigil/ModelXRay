@@ -169,6 +169,8 @@ out*
 
 .zen/
 
+notebooks/temp*.ipynb
+
 notebooks/playground.ipynb
 notebooks/zenml_playground.ipynb
 notebooks/temp_zenml_playground.ipynb

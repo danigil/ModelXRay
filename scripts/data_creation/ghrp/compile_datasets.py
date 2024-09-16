@@ -35,7 +35,7 @@ if __name__ == "__main__":
     embed_payload_type = PayloadType.BINARY_FILE
     # embed_malware_payload_filepath = '/mnt/exdisk2/model_xray/malware_payloads/m_77e05'
 
-    split_size = 3
+    train_split_size = 3
     
     image_rep_config=ImageRepConfig.ret_image_rep_config_by_type(imtype)
     image_preprocess_config=ImagePreprocessConfig(
@@ -68,40 +68,40 @@ if __name__ == "__main__":
                 payload_filepath=embed_malware_payload_filepath,
             )
 
-            X,y = get_pp_imgs_dataset_by_name(train_dataset_name)
-            if X is None or y is None:
-                print(f"\t%% ds {train_dataset_name} not found, compiling")
+            # X,y = get_pp_imgs_dataset_by_name(train_dataset_name)
+            # if X is None or y is None:
+            #     print(f"\t%% ds {train_dataset_name} not found, compiling")
                 
-                pp_img_lineage_benign = PreprocessedImageLineage(
-                    cover_data_config=cover_data_config,
-                    image_rep_config=image_rep_config,
-                    image_preprocess_config=image_preprocess_config,
-                    embed_payload_config=ret_na_val(),
-                )
+            pp_img_lineage_benign = PreprocessedImageLineage(
+                cover_data_config=cover_data_config,
+                image_rep_config=image_rep_config,
+                image_preprocess_config=image_preprocess_config,
+                embed_payload_config=ret_na_val(),
+            )
 
-                pp_img_lineage_mal = PreprocessedImageLineage(
-                    cover_data_config=cover_data_config,
-                    image_rep_config=image_rep_config,
-                    image_preprocess_config=image_preprocess_config,
-                    embed_payload_config=EmbedPayloadConfig(
-                        embed_payload_type=embed_payload_type,
-                        embed_proc_config=XLSBAttackConfig(x=train_x),
-                        embed_payload_metadata=EmbedPayloadMetadata(
-                            payload_filepath=embed_malware_payload_filepath
-                        )
-                    ),
-                )
+            pp_img_lineage_mal = PreprocessedImageLineage(
+                cover_data_config=cover_data_config,
+                image_rep_config=image_rep_config,
+                image_preprocess_config=image_preprocess_config,
+                embed_payload_config=EmbedPayloadConfig(
+                    embed_payload_type=embed_payload_type,
+                    embed_proc_config=XLSBAttackConfig(x=train_x),
+                    embed_payload_metadata=EmbedPayloadMetadata(
+                        payload_filepath=embed_malware_payload_filepath
+                    )
+                ),
+            )
 
-                X_benign_train, _ = get_x(pp_img_lineage_benign, split_size)
-                X_mal_train, _ = get_x(pp_img_lineage_mal, split_size)
+            X_benign_train, _ = get_x(pp_img_lineage_benign, train_split_size)
+            X_mal_train, _ = get_x(pp_img_lineage_mal, train_split_size)
 
-                X_train = np.concatenate([X_benign_train, X_mal_train])
-                y_train = np.concatenate([np.full(len(X_benign_train), PreprocessedImageDatasetLabel.BENIGN), np.full(len(X_mal_train), PreprocessedImageDatasetLabel.ATTACKED)])
+            X_train = np.concatenate([X_benign_train, X_mal_train])
+            y_train = np.concatenate([np.full(len(X_benign_train), PreprocessedImageDatasetLabel.BENIGN), np.full(len(X_mal_train), PreprocessedImageDatasetLabel.ATTACKED)])
 
-                save_dataset(X_train, y_train, train_dataset_name)
+            save_dataset(X_train, y_train, train_dataset_name)
 
-            else:
-                print(f"\t^^ ds {train_dataset_name} found, skipping")
+            # else:
+            #     print(f"\t^^ ds {train_dataset_name} found, skipping")
 
             print(f'\t~~ finished train_x: {train_x}')
 
@@ -120,31 +120,31 @@ if __name__ == "__main__":
                 payload_filepath=embed_malware_payload_filepath,
             )
 
-            X,y = get_pp_imgs_dataset_by_name(test_dataset_name)
-            if X is None or y is None:
-                print(f"\t%% ds {test_dataset_name} not found, compiling")
+            # X,y = get_pp_imgs_dataset_by_name(test_dataset_name)
+            # if X is None or y is None:
+            #     print(f"\t%% ds {test_dataset_name} not found, compiling")
 
-                pp_img_lineage = PreprocessedImageLineage(
-                    cover_data_config=cover_data_config,
-                    image_rep_config=image_rep_config,
-                    image_preprocess_config=image_preprocess_config,
-                    embed_payload_config=EmbedPayloadConfig(
-                        embed_payload_type=embed_payload_type,
-                        embed_proc_config=XLSBAttackConfig(x=test_x),
-                        embed_payload_metadata=EmbedPayloadMetadata(
-                            payload_filepath=embed_malware_payload_filepath
-                        )
-                    ) if test_x != 0 else ret_na_val(),
-                )
+            pp_img_lineage = PreprocessedImageLineage(
+                cover_data_config=cover_data_config,
+                image_rep_config=image_rep_config,
+                image_preprocess_config=image_preprocess_config,
+                embed_payload_config=EmbedPayloadConfig(
+                    embed_payload_type=embed_payload_type,
+                    embed_proc_config=XLSBAttackConfig(x=test_x),
+                    embed_payload_metadata=EmbedPayloadMetadata(
+                        payload_filepath=embed_malware_payload_filepath
+                    )
+                ) if test_x != 0 else ret_na_val(),
+            )
 
-                _, X_test = get_x(pp_img_lineage, split_size)
-                label = PreprocessedImageDatasetLabel.BENIGN if test_x == 0 else PreprocessedImageDatasetLabel.ATTACKED
+            _, X_test = get_x(pp_img_lineage, train_split_size)
+            label = PreprocessedImageDatasetLabel.BENIGN if test_x == 0 else PreprocessedImageDatasetLabel.ATTACKED
 
-                y_test = np.full(len(X_test), label)
+            y_test = np.full(len(X_test), label)
 
-                save_dataset(X_test, y_test, test_dataset_name)
+            save_dataset(X_test, y_test, test_dataset_name)
 
-            else:
-                print(f"\t^^ ds {test_dataset_name} found, skipping")
+            # else:
+            #     print(f"\t^^ ds {test_dataset_name} found, skipping")
 
             print(f'\t~~ finished test_x: {test_x}')

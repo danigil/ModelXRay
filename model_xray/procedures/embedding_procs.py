@@ -68,9 +68,9 @@ class MalBytes:
     def ret_md5(self, mal_bytes: bytes):
         return hashlib.md5(mal_bytes).hexdigest()
 
-def x_lsb_attack(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False,) -> np.ndarray:
+def x_lsb_attack(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False, only_use_bin:bool = True) -> np.ndarray:
     
-    if x_lsb_attack_config.x % 8 != 0:
+    if only_use_bin or x_lsb_attack_config.x % 8 != 0:
         return _x_lsb_attack_numpy_bin(host, x_lsb_attack_config, mal_bytes_gen=mal_bytes_gen, inplace=inplace)
     else:
         return _x_lsb_attack_numpy(host, x_lsb_attack_config, mal_bytes_gen=mal_bytes_gen, inplace=inplace)    
@@ -161,6 +161,14 @@ def maleficnet_attack(host: DL_MODEL_TYPE, maleficnet_attack_config: MaleficnetA
     return host_attacked
 
 def x_lsb_extract(host: np.ndarray, x_lsb_extract_config: XLSBExtractConfig) -> bytes:
+    print(host.shape)
+    if host.ndim == 2:
+        n_m, n_w = host.shape
+        if n_m == 1 or n_w == 1:
+            host = host.ravel()
+        else:
+            host = host[0]
+
     host_bytes = ndarray_to_bytes_arr(host)
     msb = x_lsb_extract_config.msb
 
