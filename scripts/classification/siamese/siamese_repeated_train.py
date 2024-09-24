@@ -364,7 +364,7 @@ if __name__ == "__main__":
     print("starting siamese repeated train")
 
     # modes = ['es','ub', 'st']
-    modes=['es',]
+    modes=['st',]
     for mode in modes:
         # for zoo_name in ['llms_bert_conll03',]:
         #     repeated_train(
