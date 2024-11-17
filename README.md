@@ -1,7 +1,7 @@
 # ModelXRay
 Python framework for AI model steganalysis research.  
 
-Code repository for the research paper "Model X-Ray: Detection of Hidden Malware in AI Model Weights using Few Shot Learning".  
+Code repository for the research paper "[Model X-Ray: Detection of Hidden Malware in AI Model Weights using Few Shot Learning](https://doi.org/10.48550/arXiv.2409.19310)".  
 
 
 
