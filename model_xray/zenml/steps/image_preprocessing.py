@@ -3,9 +3,7 @@ from typing import Optional
 import numpy as np
 import numpy.typing as npt
 
-from zenml import ArtifactConfig, Model, get_pipeline_context, get_step_context, log_artifact_metadata, step, pipeline, log_model_metadata
-from zenml.client import Client
-from zenml.new.pipelines.pipeline import Pipeline
+from zenml import ArtifactConfig, log_artifact_metadata, step
 
 from model_xray.procedures.image_preprocess_procs import execute_image_preprocess
 from model_xray.configs.models import *

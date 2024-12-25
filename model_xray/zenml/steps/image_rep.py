@@ -3,20 +3,14 @@ from typing import Optional
 import numpy as np
 import numpy.typing as npt
 
-from zenml import ArtifactConfig, Model, get_pipeline_context, get_step_context, log_artifact_metadata, step, pipeline, log_model_metadata
-from zenml.client import Client
-from zenml.new.pipelines.pipeline import Pipeline
+from zenml import ArtifactConfig, get_step_context, step
 
 from model_xray.configs.types import DL_MODEL_TYPE
 from model_xray.configs.models import *
-# from model_xray.zenml.pipelines.model_evaluation.eval_model import retrieve_model_weights
-# from model_xray.zenml.pipelines.data_creation.model_attack import embed_payload_into_pretrained_weights_pipeline
-from model_xray.procedures.image_rep_procs import execute_image_rep_proc, image_rep_map
+from model_xray.procedures.image_rep_procs import execute_image_rep_proc
 from model_xray.options import model_collections
 
 from typing_extensions import Annotated
-
-from PIL import Image
 
 @step(enable_cache=True)
 def create_image_representation_step(

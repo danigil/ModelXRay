@@ -100,9 +100,19 @@ def ret_pretrained_model_by_name(
         model = ret_class(weights=train_dataset_map.get(train_dataset, 'imagenet'))
         return model
 
-    
+    def ret_torch_model_by_name(model_name):
+        import torchvision.models
+        weights_str = "IMAGENET1K_V1" if train_dataset == 'imagenet12' else None
+        try:
+            model = torchvision.models.get_model(model_name, weights=weights_str)
+        except Exception as e:
+            raise Exception(f"ret_torch_model_by_name | model_name {model_name} not found.\nerror: {e}")
+        return model
+
     if lib == ModelRepos.KERAS:
         return ret_keras_model_by_name(model_name)
+    elif lib == ModelRepos.PYTORCH:
+        return ret_torch_model_by_name(model_name)
     else:
         raise NotImplementedError(f'ret_model_by_name | lib {lib} not implemented')
 
