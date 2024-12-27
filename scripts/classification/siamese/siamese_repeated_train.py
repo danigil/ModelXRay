@@ -44,7 +44,7 @@ def _repeated_train(
 
     model_partial_eval: bool = False,
     model_full_eval: bool = True,
-    full_eval_mcs = ['famous_le_10m', 'famous_le_100m'],
+    full_eval_mcs = ['famous_le_10m', 'famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals', 'torch_pretrained_classification'],
 ):
     import operator as op
 
@@ -120,6 +120,8 @@ def _repeated_train(
         for eval_mc in full_eval_mcs:
             if eval_mc in ('maleficnet_benigns', 'maleficnet_mals'):
                 test_xs = []
+            elif eval_mc in ('torch_pretrained_classification',):
+                test_xs = [0,]
             else:
                 test_xs = range(0,24)
 
@@ -234,7 +236,7 @@ def repeated_train(
 
     model_partial_eval: bool = False,
 
-    full_eval_mcs = ['famous_le_10m', 'famous_le_100m'],
+    full_eval_mcs = ['famous_le_10m', 'famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals', 'torch_pretrained_classification'],
     lsbs=range(1,24),
 
     total_runs = 10,
@@ -364,7 +366,7 @@ if __name__ == "__main__":
     print("starting siamese repeated train")
 
     # modes = ['es','ub', 'st']
-    modes=['st',]
+    modes=['ub',]
     for mode in modes:
         # for zoo_name in ['llms_bert_conll03',]:
         #     repeated_train(
@@ -377,19 +379,21 @@ if __name__ == "__main__":
         #         lsbs=range(1,11),
         #     )
 
+        for mc_name in ['famous_le_10m',]:
         # for mc_name in ['famous_le_10m','famous_le_100m']:
-        for mc_name in ['ghrp_stl10',]:
-            repeated_train(mc_name=mc_name, total_runs=30, batch_size=5, mode=mode,
+        # for mc_name in ['ghrp_stl10',]:
+            repeated_train(mc_name=mc_name, total_runs=1, batch_size=1, mode=mode,
 
                             imsize=100,
                             model_arch='osl_siamese_cnn',
+                            embed_payload_type=PayloadType.BINARY_FILE,
 
-                           lsbs=range(1,24),
-                           retry_amount=3,
-                           timeout=2400,
+                            lsbs=range(8,9),
+                            retry_amount=3,
+                            timeout=2400,
                         #    full_eval_mcs=['famous_le_10m','famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals'],
                             # full_eval_mcs=['ghrp_stl10'],
-                            full_eval_mcs=None,
+                            full_eval_mcs=['torch_pretrained_classification'],
                             model_partial_eval=True,
             )
 

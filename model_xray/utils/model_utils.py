@@ -106,7 +106,10 @@ def ret_pretrained_model_by_name(
         try:
             model = torchvision.models.get_model(model_name, weights=weights_str)
         except Exception as e:
-            raise Exception(f"ret_torch_model_by_name | model_name {model_name} not found.\nerror: {e}")
+            try:
+                model = torchvision.models.get_model(model_name, weights='DEFAULT')
+            except Exception as e_inner:
+                raise Exception(f"ret_torch_model_by_name | model_name {model_name} not found.\nerror: {e_inner}")
         return model
 
     if lib == ModelRepos.KERAS:

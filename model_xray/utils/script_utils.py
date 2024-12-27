@@ -156,7 +156,7 @@ def siamese_eval(
                 'test_acc_nn': acc_nn,
             })
         else:
-            for lsb in range(0, 24):
+            for lsb in testsets_curr.keys():
                 X_test, y_test = testsets_curr[lsb]
 
                 test_results = model.test_all(X_train_ref, y_train_ref, X_test, y_test, is_print=False,)
