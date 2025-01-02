@@ -144,7 +144,7 @@ def siamese_eval(
         if 'maleficnet' in mc:
             X_test, y_test = next(iter(testsets_curr.values()))
 
-            test_results = model.test_all(X_train_ref, y_train_ref, X_test, y_test, is_print=False,)
+            test_results = model.test_all(X_test, y_test, is_print=False,)
 
             acc_centroid = test_results['centroid']
             acc_nn = test_results['nn']
@@ -159,7 +159,7 @@ def siamese_eval(
             for lsb in testsets_curr.keys():
                 X_test, y_test = testsets_curr[lsb]
 
-                test_results = model.test_all(X_train_ref, y_train_ref, X_test, y_test, is_print=False,)
+                test_results = model.test_all(X_test, y_test, is_print=False,)
 
                 acc_centroid = test_results['centroid']
                 acc_nn = test_results['nn']
