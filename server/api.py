@@ -34,10 +34,11 @@ def _get_models_data():
 
     return models_data
 
+models_data = _get_models_data()
+
 @app.get("/list_models")
 def list_models():
-    models_data = _get_models_data()
-
+    
     return models_data
 
 
@@ -55,9 +56,9 @@ def _inference_single_model(model_name: str, inputs: np.ndarray):
 @app.post("/inference")
 def inference(inference_request: InferenceRequest):
     response = {}
-    img_shape = (100,100)
+    # img_shape = (100,100)
 
-    inputs = np.array([np.array(input).reshape(img_shape) for input in inference_request.inputs])
+    inputs = np.array([np.array(input) for input in inference_request.inputs])
 
     for model_name in inference_request.model_names:
         y_pred = _inference_single_model(model_name, inputs)
