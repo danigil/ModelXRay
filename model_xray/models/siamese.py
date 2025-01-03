@@ -1,6 +1,7 @@
 # Code from https://github.com/hlamba28/One-Shot-Learning-with-Siamese-Networks/blob/master/Siamese%20on%20Omniglot%20Dataset.ipynb
 
-from typing import Literal
+from typing import Literal, Optional
+from model_xray.configs.models import ImagePreprocessConfig, ImageRepConfig
 from model_xray.models.srnet import SRNet
 import numpy as np
 from numpy import linalg as LA
@@ -169,6 +170,8 @@ class Siamese(Model):
                  model=None,
                  model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
                  optimizer=None,
+
+                 train_data=None,
                  ):
         super().__init__()
         
@@ -233,8 +236,28 @@ class Siamese(Model):
 
         self.img_input_shape = img_input_shape
         self.embedding = embedding
+
+        self.train_data = train_data
         # self.pretrained=pretrained
 
+    def fit_and_keep_refs(self, x_train, y_train,
+                          epochs=10, batch_size=16, verbose=1, is_shuffle=True, callbacks = [],
+                          image_rep_config:Optional[ImageRepConfig]=None,
+                          image_preprocess_config:Optional[ImagePreprocessConfig]=None,):
+        triplets_train = make_triplets(x_train, y_train, is_shuffle=is_shuffle)
+
+        fit_ret = self.fit(triplets_train, epochs=epochs, batch_size=batch_size, verbose=verbose, callbacks=callbacks)
+
+        train_data = {
+            'x': x_train,
+            'y': y_train,
+            'image_rep_config': image_rep_config,
+            'image_preprocess_config': image_preprocess_config,
+        }
+
+        self.train_data = train_data
+
+        return fit_ret
 
     def call(self, inputs):
         return self.siamese_network(inputs)
@@ -318,8 +341,14 @@ class Siamese(Model):
             print(f'mal success: {mal_success}')
 
         return benign_success, mal_success
+    
+    def inference_centroid(self, x_test, x_train=None, y_train=None, apply_transforms=False):
+        if self.train_data is not None:
+            x_train = self.train_data['x']
+            y_train = self.train_data['y']
+        else:
+            assert x_train is not None and y_train is not None, "train data must be provided"
 
-    def test_centroid(self, x_train, y_train, x_test, y_test, is_print=True, apply_transforms=False, vanilla=False, knn=False, return_acc=True):
         benign_idxs_train = np.where(y_train==0)[0]
         mal_idxs_train = np.where(y_train==1)[0]
 
@@ -327,96 +356,45 @@ class Siamese(Model):
         x_train_embeddings_benign = tf.gather(x_train_embeddings, indices=benign_idxs_train)
         x_train_embeddings_mal = tf.gather(x_train_embeddings, indices=mal_idxs_train)
 
-        # print(x_train_embeddings.shape)
-
-        
-
         centroid_benign = tf.reduce_mean(x_train_embeddings_benign, axis=0)
         centroid_mal = tf.reduce_mean(x_train_embeddings_mal, axis=0)
 
-        benign_idxs_test = np.where(y_test==0)[0]
-        mal_idxs_test = np.where(y_test==1)[0]
-
-        # print(benign_idxs_test, mal_idxs_test)
-
         batch_size = 16
         split_size = math.ceil(len(x_test) / batch_size)
-
-        # print(x_test.shape)
 
         x_test_splits = np.array_split(x_test, split_size)
         x_test_preds = [self.embedding(curr) for curr in x_test_splits]
         x_test_embeddings = np.vstack(x_test_preds)
-
 
 
         if apply_transforms:
-            # print(x_train_embeddings.shape)
             mean_train = tf.reduce_mean(x_train_embeddings, axis=0)
-            # print(mean_train.shape)
-            # print(x_test_embeddings.shape)
             x_test_embeddings = x_test_embeddings - mean_train
-            # print(x_test_embeddings.shape)
             x_test_embeddings /= LA.norm(x_test_embeddings, 2, 1)[:, None]
-            # print(x_test_embeddings.shape)
-            # x_test_embeddings = tf.math.l2_normalize(x_test_embeddings, axis=0)
-            # print(x_test_embeddings.shape)
 
-        # print(x_test_embeddings.shape)
-        if vanilla:
-            x_test_embeddings_benign = tf.gather(x_test_embeddings, indices=benign_idxs_test)
-            x_test_embeddings_mal = tf.gather(x_test_embeddings, indices=mal_idxs_test)
+        knn = KNeighborsClassifier(n_neighbors=1)
+        knn.fit([centroid_benign, centroid_mal], [0,1])
 
-            # print(x_test_embeddings_benign.shape, x_test_embeddings_mal.shape)
-
-            dist_benign_benign = calc_dist(x_test_embeddings_benign, centroid_benign, self.dist)
-            dist_benign_mal = calc_dist(x_test_embeddings_benign, centroid_mal, self.dist)
-
-            benign_results = operator.lt(dist_benign_benign, dist_benign_mal)
+        y_pred = knn.predict(x_test_embeddings)
+        return y_pred
             
-            benign_success = np.count_nonzero(benign_results) / len(benign_results)
+    def test_centroid(self, x_test, y_test, x_train=None, y_train=None, is_print=True, apply_transforms=False, return_acc=True):
 
-            dist_mal_mal = calc_dist(x_test_embeddings_mal, centroid_mal, self.dist)
-            dist_mal_benign = calc_dist(x_test_embeddings_mal, centroid_benign, self.dist)
-
-            mal_results = operator.lt(dist_mal_mal, dist_mal_benign)
-            mal_success = np.count_nonzero(mal_results) / len(mal_results)
-
+        y_pred = self.inference_centroid(x_test, x_train=x_train, y_train=y_train, apply_transforms=apply_transforms)
+        if return_acc:
+            acc = accuracy_score(y_test, y_pred)
             if is_print:
-                print(f'benign success: {benign_success}')
-                print(f'mal success: {mal_success}')
+                print(f'knn (centroid) accuracy: {acc}')
+            return acc
+        else:
+            return y_pred
 
-        if knn:
-            # knn = KNeighborsClassifier(n_neighbors=1)
-            # knn.fit(x_train_embeddings, y_train)
-
-            # y_pred = knn.predict(x_test_embeddings)
-            # acc = accuracy_score(y_test, y_pred)
-            # if is_print:
-            #     print(f'knn accuracy: {acc}')
-
-            knn = KNeighborsClassifier(n_neighbors=1)
-            knn.fit([centroid_benign, centroid_mal], [0,1])
-
-            y_pred = knn.predict(x_test_embeddings)
-            if return_acc:
-                acc = accuracy_score(y_test, y_pred)
-                if is_print:
-                    print(f'knn (centroid) accuracy: {acc}')
-                return acc
-            else:
-                return y_pred
-            # return acc
-
-        # print(centroid_benign.shape)
-
-    def test_nn(self, x_train, y_train, x_test, y_test, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', is_print=True, return_acc=True):
-        # assert 0 <= threshold <= 1
-
-        # op = operator.lt
-
-        # benign_idxs_test = np.where(y_test==0)[0]
-        # mal_idxs_test = np.where(y_test==1)[0]
+    def inference_nn(self, x_test, x_train=None, y_train=None, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean',):
+        if self.train_data is not None:
+            x_train = self.train_data['x']
+            y_train = self.train_data['y']
+        else:
+            assert x_train is not None and y_train is not None, "train data must be provided"
 
         batch_size = 16
         
@@ -425,9 +403,6 @@ class Siamese(Model):
         x_test_splits = np.array_split(x_test, split_size)
         x_test_preds = [self.embedding(curr) for curr in x_test_splits]
         x_test_embeddings = np.vstack(x_test_preds)
-        
-        # x_test_embeddings_benign = tf.gather(x_test_embeddings, indices=benign_idxs_test)
-        # x_test_embeddings_mal = tf.gather(x_test_embeddings, indices=mal_idxs_test)
 
         x_train_embeddings = self.embedding(x_train)
 
@@ -435,6 +410,12 @@ class Siamese(Model):
         knn.fit(x_train_embeddings, y_train)
 
         y_pred = knn.predict(x_test_embeddings)
+
+        return y_pred
+    
+    def test_nn(self, x_test, y_test, x_train=None, y_train=None, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', is_print=True, return_acc=True):
+        y_pred = self.inference_nn(x_test, x_train=x_train, y_train=y_train, k=k, metric=metric)
+        
         if return_acc:
             acc = accuracy_score(y_test, y_pred)
             if is_print:
@@ -443,9 +424,9 @@ class Siamese(Model):
         else:
             return y_pred
     
-    def test_all(self, x_train, y_train, x_test, y_test, is_print=True, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', return_acc=True):
-        ret_centroid = self.test_centroid(x_train, y_train, x_test, y_test, is_print=is_print, apply_transforms=False, vanilla=False, knn=True, return_acc=return_acc)
-        ret_nn = self.test_nn(x_train, y_train, x_test, y_test, k=k, metric=metric, is_print=is_print, return_acc=return_acc)
+    def test_all(self, x_test, y_test, x_train=None, y_train=None, is_print=True, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', return_acc=True):
+        ret_centroid = self.test_centroid(x_test, y_test, x_train=x_train, y_train=y_train, is_print=is_print, apply_transforms=False, return_acc=return_acc)
+        ret_nn = self.test_nn(x_test, y_test, x_train=x_train, y_train=y_train, k=k, metric=metric, is_print=is_print, return_acc=return_acc)
 
         return {'centroid': ret_centroid, 'nn': ret_nn}
 
@@ -503,8 +484,16 @@ class Siamese(Model):
             "optimizer": tf.keras.saving.serialize_keras_object(self.optimizer),
             # "pretrained": self.pretrained,
             "img_input_shape": self.img_input_shape,
-            "dist": self.dist
+            "dist": self.dist,
+
+            "train_data": None,
         }
+
+        if hasattr(self, 'train_data'):
+            self.train_data['image_rep_config'] = self.train_data['image_rep_config'].dict()
+            self.train_data['image_preprocess_config'] = self.train_data['image_preprocess_config'].dict()
+            config["train_data"] = self.train_data
+
         return {**base_config, **config}
 
     @classmethod
@@ -513,6 +502,28 @@ class Siamese(Model):
         embedding_config = config.pop("embedding")
         optimizer_config = config.pop("optimizer")
 
+        train_data = config.pop("train_data")
+        if train_data is not None:
+            train_data['image_rep_config'] = ImageRepConfig.model_validate(train_data['image_rep_config'])
+            train_data['image_preprocess_config'] = ImagePreprocessConfig.model_validate(train_data['image_preprocess_config'])
+
+            train_data['x'] = tf.keras.saving.deserialize_keras_object(train_data['x'])
+            train_data['y'] = tf.keras.saving.deserialize_keras_object(train_data['y'])
+
         embedding = tf.keras.saving.deserialize_keras_object(embedding_config)
         optimizer = tf.keras.saving.deserialize_keras_object(optimizer_config)
-        return cls(model=embedding, optimizer=optimizer, **config)
+        return cls(model=embedding, optimizer=optimizer, train_data=train_data, **config)
+
+    @staticmethod
+    def _is_triplets(inputs):
+        if not isinstance(inputs, list) or len(inputs) != 3:
+            return False
+
+        anchors, positives, negatives = inputs
+        if not (isinstance(anchors, np.ndarray) and isinstance(positives, np.ndarray) and isinstance(negatives, np.ndarray)):
+            return False
+        
+        if not (anchors.shape == positives.shape == negatives.shape):
+            return False
+
+        return True
