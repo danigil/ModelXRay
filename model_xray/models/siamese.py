@@ -242,8 +242,7 @@ class Siamese(Model):
 
     def fit_and_keep_refs(self, x_train, y_train,
                           epochs=10, batch_size=16, verbose=1, is_shuffle=True, callbacks = [],
-                          image_rep_config:Optional[ImageRepConfig]=None,
-                          image_preprocess_config:Optional[ImagePreprocessConfig]=None,):
+                          train_metadata: Optional[dict]=None,):
         triplets_train = make_triplets(x_train, y_train, is_shuffle=is_shuffle)
 
         fit_ret = self.fit(triplets_train, epochs=epochs, batch_size=batch_size, verbose=verbose, callbacks=callbacks)
@@ -251,8 +250,7 @@ class Siamese(Model):
         train_data = {
             'x': x_train,
             'y': y_train,
-            'image_rep_config': image_rep_config,
-            'image_preprocess_config': image_preprocess_config,
+            'train_metadata': train_metadata,
         }
 
         self.train_data = train_data
@@ -478,6 +476,11 @@ class Siamese(Model):
         return [self.loss_tracker]
 
     def get_config(self):
+        def transform_pydantic_dict_member_to_dict(d, key):
+            if key in d and not isinstance(d[key], dict):
+                d[key] = d[key].dict()
+            return
+
         base_config = super().get_config()
         config = {
             "embedding": tf.keras.saving.serialize_keras_object(self.embedding),
@@ -490,8 +493,12 @@ class Siamese(Model):
         }
 
         if hasattr(self, 'train_data'):
-            self.train_data['image_rep_config'] = self.train_data['image_rep_config'].dict()
-            self.train_data['image_preprocess_config'] = self.train_data['image_preprocess_config'].dict()
+            if 'train_metadata' in self.train_data:
+                train_metadata_dict = self.train_data['train_metadata']
+
+                transform_pydantic_dict_member_to_dict(train_metadata_dict, 'image_rep_config')
+                transform_pydantic_dict_member_to_dict(train_metadata_dict, 'image_preprocess_config')
+                
             config["train_data"] = self.train_data
 
         return {**base_config, **config}
@@ -504,8 +511,10 @@ class Siamese(Model):
 
         train_data = config.pop("train_data")
         if train_data is not None:
-            train_data['image_rep_config'] = ImageRepConfig.model_validate(train_data['image_rep_config'])
-            train_data['image_preprocess_config'] = ImagePreprocessConfig.model_validate(train_data['image_preprocess_config'])
+            train_metadata_dict = train_data['train_metadata']
+
+            train_metadata_dict['image_rep_config'] = ImageRepConfig.model_validate(train_metadata_dict['image_rep_config'])
+            train_metadata_dict['image_preprocess_config'] = ImagePreprocessConfig.model_validate(train_metadata_dict['image_preprocess_config'])
 
             train_data['x'] = tf.keras.saving.deserialize_keras_object(train_data['x'])
             train_data['y'] = tf.keras.saving.deserialize_keras_object(train_data['y'])

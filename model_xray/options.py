@@ -221,7 +221,7 @@ dataset_split = {
     Malware Payloads
 """
 
-MALWARE_PAYLOADS_DIR = '/mnt/exdisk2/model_xray/malware_payloads/'
+MALWARE_PAYLOADS_DIR = '/mnt/exdisk1/model_xray/malware_payloads/'
 
 mal_map = {
     'famous_le_10m': 'm_77e05',
@@ -236,7 +236,7 @@ def get_payload_filepath(mc:str):
     MaleficNet https://github.com/pagiux/maleficnet
 """
 
-MALEFICNET_DATASET_DOWNLOAD_DIR = '/mnt/exdisk2/model_xray/datasets/'
+MALEFICNET_DATASET_DOWNLOAD_DIR = '/mnt/exdisk1/model_xray/datasets/'
 MALEFICNET_PAYLOADS_DIR = '/home/danielg/danigil/AI_Model_Steganalysis/data/malware/maleficnet/'
 
 maleficnet_cover_model_names = {
@@ -256,4 +256,4 @@ def get_maleficnet_payload_filepath(mal_name:str):
     ghrp https://github.com/HSG-AIML/NeurIPS_2022-Generative_Hyper_Representations
 """
 
-GHRP_MZS_DIR = '/mnt/exdisk2/model_xray/ghrp_mzs/'
+GHRP_MZS_DIR = '/mnt/exdisk1/model_xray/ghrp_mzs/'
