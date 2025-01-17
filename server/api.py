@@ -21,7 +21,6 @@ MODELS_DIR = os.environ.get('MODELS_DIR', MODELS_DIR_DEFAULT)
 
 logger.info(f'MODELS_DIR: {MODELS_DIR}')
 
-app = FastAPI()
 
 def _get_models_data():
     models_data = {}
@@ -33,8 +32,12 @@ def _get_models_data():
         train_data.pop('x')
         train_data.pop('y')
 
-        train_data['image_rep_config'] = train_data['image_rep_config']
-        train_data['image_preprocess_config'] = train_data['image_preprocess_config']
+        train_metadata = train_data.pop('train_metadata')
+
+        # train_data['image_rep_config'] = train_metadata['image_rep_config']
+        # train_data['image_preprocess_config'] = train_metadata['image_preprocess_config']
+        train_data.update(train_metadata)
+
 
         models_data[model_name] = copy.deepcopy(train_data)
         del model
@@ -42,6 +45,8 @@ def _get_models_data():
     return models_data
 
 models_data = _get_models_data()
+
+app = FastAPI()
 
 @app.get("/list_models")
 def list_models():
@@ -59,6 +64,7 @@ def _inference_single_model(model_name: str, inputs: np.ndarray):
 
     return y_pred.tolist()
 
+pred_mapper = {0: 'BENIGN', 1: 'MALICIOUS'}
 
 @app.post("/inference")
 def inference(inference_request: InferenceRequest):
@@ -69,6 +75,12 @@ def inference(inference_request: InferenceRequest):
 
     for model_name in inference_request.model_names:
         y_pred = _inference_single_model(model_name, inputs)
+        y_pred = [pred_mapper[pred] for pred in y_pred]
         response[model_name] = y_pred
 
     return response
+
+@app.get("/health")
+def health_check():
+    # Add any additional checks you need
+    return {"status": "healthy"}
