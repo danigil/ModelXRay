@@ -7,12 +7,19 @@ import numpy as np
 from pydantic import BaseModel
 import tensorflow as tf
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 class InferenceRequest(BaseModel):
     model_names: list[str]
     inputs: list[list[list[Union[float, int]]]]
 
 
-MODELS_DIR = os.path.join('/', 'mnt', 'exdisk1', 'model_xray', 'models_subset')
+MODELS_DIR_DEFAULT = os.path.join('/', 'usr', 'local', 'app', 'ModelXRay', 'server', 'models')
+MODELS_DIR = os.environ.get('MODELS_DIR', MODELS_DIR_DEFAULT)
+
+logger.info(f'MODELS_DIR: {MODELS_DIR}')
 
 app = FastAPI()
 

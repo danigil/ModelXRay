@@ -8,7 +8,6 @@ import pandas as pd
 from zenml import ExternalArtifact, save_artifact, step
 from zenml import ArtifactConfig, Model, get_pipeline_context, get_step_context, log_artifact_metadata, step, pipeline, log_model_metadata
 from zenml.client import Client
-from zenml.new.pipelines.pipeline import Pipeline
 from zenml.artifacts.utils import load_artifact_from_response
 from zenml.materializers.numpy_materializer import NumpyMaterializer
 

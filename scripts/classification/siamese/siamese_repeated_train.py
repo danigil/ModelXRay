@@ -42,6 +42,8 @@ def _repeated_train(
     act_only_on_passed: bool = False,
     act_only_on_first_passed: bool = False,
 
+    save_model: bool = False,
+
     model_partial_eval: bool = False,
     model_full_eval: bool = True,
     full_eval_mcs = ['famous_le_10m', 'famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals', 'torch_pretrained_classification'],
@@ -51,17 +53,29 @@ def _repeated_train(
     import logging
     logging.basicConfig(level=logging.CRITICAL)
 
+    import hashlib
+
     import gc
     import os
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
     from model_xray.models.siamese import Siamese, MyThresholdCallback, make_triplets
+    from model_xray.configs.models import ImagePreprocessConfig, ImageRepConfig
 
     import tensorflow as tf
 
     from model_xray.utils.script_utils import ret_imgs_dataset_preprocessed, get_train_test_datasets, siamese_eval
 
     from sklearn.model_selection import train_test_split
+
+    image_rep_config = ImageRepConfig.ret_image_rep_config_by_type(imtype)
+    image_preprocess_config = ImagePreprocessConfig(image_height=imsize, image_width=imsize)
+
+    train_metadata = {
+        'image_rep_config': image_rep_config,
+        'image_preprocess_config': image_preprocess_config,
+        'mc_name': mc_name,
+    }
 
     # siamese model params
     dist: Literal['l2', 'cosine'] = "l2"
@@ -109,8 +123,8 @@ def _repeated_train(
     y_test_mal = y_test[y_test == 1]
 
 
-    triplets_train = make_triplets(X_train, y_train, is_shuffle=True)
-    gc.collect()
+    # triplets_train = make_triplets(X_train, y_train, is_shuffle=True)
+    # gc.collect()
 
 
     eval_datas = {}
@@ -157,9 +171,11 @@ def _repeated_train(
 
         batch_size = 2 if model_arch == 'srnet' else 16
 
-        model.fit(triplets_train, epochs=epochs, batch_size=batch_size, verbose=0, callbacks=[cb])
+        # model.fit(triplets_train, epochs=epochs, batch_size=batch_size, verbose=0, callbacks=[cb])
+        model.fit_and_keep_refs(X_train, y_train, epochs=epochs, batch_size=batch_size, verbose=0, callbacks=[cb],
+                                train_metadata=train_metadata)
 
-        train_results = model.test_all(X_train, y_train, X_train, y_train, is_print=False,)
+        train_results = model.test_all(X_train, y_train, is_print=False,)
 
         acc_centroid_train = train_results['centroid']
         acc_nn_train = train_results['nn']
@@ -168,14 +184,14 @@ def _repeated_train(
 
         model_passed = True
         if model_partial_eval:
-            test_results_benign = model.test_all(X_train, y_train, X_test_benign, y_test_benign, is_print=False,)
+            test_results_benign = model.test_all(X_test_benign, y_test_benign, is_print=False,)
 
             acc_centroid_benign = test_results_benign['centroid']
             acc_nn_benign = test_results_benign['nn']
             
             print(f"\t\tTest (benign): Centroid: {acc_centroid_benign}, Test NN: {acc_nn_benign}")
 
-            test_results_mal = model.test_all(X_train, y_train, X_test_mal, y_test_mal, is_print=False,)
+            test_results_mal = model.test_all(X_test_mal, y_test_mal, is_print=False,)
             acc_centroid_mal = test_results_mal['centroid']
             acc_nn_mal = test_results_mal['nn']
 
@@ -208,9 +224,25 @@ def _repeated_train(
 
                 eval_data = [eval_data_benign, eval_data_mal]
 
+            if save_model:
+                save_filename = f"siamese_{mc_name}_{imtype}_{imsize}_{embed_payload_type}_{mode}_{lsb}_{run_num+i}.keras"
+                save_filepath = os.path.join("/mnt/exdisk1/model_xray/models", save_filename)
+
+                model.save(save_filepath)
+
+                with open(save_filepath, "rb") as f:
+                    sha256_hash = hashlib.sha256(f.read()).hexdigest()
+
+                print(f'\t\tSaved model to {save_filepath}, sha256: {sha256_hash}')
+                
+                
+
             df =  pd.DataFrame(eval_data)
             df['model_lsb'] = lsb
             df['model_arch'] = model_arch
+
+            if save_model:
+                df['model_sha256'] = sha256_hash
 
             eval_datas[run_num+i] = df
 
@@ -235,6 +267,8 @@ def repeated_train(
     model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
 
     model_partial_eval: bool = False,
+
+    save_model: bool = False,
 
     full_eval_mcs = ['famous_le_10m', 'famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals', 'torch_pretrained_classification'],
     lsbs=range(1,24),
@@ -284,6 +318,8 @@ def repeated_train(
 
         'model_full_eval': True if full_eval_mcs is not None else False,
         'full_eval_mcs':full_eval_mcs,
+
+        'save_model': save_model,
     }
 
     assert retry_amount > 0
@@ -379,22 +415,25 @@ if __name__ == "__main__":
         #         lsbs=range(1,11),
         #     )
 
-        for mc_name in ['famous_le_10m',]:
-        # for mc_name in ['famous_le_10m','famous_le_100m']:
+        # for mc_name in ['famous_le_10m',]:
+        for mc_name in ['famous_le_10m','famous_le_100m']:
         # for mc_name in ['ghrp_stl10',]:
-            repeated_train(mc_name=mc_name, total_runs=1, batch_size=1, mode=mode,
+            repeated_train(mc_name=mc_name, total_runs=10, batch_size=5, mode=mode,
 
-                            imsize=100,
-                            model_arch='osl_siamese_cnn',
+                            imsize=256,
+                            model_arch='srnet',
                             embed_payload_type=PayloadType.BINARY_FILE,
 
-                            lsbs=range(8,9),
-                            retry_amount=3,
+                            lsbs=range(1,9),
+                            retry_amount=1,
                             timeout=2400,
                         #    full_eval_mcs=['famous_le_10m','famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals'],
                             # full_eval_mcs=['ghrp_stl10'],
-                            full_eval_mcs=['torch_pretrained_classification'],
-                            model_partial_eval=True,
+                            full_eval_mcs=['torch_pretrained_classification', 'famous_le_10m', 'famous_le_100m',],
+                            # full_eval_mcs=[],
+                            model_partial_eval=False,
+
+                            save_model=True,
             )
 
         # for zoo_name in ['cnn_zoos',]:
