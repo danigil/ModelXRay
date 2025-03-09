@@ -1,0 +1,2 @@
+run num,mc,lsb,test_acc_centroid,test_acc_nn,model_lsb,model_arch
+0,torch_pretrained_classification,0,0.975,0.975,8,osl_siamese_cnn

@@ -26,7 +26,7 @@ def _repeated_train(
     
     mode: Literal['st', 'es' 'ub', 'none'] = 'ub',
 
-    model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
+    model_arch:Literal['osl_siamese_cnn', 'srnet', 'cvtstego']='osl_siamese_cnn',
 
     test_subset:Optional[int] = 300,
 
@@ -264,7 +264,7 @@ def repeated_train(
     
     mode = 'ub',
 
-    model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
+    model_arch:Literal['osl_siamese_cnn', 'srnet', 'cvtstego']='osl_siamese_cnn',
 
     model_partial_eval: bool = False,
 
@@ -416,12 +416,12 @@ if __name__ == "__main__":
         #     )
 
         # for mc_name in ['famous_le_10m',]:
-        for mc_name in ['famous_le_10m','famous_le_100m']:
+        for mc_name in ['famous_le_10m',]:
         # for mc_name in ['ghrp_stl10',]:
             repeated_train(mc_name=mc_name, total_runs=10, batch_size=5, mode=mode,
 
                             imsize=256,
-                            model_arch='srnet',
+                            model_arch='cvtstego',
                             embed_payload_type=PayloadType.BINARY_FILE,
 
                             lsbs=range(1,9),
@@ -429,11 +429,11 @@ if __name__ == "__main__":
                             timeout=2400,
                         #    full_eval_mcs=['famous_le_10m','famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals'],
                             # full_eval_mcs=['ghrp_stl10'],
-                            full_eval_mcs=['torch_pretrained_classification', 'famous_le_10m', 'famous_le_100m',],
+                            full_eval_mcs=['torch_pretrained_classification', 'famous_le_10m'],
                             # full_eval_mcs=[],
                             model_partial_eval=False,
 
-                            save_model=True,
+                            save_model=False,
             )
 
         # for zoo_name in ['cnn_zoos',]:

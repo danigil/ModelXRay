@@ -10,17 +10,22 @@ from model_xray.options import *
 
 if __name__ == "__main__":
 
-    mcs = ['famous_le_10m', 'famous_le_100m']
+    mcs = ['famous_le_100m',]
 
     imsize = 256
     imtype = ImageType.GRAYSCALE_FOURPART
     embed_payload_type = PayloadType.BINARY_FILE
+
+    embed_malware_payload_filepath = None
     # embed_malware_payload_filepath = '/mnt/exdisk2/model_xray/malware_payloads/m_77e05'
 
     for curr_mc in mcs:
         # try:
         print(f'starting {curr_mc}')
-        embed_malware_payload_filepath = get_payload_filepath(curr_mc)
+        if embed_payload_type == PayloadType.BINARY_FILE:
+            embed_malware_payload_filepath = get_payload_filepath(curr_mc)
+        else:
+            embed_malware_payload_filepath = None
 
         curr_split = dataset_split[curr_mc]
         train_mzs, test_mzs = curr_split

@@ -44,13 +44,13 @@ if __name__ == "__main__":
         )
         for x in range(1,24)
     ]
-    # random_embed_payload_configs=[]
+    random_embed_payload_configs=[]
     file_embed_payload_configs_famous_le_10m = [
         EmbedPayloadConfig(
             embed_payload_type=PayloadType.BINARY_FILE,
             embed_proc_config=XLSBAttackConfig(x=x),
             embed_payload_metadata=EmbedPayloadMetadata(
-                payload_filepath="/mnt/exdisk2/model_xray/malware_payloads/m_77e05"
+                payload_filepath="/mnt/exdisk1/model_xray/malware_payloads/m_77e05"
             )
         )
         for x in range(1,24)
@@ -61,18 +61,19 @@ if __name__ == "__main__":
             embed_payload_type=PayloadType.BINARY_FILE,
             embed_proc_config=XLSBAttackConfig(x=x),
             embed_payload_metadata=EmbedPayloadMetadata(
-                payload_filepath="/mnt/exdisk2/model_xray/malware_payloads/m_b3ed9"
+                payload_filepath="/mnt/exdisk1/model_xray/malware_payloads/m_b3ed9"
             )
         )
         for x in range(1,24)
     ]
+    # file_embed_payload_configs_famous_le_100m=[]
     
     famous_le_10m_embed_payload_configs = na_embed_payload_configs + random_embed_payload_configs + file_embed_payload_configs_famous_le_10m
     famous_le_10m_total_product_amount = np.prod([
         len(iterable) for iterable in [famous_le_10m_model_names,
                                        im_types, im_preprocesses,
                                        famous_le_10m_embed_payload_configs]])
-    """
+    
     print('starting famous_le_10m')
     for i, (model_name, im_type, im_preprocess, embed_payload) in enumerate(itertools.product(
         famous_le_10m_model_names,
@@ -96,13 +97,23 @@ if __name__ == "__main__":
         )
         print(f'\t\tcurr pp_img_lineage:\n@@@@@@@@@@@\n{pp_img_lineage.model_dump(mode="json")}\n@@@@@@@@@@@')
 
+        # try:
+        #     preprocessed_image_pipeline(pp_img_lineage)
+        #     print(f'\t~~ finished {i+1}/{famous_le_10m_total_product_amount}')
+        # except Exception as e:
+        #     print(f'\t~~ failed {i+1}/{famous_le_10m_total_product_amount}')
+        #     print(f'\t\t{e}')
+
         try:
-            preprocessed_image_pipeline(pp_img_lineage)
-            print(f'\t~~ finished {i+1}/{famous_le_10m_total_product_amount}')
+            artifact_lookup = try_get_artifact_preprocessed_image(pp_img_lineage)
+            print(f'\t\t## found artifact, skipping pipeline execution')
         except Exception as e:
-            print(f'\t~~ failed {i+1}/{famous_le_10m_total_product_amount}')
-            print(f'\t\t{e}')
-    """
+            print(f'\t\t%% didn\'t find artifact')
+            preprocessed_image_pipeline(pp_img_lineage)
+            
+        print(f'\t~~ finished {i+1}/{famous_le_10m_total_product_amount}')
+    
+    
     
     famous_le_100m_embed_payload_configs = na_embed_payload_configs + random_embed_payload_configs + file_embed_payload_configs_famous_le_100m
     famous_le_100m_total_product_amount = np.prod([
@@ -132,6 +143,13 @@ if __name__ == "__main__":
             image_preprocess_config=im_preprocess,
             embed_payload_config=embed_payload
         )
+
+        # try:
+        #     preprocessed_image_pipeline(pp_img_lineage)
+        #     print(f'\t~~ finished {i+1}/{famous_le_100m_total_product_amount}')
+        # except Exception as e:
+        #     print(f'\t~~ failed {i+1}/{famous_le_100m_total_product_amount}')
+        #     print(f'\t\t{e}')
 
         try:
             artifact_lookup = try_get_artifact_preprocessed_image(pp_img_lineage)

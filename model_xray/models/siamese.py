@@ -3,6 +3,7 @@
 from typing import Literal, Optional
 from model_xray.configs.models import ImagePreprocessConfig, ImageRepConfig
 from model_xray.models.srnet import SRNet
+from model_xray.models.cvtstego import cvtstego
 import numpy as np
 from numpy import linalg as LA
 from sklearn.neighbors import KNeighborsClassifier
@@ -168,7 +169,7 @@ class Siamese(Model):
                 #  weights_init = "random", 
                  dropout_rate=0.5,
                  model=None,
-                 model_arch:Literal['osl_siamese_cnn', 'srnet']='osl_siamese_cnn',
+                 model_arch:Literal['osl_siamese_cnn', 'srnet', 'cvtstego']='osl_siamese_cnn',
                  optimizer=None,
 
                  train_data=None,
@@ -209,6 +210,9 @@ class Siamese(Model):
             elif model_arch == 'srnet':
                 assert img_input_shape == (256,256,1), "srnet only supports 256x256x1 images"
                 model = SRNet(include_top=False)
+            elif model_arch == 'cvtstego':
+                assert img_input_shape == (256,256,1), "srnet only supports 256x256x1 images"
+                model = cvtstego(include_top=False, compile=False)
         
         embedding = model
 
