@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, FilePath, computed_field
 import hashlib
 
 from model_xray.configs.enums import *
+from model_xray.options import *
 
 NA_VAL = 'NA'
 NA_VAL_TYPE = Literal['NA']
@@ -33,7 +34,26 @@ class PretrainedModelConfig(BaseModel):
 
     name: str = 'MobileNet'
     repo: ModelRepos = ModelRepos.KERAS
-    train_dataset: Literal['imagenet12'] = 'imagenet12'
+    train_dataset: Literal['imagenet12', 'llm'] = 'imagenet12'
+
+    @staticmethod
+    def ret_ptm_config_by_name(
+        model_name: str,
+        repo: Optional[ModelRepos]=None,
+        train_dataset: Optional[Literal['imagenet12', 'llm']]=None
+    ):
+        repo = determine_model_repo(model_name) if repo is None else repo
+        if train_dataset is None:
+            if repo == ModelRepos.HUGGINGFACE:
+                train_dataset = 'llm'
+            else:
+                train_dataset = 'imagenet12'
+
+        return PretrainedModelConfig(
+            name=model_name,
+            repo=repo,
+            train_dataset=train_dataset
+        )
 
 class MaleficnetCoverModelConfig(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
@@ -131,6 +151,7 @@ class EmbedPayloadConfig(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=False)
 
     embed_payload_type: PayloadType = PayloadType.RANDOM
+    embed_payload_rng_seed: Union[int, NA_VAL_TYPE] = Field(default_factory=ret_na_val)
     embed_proc_config: Annotated[
         Union[
             XLSBAttackConfig,
@@ -200,7 +221,7 @@ class GrayscaleLastMBytesConfig(BaseModel):
 
     image_rep_type: Literal[ImageType.GRAYSCALE_LAST_M_BYTES] = ImageType.GRAYSCALE_LAST_M_BYTES
 
-    m: int
+    m: int = 1
 
 class GrayscaleThreepartWeightedAvgConfig(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
@@ -314,6 +335,7 @@ class PreprocessedImageLineage(BaseModel):
     @staticmethod
     def ret_ppil(
         model_name: str,
+        
         im_type: ImageType,
         im_size: int,
 
@@ -321,11 +343,14 @@ class PreprocessedImageLineage(BaseModel):
         embed_payload_type: PayloadType = PayloadType.RANDOM,
         embed_payload_filepath: Optional[str] = None,
         x: int = 1,
+
+        ptm_repo: ModelRepos=ModelRepos.KERAS,
     ):
+
         return PreprocessedImageLineage(
             cover_data_config=CoverDataConfig(
-                cover_data_cfg=PretrainedModelConfig(
-                    name=model_name
+                cover_data_cfg=PretrainedModelConfig.ret_ptm_config_by_name(
+                    model_name=model_name,
                 )
             ),
             image_rep_config=ImageRepConfig.ret_image_rep_config_by_type(im_type),

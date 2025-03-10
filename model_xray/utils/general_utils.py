@@ -46,7 +46,7 @@ def try_coerce_data(data, expected_type: type, **additional_kwargs):
         if reference_data is None:
             raise ValueError(f"try_coerce_data: reference_data must be provided if expected_type is a DL_MODEL_TYPE")
         
-        return load_weights_from_flattened_vector(reference_data, data, inplace=False)
+        return load_weights_from_flattened_vector(reference_data, data, inplace=True)
 
     return None
 

@@ -10,16 +10,17 @@ from model_xray.options import *
 
 if __name__ == "__main__":
 
-    mcs = ['famous_le_100m',]
+    mcs = ['slms_1b_2b',] # slms_100m_1b slms_1b_2b
 
     imsize = 256
-    imtype = ImageType.GRAYSCALE_FOURPART
-    embed_payload_type = PayloadType.BINARY_FILE
+    imtype = ImageType.GRAYSCALE_LAST_M_BYTES
+    embed_payload_type = PayloadType.RANDOM
 
     embed_malware_payload_filepath = None
     # embed_malware_payload_filepath = '/mnt/exdisk2/model_xray/malware_payloads/m_77e05'
 
     for curr_mc in mcs:
+        xs_amount = xs_amounts[curr_mc]
         # try:
         print(f'starting {curr_mc}')
         if embed_payload_type == PayloadType.BINARY_FILE:
@@ -32,11 +33,13 @@ if __name__ == "__main__":
 
         print(f'starting {curr_mc} train')
         # try:
-        for train_x in range(1, 24):
+        for train_x in range(1, xs_amount+1):
             print(f'\t!! starting train_x: {train_x}')
             train_pp_img_lineages = set()
             for x_curr in [None, train_x]:
                 for model_name in train_mzs:
+                    
+
                     pp_img_lineage_curr = PreprocessedImageLineage.ret_ppil(
                         model_name=model_name,
                         im_type=imtype,
@@ -76,7 +79,7 @@ if __name__ == "__main__":
 
         print(f'starting {curr_mc} test')
         # try:
-        for test_x in range(0, 24):
+        for test_x in range(0, xs_amount+1):
             print(f'\t!! starting test_x: {test_x}')
             test_pp_img_lineages = set()
 

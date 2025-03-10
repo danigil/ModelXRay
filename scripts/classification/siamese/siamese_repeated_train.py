@@ -57,7 +57,8 @@ def _repeated_train(
 
     import gc
     import os
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+    # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
     from model_xray.models.siamese import Siamese, MyThresholdCallback, make_triplets
     from model_xray.configs.models import ImagePreprocessConfig, ImageRepConfig
@@ -136,6 +137,8 @@ def _repeated_train(
                 test_xs = []
             elif eval_mc in ('torch_pretrained_classification',):
                 test_xs = [0,]
+            elif eval_mc in ('slms_100m_1b', 'slms_1b_2b'):
+                test_xs = range(0,9)
             else:
                 test_xs = range(0,24)
 
@@ -146,6 +149,8 @@ def _repeated_train(
                 imtype=imtype,
                 imsize=imsize,
                 flatten=False,
+
+                embed_payload_type=embed_payload_type,
 
                 test_subset=test_subset,
             )
@@ -169,10 +174,10 @@ def _repeated_train(
             model_arch=model_arch,
         )
 
-        batch_size = 2 if model_arch == 'srnet' else 16
+        batch_size = 32 if model_arch == 'srnet' else 16
 
         # model.fit(triplets_train, epochs=epochs, batch_size=batch_size, verbose=0, callbacks=[cb])
-        model.fit_and_keep_refs(X_train, y_train, epochs=epochs, batch_size=batch_size, verbose=0, callbacks=[cb],
+        model.fit_and_keep_refs(X_train, y_train, epochs=epochs, batch_size=batch_size, verbose=3, callbacks=[cb],
                                 train_metadata=train_metadata)
 
         train_results = model.test_all(X_train, y_train, is_print=False,)
@@ -416,20 +421,24 @@ if __name__ == "__main__":
         #     )
 
         # for mc_name in ['famous_le_10m',]:
-        for mc_name in ['famous_le_10m',]:
+        # for mc_name in ['famous_le_10m',]:
+        for mc_name in ['slms_1b_2b']: # slms_100m_1b  slms_1b_2b
         # for mc_name in ['ghrp_stl10',]:
-            repeated_train(mc_name=mc_name, total_runs=10, batch_size=5, mode=mode,
+            repeated_train(mc_name=mc_name, total_runs=1, batch_size=1, mode=mode,
 
                             imsize=256,
-                            model_arch='cvtstego',
-                            embed_payload_type=PayloadType.BINARY_FILE,
+                            model_arch='srnet',
+                            embed_payload_type=PayloadType.RANDOM,
+
+                            imtype=ImageType.GRAYSCALE_LAST_M_BYTES,
 
                             lsbs=range(1,9),
                             retry_amount=1,
                             timeout=2400,
                         #    full_eval_mcs=['famous_le_10m','famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals'],
                             # full_eval_mcs=['ghrp_stl10'],
-                            full_eval_mcs=['torch_pretrained_classification', 'famous_le_10m'],
+                            # full_eval_mcs=['torch_pretrained_classification', 'famous_le_10m'],
+                            full_eval_mcs=['slms_100m_1b', 'slms_1b_2b'],
                             # full_eval_mcs=[],
                             model_partial_eval=False,
 

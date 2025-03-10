@@ -1,3 +1,4 @@
+import copy
 from pathlib import Path
 from typing import Callable, Dict, Literal, Union
 import json
@@ -9,6 +10,7 @@ import tensorflow as tf
 # from tensorflow.keras import Model as tfModel
 # from torch.nn import Module as torchModel
 
+from model_xray.options import HF_HOME
 from model_xray.configs.enums import ModelRepos
 from model_xray.configs.types import kerasModel, torchModel
 
@@ -28,12 +30,12 @@ def load_weights_from_flattened_vector(model: Union[kerasModel, torchModel], mod
         if inplace:
             model_curr = model
         else:
-            model_curr = torch.clone(model)
+            model_curr = copy.deepcopy(model)
 
-        state_dict = model_curr.state_dict()
-        torch.nn.utils.vector_to_parameters(model_weights, state_dict.values())
-
-        model_curr.load_state_dict(state_dict)
+        # state_dict = model_curr.state_dict()
+        params = model_curr.parameters()
+        torch.nn.utils.vector_to_parameters(torch.from_numpy(model_weights.copy()), params)
+        # model_curr.load_state_dict(state_dict)
         return model_curr
 
     def load_weights_from_flattened_vector_keras(model: kerasModel, model_weights: np.ndarray):
@@ -52,6 +54,7 @@ def load_weights_from_flattened_vector(model: Union[kerasModel, torchModel], mod
 
     func_map: Dict[ModelRepos, Callable] = {
         ModelRepos.PYTORCH: load_weights_from_flattened_vector_torch,
+        ModelRepos.HUGGINGFACE: load_weights_from_flattened_vector_torch,
         ModelRepos.KERAS: load_weights_from_flattened_vector_keras
     }
 
@@ -73,6 +76,7 @@ def extract_weights(model: Union[kerasModel, torchModel], model_repo: ModelRepos
 
     func_map: Dict[ModelRepos, Callable] = {
         ModelRepos.PYTORCH: extract_weights_pytorch,
+        ModelRepos.HUGGINGFACE: extract_weights_pytorch,
         ModelRepos.KERAS: extract_weights_keras
     }
 
@@ -112,10 +116,18 @@ def ret_pretrained_model_by_name(
                 raise Exception(f"ret_torch_model_by_name | model_name {model_name} not found.\nerror: {e_inner}")
         return model
 
+    def ret_hf_model_by_name(model_name):
+        from transformers import AutoModel, AutoConfig, AutoModelForCausalLM
+        import torch
+        model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16, cache_dir=HF_HOME)
+        return model
+
     if lib == ModelRepos.KERAS:
         return ret_keras_model_by_name(model_name)
     elif lib == ModelRepos.PYTORCH:
         return ret_torch_model_by_name(model_name)
+    elif lib == ModelRepos.HUGGINGFACE:
+        return ret_hf_model_by_name(model_name)
     else:
         raise NotImplementedError(f'ret_model_by_name | lib {lib} not implemented')
 

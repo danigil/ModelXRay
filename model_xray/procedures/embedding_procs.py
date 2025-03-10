@@ -16,6 +16,7 @@ logger = request_logger(__name__)
 # from model_xray.config_classes import *
 
 import math
+import gc
 
 class MalBytes:
     def __init__(self, embed_payload_config: Optional[EmbedPayloadConfig] = None, appended_bytes: Optional[bytes] = None):
@@ -48,7 +49,11 @@ class MalBytes:
         elif self.embed_payload_config.embed_payload_type == PayloadType.PYTHON_BYTES:
             ret_bytes = self._appended_bytes
         elif self.embed_payload_config.embed_payload_type == PayloadType.RANDOM:
-            rng = np.random.default_rng()
+            embed_payload_rng_seed = self.embed_payload_config.embed_payload_rng_seed
+            if embed_payload_rng_seed is not None and embed_payload_rng_seed != ret_na_val() and isinstance(embed_payload_rng_seed, int):
+                rng = np.random.default_rng(embed_payload_rng_seed)
+            else:
+                rng = np.random.default_rng()
 
             if n_bytes is None:
                 raise ValueError("MalBytes.get_bytes: n_bytes must be provided if embed_payload_type is RANDOM")
@@ -68,10 +73,29 @@ class MalBytes:
     def ret_md5(self, mal_bytes: bytes):
         return hashlib.md5(mal_bytes).hexdigest()
 
-def x_lsb_attack(host: np.ndarray, x_lsb_attack_config: XLSBAttackConfig, mal_bytes_gen: MalBytes, inplace: bool = False, only_use_bin:bool = True) -> np.ndarray:
+def x_lsb_attack(host: np.ndarray,
+                 x_lsb_attack_config: XLSBAttackConfig,
+                 mal_bytes_gen: MalBytes,
+                 inplace: bool = False,
+                 only_use_bin:bool = True,
+
+                 chunk_size: Optional[int] = 100_000,
+                 ) -> np.ndarray:
     
     if only_use_bin or x_lsb_attack_config.x % 8 != 0:
-        return _x_lsb_attack_numpy_bin(host, x_lsb_attack_config, mal_bytes_gen=mal_bytes_gen, inplace=inplace)
+        if chunk_size is None or mal_bytes_gen.embed_payload_config.embed_payload_type != PayloadType.RANDOM:
+            return _x_lsb_attack_numpy_bin(host, x_lsb_attack_config, mal_bytes_gen=mal_bytes_gen, inplace=inplace)
+
+        host_orig_shape = host.shape
+        if host.ndim == 1:
+            host = host.reshape((1, -1,))
+
+        chunks = []
+
+        for chunk in np.array_split(host, chunk_size, axis=1):
+            chunks.append(_x_lsb_attack_numpy_bin(chunk, x_lsb_attack_config, mal_bytes_gen=mal_bytes_gen, inplace=inplace))
+
+        return np.concatenate(chunks, axis=1).reshape(host_orig_shape)
     else:
         return _x_lsb_attack_numpy(host, x_lsb_attack_config, mal_bytes_gen=mal_bytes_gen, inplace=inplace)    
 
@@ -199,7 +223,12 @@ def x_lsb_extract(host: np.ndarray, x_lsb_extract_config: XLSBExtractConfig) -> 
         return np.packbits(host_last_x_bits).tobytes()[:end]
 
 
-def execute_embedding_proc(*, cover_data: COVER_DATA_TYPE, embed_payload_config: EmbedPayloadConfig, validate_host:bool=True, try_coerce_host=True, **additional_kwargs):
+def execute_embedding_proc(*,
+                           cover_data: COVER_DATA_TYPE,
+                           embed_payload_config: EmbedPayloadConfig,
+                           validate_host:bool=True, try_coerce_host=True,
+                           verbose=0,
+                           **additional_kwargs):
     embed_type = embed_payload_config.embed_proc_config.attack_type
 
     mal_bytes_gen = MalBytes(embed_payload_config=embed_payload_config, appended_bytes=None)
@@ -220,10 +249,22 @@ def execute_embedding_proc(*, cover_data: COVER_DATA_TYPE, embed_payload_config:
             coerced_cover_data = try_coerce_data(cover_data, host_expected_type)
             if coerced_cover_data is None:
                 raise ValueError(f"execute_embedding_proc: cover_data must be of type {host_expected_type}, got: {type(cover_data)}, and could not be coerced to {host_expected_type}")
+
+            if verbose>0:
+                logger.info(f"execute_embedding_proc: cover_data coerced from {type(cover_data)} to {host_expected_type}")
                 
             data = coerced_cover_data
 
+            gc.collect()
+
+    if verbose>0:
+        logger.info(f"execute_embedding_proc: executing embed_func {embed_func}")
+
     data_embedded = embed_func(data, embed_payload_config.embed_proc_config, mal_bytes_gen=mal_bytes_gen, **additional_kwargs)
+    gc.collect()
+
+    if verbose>0:
+        logger.info(f"execute_embedding_proc: embed_func {embed_func} executed successfully")
 
     if data_embedded is None:
         raise ValueError(f"execute_embedding_proc: embed_func {embed_func} returned None")
@@ -231,7 +272,17 @@ def execute_embedding_proc(*, cover_data: COVER_DATA_TYPE, embed_payload_config:
     if isinstance(data_embedded, type(cover_data)):
         return data_embedded
 
+    # return data_embedded
+
+    if verbose>0:
+        logger.info(f"execute_embedding_proc: data_embedded is not of type {type(cover_data)}")
+
     data_embedded_coerced = try_coerce_data(data_embedded, type(cover_data), reference_data=cover_data)
+
+    if verbose>0:
+        logger.info(f"execute_embedding_proc: data_embedded coerced to {type(cover_data)}")
+
+    
     if data_embedded_coerced is None:
         raise ValueError(f"execute_embedding_proc: data_embedded must be of type {type(cover_data)}, got: {type(data_embedded)}, and could not be coerced to {type(cover_data)}")
     
