@@ -12,10 +12,12 @@ from model_xray.procedures.embedding_procs import MalBytes, embed_type_map, exec
 from model_xray.options import model_collections
 from model_xray.configs.types import COVER_DATA_TYPE
 
-@step
+@step(enable_cache=False)
 def embed_payload_into_cover_data_step(
     cover_data: COVER_DATA_TYPE,
-    embed_payload_config: EmbedPayloadConfig
+    embed_payload_config: EmbedPayloadConfig,
+
+    log_metadata: Optional[bool] = True,
 ) -> Annotated[
         COVER_DATA_TYPE,
         ArtifactConfig(
@@ -25,11 +27,12 @@ def embed_payload_into_cover_data_step(
 
     stego_data = execute_embedding_proc(cover_data=cover_data, embed_payload_config=embed_payload_config)
 
-    log_artifact_metadata(
-        artifact_name="stego_data",
-        metadata={
-            "embed_payload_config": embed_payload_config.model_dump(mode="json"),
-        },
-    )
+    if log_metadata:
+        log_artifact_metadata(
+            artifact_name="stego_data",
+            metadata={
+                "embed_payload_config": embed_payload_config.model_dump(mode="json"),
+            },
+        )
 
     return stego_data

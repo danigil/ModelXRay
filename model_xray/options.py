@@ -138,7 +138,7 @@ slms_100m_1b = {
 }
 
 slms_1b_2b = {
-    "facebook/MobileLLM-1B",
+    # "facebook/MobileLLM-1B",
     "facebook/MobileLLM-1.5B",
 
     "meta-llama/Llama-3.2-1B-Instruct",
@@ -314,7 +314,7 @@ dataset_split = {
         "HuggingFaceTB/SmolLM2-1.7B",
         "HuggingFaceTB/SmolLM2-1.7B-Instruct",
     },{
-        "facebook/MobileLLM-1B",
+        # "facebook/MobileLLM-1B",
         "facebook/MobileLLM-1.5B",
 
         "HuggingFaceTB/cosmo-1b",

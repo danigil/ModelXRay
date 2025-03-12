@@ -19,6 +19,8 @@ if __name__ == "__main__":
     embed_malware_payload_filepath = None
     # embed_malware_payload_filepath = '/mnt/exdisk2/model_xray/malware_payloads/m_77e05'
 
+    force=True
+
     for curr_mc in mcs:
         xs_amount = xs_amounts[curr_mc]
         # try:
@@ -61,8 +63,8 @@ if __name__ == "__main__":
                 payload_filepath=embed_malware_payload_filepath,
             )
             X,y = get_pp_imgs_dataset_by_name(train_dataset_name)
-            if X is None or y is None:
-                print(f"\t%% ds {train_dataset_name} not found, compiling")
+            if force or X is None or y is None:
+                print(f"\t%% compiling ds {train_dataset_name}")
                 compile_and_save_preprocessed_images_dataset_pipeline(
                     preprocessed_img_lineages=train_pp_img_lineages,
                     dataset_name=train_dataset_name,
@@ -106,8 +108,8 @@ if __name__ == "__main__":
             )
 
             X,y = get_pp_imgs_dataset_by_name(test_dataset_name)
-            if X is None or y is None:
-                print(f"\t%% ds {test_dataset_name} not found, compiling")
+            if force or X is None or y is None:
+                print(f"\t%% compiling ds {test_dataset_name}")
                 compile_and_save_preprocessed_images_dataset_pipeline(
                     preprocessed_img_lineages=test_pp_img_lineages,
                     dataset_name=test_dataset_name,

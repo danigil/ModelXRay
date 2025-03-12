@@ -111,7 +111,8 @@ def create_pp_imgs_by_mc_name(
 ):
     mc_opts = get_mc_options(mc_name)
     return create_pp_imgs_loop(**mc_opts, mc_name=mc_name, force=force)
-    
+
+
 
 def create_pp_imgs_loop(
     model_names:List[str],
@@ -121,7 +122,19 @@ def create_pp_imgs_loop(
 
     mc_name:Optional[str]=None,
     force:Optional[bool]=False,
+
+    repo: Optional[ModelRepos]=ModelRepos.PYTORCH,
 ):
+    def try_create_pp_img():
+        try:
+            preprocessed_image_pipeline(pp_img_lineage)
+        except Exception as e:
+            print(f'\t\t!! failed: {e}')
+            return
+        
+        print(f'\t~~ finished {i+1}/{total_product_amount}')
+        return
+
     print(f'starting mc: {mc_name}')
 
     total_product_amount = np.prod([
@@ -140,7 +153,8 @@ def create_pp_imgs_loop(
         pp_img_lineage = PreprocessedImageLineage(
             cover_data_config=CoverDataConfig(
                 cover_data_cfg=PretrainedModelConfig.ret_ptm_config_by_name(
-                    model_name=model_name
+                    model_name=model_name,
+                    repo=repo,
                 )
             ),
             image_rep_config=im_type,
@@ -150,8 +164,7 @@ def create_pp_imgs_loop(
         print(f'\t\tcurr pp_img_lineage:\n@@@@@@@@@@@\n{pp_img_lineage.model_dump(mode="json")}\n@@@@@@@@@@@')
 
         if force:
-            preprocessed_image_pipeline(pp_img_lineage)
-            print(f'\t~~ finished {i+1}/{total_product_amount}')
+            try_create_pp_img()
             continue
 
         try:
@@ -159,6 +172,4 @@ def create_pp_imgs_loop(
             print(f'\t\t## found artifact, skipping pipeline execution')
         except Exception as e:
             print(f'\t\t%% didn\'t find artifact')
-            preprocessed_image_pipeline(pp_img_lineage)
-            
-        print(f'\t~~ finished {i+1}/{total_product_amount}')
+            try_create_pp_img()

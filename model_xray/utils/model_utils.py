@@ -119,7 +119,7 @@ def ret_pretrained_model_by_name(
     def ret_hf_model_by_name(model_name):
         from transformers import AutoModel, AutoConfig, AutoModelForCausalLM
         import torch
-        model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16, cache_dir=HF_HOME)
+        model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16, cache_dir=HF_HOME, trust_remote_code=True)
         return model
 
     if lib == ModelRepos.KERAS:

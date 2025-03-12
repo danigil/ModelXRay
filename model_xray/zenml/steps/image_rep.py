@@ -12,10 +12,12 @@ from model_xray.options import model_collections
 
 from typing_extensions import Annotated
 
-@step(enable_cache=True)
+@step(enable_cache=False)
 def create_image_representation_step(
     data: Union[np.ndarray, DL_MODEL_TYPE],
-    image_rep_config: ImageRepConfig
+    image_rep_config: ImageRepConfig,
+
+    log_metadata: Optional[bool] = True,
 ) -> (
     Annotated[
         np.ndarray,
@@ -26,16 +28,17 @@ def create_image_representation_step(
 ):
     image_rep = execute_image_rep_proc(data, image_rep_config)
 
-    step_context = get_step_context()
-    step_context.add_output_metadata(
-        output_name="image_representation",
-        metadata={
-            'image_rep_config': image_rep_config.model_dump(mode="json"),
-        }
-    )
-    step_context.add_output_tags(
-        output_name="image_representation",
-        tags=["image_representation"]
-    )
+    if log_metadata:
+        step_context = get_step_context()
+        step_context.add_output_metadata(
+            output_name="image_representation",
+            metadata={
+                'image_rep_config': image_rep_config.model_dump(mode="json"),
+            }
+        )
+        step_context.add_output_tags(
+            output_name="image_representation",
+            tags=["image_representation"]
+        )
 
     return image_rep

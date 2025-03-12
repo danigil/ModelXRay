@@ -424,7 +424,7 @@ if __name__ == "__main__":
         # for mc_name in ['famous_le_10m',]:
         for mc_name in ['slms_1b_2b']: # slms_100m_1b  slms_1b_2b
         # for mc_name in ['ghrp_stl10',]:
-            repeated_train(mc_name=mc_name, total_runs=1, batch_size=1, mode=mode,
+            repeated_train(mc_name=mc_name, total_runs=10, batch_size=5, mode=mode,
 
                             imsize=256,
                             model_arch='srnet',
@@ -432,7 +432,7 @@ if __name__ == "__main__":
 
                             imtype=ImageType.GRAYSCALE_LAST_M_BYTES,
 
-                            lsbs=range(1,9),
+                            lsbs=range(1,5),
                             retry_amount=1,
                             timeout=2400,
                         #    full_eval_mcs=['famous_le_10m','famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals'],

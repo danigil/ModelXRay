@@ -1,6 +1,7 @@
 
 
-from zenml import get_pipeline_context, pipeline, save_artifact
+import numpy as np
+from zenml import get_pipeline_context, pipeline, save_artifact, step, ArtifactConfig
 
 from model_xray.zenml.steps.dl_model_eval import eval_model_step
 from model_xray.zenml.steps.image_preprocessing import image_preprocessing_step
@@ -10,9 +11,64 @@ from model_xray.zenml.steps.cover_data import fetch_cover_data_step
 from model_xray.zenml.pipelines.pipeline_utils import ret_pipeline_with_zenml_model_pp_image_lineage
 from model_xray.configs.models import *
 
+from model_xray.configs.types import COVER_DATA_TYPE
+
+@step
+def _preprocessed_image_from_cover(
+    cover_data: COVER_DATA_TYPE,
+    preprocessed_image_lineage: PreprocessedImageLineage,
+)-> (
+    Annotated[
+        np.ndarray,
+        ArtifactConfig(
+            name="image_preprocessed",
+        ),
+    ]
+):
+    if preprocessed_image_lineage.embed_payload_config != ret_na_val():
+        stego_data = embed_payload_into_cover_data_step.entrypoint(
+            cover_data=cover_data,
+            embed_payload_config=preprocessed_image_lineage.embed_payload_config,
+
+            log_metadata=False,
+        )
+
+        data = stego_data
+    else:
+        data = cover_data
+
+    image_rep = create_image_representation_step.entrypoint(
+        data=data,
+        image_rep_config=preprocessed_image_lineage.image_rep_config,
+
+        log_metadata=False,
+    )
+    preprocessed_image = image_preprocessing_step.entrypoint(
+        image=image_rep,
+        image_preprocess_config=preprocessed_image_lineage.image_preprocess_config,
+
+        log_metadata=False,
+    )
+
+    return preprocessed_image
 
 @pipeline
 def _preprocessed_image_pipeline(
+    preprocessed_image_lineage: PreprocessedImageLineage,
+    model_eval: bool = False,
+):
+    cover_data = fetch_cover_data_step(cover_data_config=preprocessed_image_lineage.cover_data_config.model_dump())
+
+    preprocessed_image = _preprocessed_image_from_cover(
+        cover_data=cover_data,
+        preprocessed_image_lineage=preprocessed_image_lineage.model_dump()
+    )
+
+    return preprocessed_image
+
+
+@pipeline
+def _preprocessed_image_pipeline_weval(
     preprocessed_image_lineage: PreprocessedImageLineage,
     model_eval: bool = False,
 ):
@@ -51,6 +107,8 @@ def _preprocessed_image_pipeline(
     preprocessed_image = image_preprocessing_step(image=image_rep, image_preprocess_config=preprocessed_image_lineage.image_preprocess_config.model_dump())
 
     return preprocessed_image
+
+
 
 preprocessed_image_pipeline = ret_pipeline_with_zenml_model_pp_image_lineage(
     _preprocessed_image_pipeline
