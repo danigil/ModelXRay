@@ -86,6 +86,8 @@ def compile_and_save_preprocessed_images_dataset_step(
 ):
     artifact_name_x = f"{dataset_name}_x"
     artifact_name_y = f"{dataset_name}_y"
+    
+    artifact_name_meta = f"{dataset_name}_meta"
 
     X, y = compile_preprocessed_images(preprocessed_img_lineages, fallback=fallback)
 
@@ -97,6 +99,11 @@ def compile_and_save_preprocessed_images_dataset_step(
     save_artifact(
         data=y,
         name=artifact_name_y,
+    )
+
+    save_artifact(
+        data=preprocessed_img_lineages,
+        name=artifact_name_meta,
     )
 
 @pipeline(enable_cache=False)

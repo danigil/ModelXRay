@@ -1,6 +1,7 @@
 import itertools
 from typing import List
 
+from model_xray.zenml.pipelines.data_creation.dataset_compilation_new import compile_and_save_preprocessed_images_dataset_pipeline
 import numpy as np
 from model_xray.zenml.zenml_lookup import try_get_artifact_preprocessed_image
 from model_xray.configs.models import *
@@ -169,7 +170,48 @@ def create_pp_imgs_loop(
 
         try:
             artifact_lookup = try_get_artifact_preprocessed_image(pp_img_lineage)
+            assert artifact_lookup is not None, "artifact lookup returned None"
+            
             print(f'\t\t## found artifact, skipping pipeline execution')
         except Exception as e:
             print(f'\t\t%% didn\'t find artifact')
             try_create_pp_img()
+
+def compile_pp_imgs_loop(
+    model_names:List[str],
+    im_types:List[ImageRepConfig],
+    im_preprocesses:List[ImagePreprocessConfig],
+    embed_payload_configs:List[EmbedPayloadConfig],
+
+    mc_name:Optional[str]=None,
+    force:Optional[bool]=False,
+
+    repo: Optional[ModelRepos]=ModelRepos.PYTORCH,
+):
+    pp_img_lineages = set()
+
+    for i, (model_name, im_type, im_preprocess, embed_payload) in enumerate(itertools.product(
+        model_names,
+        im_types,
+        im_preprocesses,
+        embed_payload_configs
+    )):
+        pp_img_lineage = PreprocessedImageLineage(
+            cover_data_config=CoverDataConfig(
+                cover_data_cfg=PretrainedModelConfig.ret_ptm_config_by_name(
+                    model_name=model_name,
+                    repo=repo,
+                )
+            ),
+            image_rep_config=im_type,
+            image_preprocess_config=im_preprocess,
+            embed_payload_config=embed_payload
+        )
+
+        pp_img_lineages.add(pp_img_lineage)
+
+    compile_and_save_preprocessed_images_dataset_pipeline(
+        preprocessed_img_lineages=pp_img_lineages,
+        dataset_name=mc_name,
+        fallback=False,
+    )
