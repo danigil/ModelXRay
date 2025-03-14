@@ -47,18 +47,18 @@ if __name__ == "__main__":
         for x in range(1,xs_amount+1)
     ]
 
-    create_pp_imgs_loop(
-        model_names=model_names_classification,
-        im_types=im_types,
-        im_preprocesses=im_preprocesses,
-        embed_payload_configs=embed_payload_configs,
-        mc_name='torch_pretrained_models',
-    )
-
-    # compile_pp_imgs_loop(
+    # create_pp_imgs_loop(
     #     model_names=model_names_classification,
     #     im_types=im_types,
     #     im_preprocesses=im_preprocesses,
     #     embed_payload_configs=embed_payload_configs,
     #     mc_name='torch_pretrained_models',
     # )
+
+    compile_pp_imgs_loop(
+        model_names=model_names_classification,
+        im_types=im_types,
+        im_preprocesses=im_preprocesses,
+        embed_payload_configs=embed_payload_configs,
+        mc_name='torch_pretrained_models',
+    )

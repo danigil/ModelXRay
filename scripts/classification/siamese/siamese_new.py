@@ -1,0 +1,455 @@
+import os
+import pprint
+import sys
+from typing import Iterable, Literal, Optional, Union
+
+from model_xray.configs.enums import ImageType, PayloadType
+from model_xray.options import RESULTS_SIAMESE_DIR
+from model_xray.utils.logging_utils import request_logger
+
+from model_xray.utils.script_utils import get_siamese_results_filename, get_fullds_randsplit
+
+logger = request_logger(__name__)
+
+import pandas as pd
+
+
+def _repeated_train(
+    q,
+    lsb: int,
+
+    fullds_name: Literal['torch_pretrained_models'] = 'torch_pretrained_models',
+    # mc_name:Literal['famous_le_10m', 'famous_le_100m']="famous_le_10m",
+    
+    # imtype:ImageType=ImageType.GRAYSCALE_FOURPART,
+    imsize=256,
+    # embed_payload_type: PayloadType = PayloadType.BINARY_FILE,
+    
+    mode: Literal['st', 'es' 'ub', 'none'] = 'ub',
+
+    model_arch:Literal['osl_siamese_cnn', 'srnet', 'cvtstego']='osl_siamese_cnn',
+
+    test_subset:Optional[int] = 300,
+
+    train_loss_threshold_lower = 0.1,
+    train_loss_threshold_upper = 0.4,
+
+    test_acc_threshold = 0.75,
+    test_acc_op:Literal['and', 'or'] = 'or',
+
+    try_amount = 10,
+    run_num = 0,
+
+    act_only_on_passed: bool = False,
+    act_only_on_first_passed: bool = False,
+
+    save_model: bool = False,
+
+    model_partial_eval: bool = False,
+    model_full_eval: bool = True,
+    full_eval_dss: Optional[Iterable[str]] = None,
+    # full_eval_mcs = ['famous_le_10m', 'famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals', 'torch_pretrained_classification'],
+):
+    import operator as op
+
+    import logging
+    logging.basicConfig(level=logging.CRITICAL)
+
+    import hashlib
+
+    import gc
+    import os
+    # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+    from model_xray.models.siamese import Siamese, MyThresholdCallback, make_triplets
+    from model_xray.configs.models import ImagePreprocessConfig, ImageRepConfig
+
+    import tensorflow as tf
+
+    from model_xray.utils.script_utils import ret_imgs_dataset_preprocessed, get_train_test_datasets, siamese_eval, get_fullds_randsplit
+
+    from sklearn.model_selection import train_test_split
+
+    # image_rep_config = ImageRepConfig.ret_image_rep_config_by_type(imtype)
+    # image_preprocess_config = ImagePreprocessConfig(image_height=imsize, image_width=imsize)
+
+    # train_metadata = {
+    #     'image_rep_config': image_rep_config,
+    #     'image_preprocess_config': image_preprocess_config,
+    #     'mc_name': mc_name,
+    # }
+
+    # siamese model params
+    dist: Literal['l2', 'cosine'] = "l2"
+    lr:float = 0.00006
+
+
+    epochs = 5
+    n_channels = 1
+    cb = None
+    bool_op = op.and_ if test_acc_op == 'and' else op.or_
+
+
+    if mode == 'st':
+        epochs = 5
+    elif mode == 'ub':
+        epochs = 100
+    elif mode == 'es':
+        epochs = 1
+
+    # print(f"Starting siamese repeated train for fullds_name: {fullds_name}, mode: {mode}, lsb: {lsb}")
+
+    (X_train, y_train), testsets = get_fullds_randsplit(
+        dataset_name=fullds_name,
+        train_x=lsb,
+    )
+
+    X_test_benign, y_test_benign = testsets[0]
+    X_test_mal, y_test_mal = testsets[lsb]
+
+    # print(f"Loaded Data")
+    # return
+
+    # ret = ret_imgs_dataset_preprocessed(
+    #     mc_name=mc_name,
+
+    #     lsb=lsb,
+        
+    #     imtype=imtype,
+    #     imsize=imsize,
+    #     embed_payload_type=embed_payload_type,
+
+    #     normalize=True,
+    #     split=True if mc_name != 'ghrp_stl10' else False,
+
+    #     test_subset=test_subset,
+    # )
+
+    # if mc_name == 'ghrp_stl10':
+    #     X, y = ret
+    #     train_size = 3
+    #     X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=train_size*2, stratify=y)
+    # else:
+    #     X_train, y_train, X_test, y_test = ret
+
+    # X_test_benign = X_test[y_test == 0]
+    # X_test_mal = X_test[y_test == 1]
+    # y_test_benign = y_test[y_test == 0]
+    # y_test_mal = y_test[y_test == 1]
+
+    # print(X_test_benign.shape)
+    # print(X_test_mal.shape)
+    # print(y_test_benign.shape)
+    # print(y_test_mal.shape)
+
+    # return
+
+
+    # triplets_train = make_triplets(X_train, y_train, is_shuffle=True)
+    # gc.collect()
+
+
+    eval_datas = {}
+
+    if model_full_eval:
+        eval_datasets = {}
+        # for eval_mc in full_eval_mcs:
+        #     if eval_mc in ('maleficnet_benigns', 'maleficnet_mals'):
+        #         test_xs = []
+        #     elif eval_mc in ('torch_pretrained_classification',):
+        #         test_xs = [0,]
+        #     elif eval_mc in ('slms_100m_1b', 'slms_1b_2b'):
+        #         test_xs = range(0,9)
+        #     else:
+        #         test_xs = range(0,24)
+
+        #     (_, _), testsets = get_train_test_datasets(
+        #         eval_mc,
+        #         train_x=None,
+        #         test_xs=test_xs,
+        #         imtype=imtype,
+        #         imsize=imsize,
+        #         flatten=False,
+
+        #         embed_payload_type=embed_payload_type,
+
+        #         test_subset=test_subset,
+        #     )
+
+        #     eval_datasets[eval_mc] = testsets
+    
+
+    for i in range(try_amount):
+        gc.collect()
+        tf.keras.backend.clear_session()
+
+        print(f"\tRun: {run_num+i}")
+
+        cb = MyThresholdCallback(ub_mode=True if mode=='ub' else False, threshold_lower=train_loss_threshold_lower, threshold_upper=train_loss_threshold_upper)
+        
+        
+        model = Siamese(
+            img_input_shape=(imsize,imsize,n_channels),
+            dist=dist,
+            lr=lr,
+            model_arch=model_arch,
+        )
+
+        batch_size = 32 if model_arch == 'srnet' else 16
+        # return
+        # model.fit(triplets_train, epochs=epochs, batch_size=batch_size, verbose=0, callbacks=[cb])
+        fit_ret = model.fit_and_keep_refs(X_train, y_train, epochs=epochs, batch_size=batch_size, verbose=3, callbacks=[cb],size=10)
+
+        print(f"fit_ret: {fit_ret}")
+
+        train_results = model.test_all(X_train, y_train, is_print=False,)
+
+        acc_centroid_train = train_results['centroid']
+        acc_nn_train = train_results['nn']
+        
+        print(f"\t\tTrain Centroid: {acc_centroid_train}, Train NN: {acc_nn_train}, Train Loss: {cb.last_loss}")
+
+        model_passed = True
+        if model_partial_eval:
+            test_results_benign = model.test_all(X_test_benign, y_test_benign, is_print=False,)
+
+            acc_centroid_benign = test_results_benign['centroid']
+            acc_nn_benign = test_results_benign['nn']
+            
+            print(f"\t\tTest (benign): Centroid: {acc_centroid_benign}, Test NN: {acc_nn_benign}")
+
+            test_results_mal = model.test_all(X_test_mal, y_test_mal, is_print=False,)
+            acc_centroid_mal = test_results_mal['centroid']
+            acc_nn_mal = test_results_mal['nn']
+
+            print(f"\t\tTest (mal): Centroid: {acc_centroid_mal}, Test NN: {acc_nn_mal}")
+
+            acc_centroid = (acc_centroid_benign + acc_centroid_mal) / 2
+            acc_nn = (acc_nn_benign + acc_nn_mal) / 2
+
+            model_passed = bool_op(acc_centroid >= test_acc_threshold, acc_nn >= test_acc_threshold)
+            
+        act = not act_only_on_passed or model_passed
+
+        if act:
+            if model_full_eval and full_eval_dss is not None and len(full_eval_dss) > 0:
+                eval_data = siamese_eval(model, X_train, y_train, eval_datasets, full_eval_dss)
+            elif model_partial_eval:
+                eval_data_benign = {
+                    'mc': fullds_name,
+                    'lsb': 0,
+                    'test_acc_centroid': acc_centroid_benign,
+                    'test_acc_nn': acc_nn_benign,
+                }
+
+                eval_data_mal = {
+                    'mc': fullds_name,
+                    'lsb': lsb,
+                    'test_acc_centroid': acc_centroid_mal,
+                    'test_acc_nn': acc_nn_mal,
+                }
+
+                eval_data = [eval_data_benign, eval_data_mal]
+
+            if save_model:
+                save_filename = f"siamese_{mc_name}_{imtype}_{imsize}_{embed_payload_type}_{mode}_{lsb}_{run_num+i}.keras"
+                save_filepath = os.path.join("/mnt/exdisk1/model_xray/models", save_filename)
+
+                model.save(save_filepath)
+
+                with open(save_filepath, "rb") as f:
+                    sha256_hash = hashlib.sha256(f.read()).hexdigest()
+
+                print(f'\t\tSaved model to {save_filepath}, sha256: {sha256_hash}')
+                
+                
+
+            df =  pd.DataFrame(eval_data)
+            df['model_lsb'] = lsb
+            df['model_arch'] = model_arch
+
+            if save_model:
+                df['model_sha256'] = sha256_hash
+
+            eval_datas[run_num+i] = df
+
+            if model_passed and act_only_on_first_passed:
+                break
+
+        del model
+
+    q.put(eval_datas)
+
+import multiprocessing
+
+def repeated_train(
+    fullds_name: Literal['torch_pretrained_models'] = 'torch_pretrained_models',
+    
+    mode = 'ub',
+
+    model_arch:Literal['osl_siamese_cnn', 'srnet', 'cvtstego']='osl_siamese_cnn',
+    model_partial_eval: bool = False,
+    save_model: bool = False,
+
+    full_eval_dss = ['famous_le_10m', 'famous_le_100m', 'maleficnet_benigns', 'maleficnet_mals', 'torch_pretrained_classification'],
+    lsbs=range(1,24),
+
+    total_runs = 10,
+    batch_size = 5,
+
+    timeout=240,
+    retry_amount = 3,
+    save_temp:bool = True,
+
+    siamese_results_dir: Optional[str] = None,
+):
+    # if model_arch == 'srnet':
+    #     assert imsize == 256, "SRNet only supports 256x256 images"
+
+    if siamese_results_dir is None:
+        siamese_results_dir = RESULTS_SIAMESE_DIR
+
+    results_dir = siamese_results_dir
+    os.makedirs(results_dir, exist_ok=True)
+
+    tmp_results_dir = os.path.join(results_dir, "tmp")
+    if save_temp:
+        os.makedirs(tmp_results_dir, exist_ok=True)
+
+    logger.info(f"Starting repeated train for fullds_name: {fullds_name}, mode: {mode}")
+    loop_amount = total_runs // batch_size
+
+    kwargs = {
+        'fullds_name':fullds_name,
+        'mode':mode,
+
+        'model_arch':model_arch,
+
+        'try_amount':batch_size,
+
+        'test_acc_threshold':0.75,
+
+        'act_only_on_passed': False,
+        'act_only_on_first_passed': False,
+
+        'model_partial_eval': model_partial_eval,
+
+        'model_full_eval': True if full_eval_dss is not None else False,
+        'full_eval_dss':full_eval_dss,
+
+        'save_model': save_model,
+    }
+
+    assert retry_amount > 0
+
+    results_filename = get_siamese_results_filename(
+        mc_name=fullds_name,
+        # imtype=imtype,
+        # imsize=imsize,
+        mode=mode,
+
+        # embed_payload_type=embed_payload_type,
+        model_arch=model_arch,
+    )
+
+    q = multiprocessing.Queue()
+    dfs = []
+    tmp_save_paths = []
+    for i in range(loop_amount):
+        logger.info(f"Run: {i*batch_size} - {i*batch_size+batch_size}")
+
+        dfs_curr_batch = []
+        for lsb in lsbs:
+            logger.info(f"LSB: {lsb}")
+            kwargs['lsb'] = lsb
+            kwargs['run_num'] = i*batch_size
+
+            try_counter = 0
+
+            while(try_counter < retry_amount):
+                if try_counter > 0:
+                    logger.info(f"Retry num: {try_counter+1}/{retry_amount}")
+                p = multiprocessing.Process(target=_repeated_train, args=(q,), kwargs=kwargs)
+                p.start()
+                p.join(timeout)
+
+                if p.is_alive():
+                    logger.error(f"Timeout in process {i}, retrying...")
+                    p.terminate()
+                    try_counter += 1
+                    continue
+
+                if p.exitcode == 0:
+                    break
+                else:
+                    logger.error(f"Error in process {i}, retrying...")
+                    p.terminate()
+                    try_counter += 1
+
+            results = q.get(block=False)
+            if results is None or len(results) == 0:
+                continue
+
+            df = pd.concat(results, ignore_index=False)
+            df.reset_index(level=0, drop=False, inplace=True, names='run num')
+            df.reset_index(level=0, drop=True, inplace=True)
+            dfs_curr_batch.append(df)
+
+        if len(dfs_curr_batch) == 0:
+            continue
+
+        df_curr_batch = pd.concat(dfs_curr_batch, ignore_index=False)
+        if save_temp:
+            tmp_save_path = os.path.join(tmp_results_dir, f"{results_filename}_tmp_batch{i}.csv")
+            tmp_save_paths.append(tmp_save_path)
+            df_curr_batch.to_csv(tmp_save_path, index=False)
+
+        dfs.append(df_curr_batch)
+
+    if len(dfs) > 0:
+        df_final = pd.concat(dfs, ignore_index=False)
+        df_final.to_csv(os.path.join(results_dir, f"{results_filename}.csv"), index=False)
+
+    if save_temp:
+        for tmp_save_path in tmp_save_paths:
+            os.remove(tmp_save_path)
+
+        os.rmdir(tmp_results_dir)
+
+if __name__ == "__main__":
+    print("starting siamese repeated train")
+
+    # modes = ['es','ub', 'st']
+    modes=['ub',]
+    for mode in modes:
+        for fullds_name in ['torch_pretrained_models']: # slms_100m_1b  slms_1b_2b
+        # for mc_name in ['ghrp_stl10',]:
+            repeated_train(
+                fullds_name=fullds_name,
+                total_runs=10,
+                batch_size=5,
+                mode=mode,
+
+                # imsize=256,
+                model_arch='srnet',
+                # embed_payload_type=PayloadType.RANDOM,
+
+                # imtype=ImageType.GRAYSCALE_LAST_M_BYTES,
+
+                lsbs=range(16,23),
+                retry_amount=1,
+                timeout=2400,
+            
+                # full_eval_dss = ['torch_pretrained_models'],
+                full_eval_dss = None,
+                model_partial_eval=True,
+
+                save_model=False,
+            )
+
+        # for zoo_name in ['cnn_zoos',]:
+        #     repeated_train(zoo_name=zoo_name, total_runs=10, batch_size=5, mode=mode, full_eval_mcs=['cnn_zoos', 'famous_le_10m', 'famous_le_100m'],)
+
+    
+    

@@ -1,9 +1,11 @@
+import math
 import numpy as np
 
-from model_xray.zenml.zenml_lookup import retreive_pp_imgs_datasets
+from model_xray.zenml.zenml_lookup import get_pp_imgs_dataset_by_name, retreive_pp_imgs_datasets
 from model_xray.utils.dataset_utils import *
 
 from model_xray.zenml.zenml_lookup import try_get_artifact_preprocessed_image
+import pandas as pd
 
 def img_flatten(arr):
     return arr.reshape(arr.shape[0], -1)
@@ -172,6 +174,103 @@ def siamese_eval(
                 })
 
     return data
+
+def get_fullds(
+    dataset_name: str='torch_pretrained_models', 
+):
+    X,y,meta = get_pp_imgs_dataset_by_name(dataset_name, return_meta=True)
+
+    return X, y, meta
+
+def get_metadf(
+    meta: List[PreprocessedImageLineage],
+):
+    def extract_xs(meta):
+        meta_xs = [x.embed_payload_config for x in meta]
+        meta_xs = np.array([0 if x == ret_na_val() else x.embed_proc_config.x for x in meta_xs])
+
+        return meta_xs
+
+    def extract_model_names(meta):
+        meta_model_names = [x.cover_data_config.cover_data_cfg.name for x in meta]
+
+        return meta_model_names
+
+    meta_xs = extract_xs(meta)
+    meta_model_names = extract_model_names(meta)
+
+    df = pd.DataFrame({'x': meta_xs, 'model': meta_model_names})
+    df.reset_index(drop=False, inplace=True)
+
+    return df
+
+def _get_fullds_randsplit(
+    df_meta: pd.DataFrame,
+    X: np.ndarray,
+    y: np.ndarray,
+    train_size: float=0.8,
+    train_x: int=1,
+
+    test_xs: Iterable[int] = range(0,24),
+
+    kind: Literal['arch', 'lsb'] = 'lsb',
+
+    normalize:bool=True,
+):
+    model_names = df_meta['model'].unique()
+
+    train_size_n = math.floor(train_size * len(model_names))
+
+    train_model_names = np.random.choice(model_names, size=train_size_n, replace=False)
+    test_model_names = np.setdiff1d(model_names, train_model_names)
+
+    if kind == 'arch':
+        train_boolmask = ((df_meta['model'].isin(train_model_names)) & (df_meta['x'].isin([0, train_x])))
+    elif kind == 'lsb':
+        train_boolmask = ((df_meta['x'].isin([0, train_x])))
+
+    train_idxs = df_meta[train_boolmask]['index']
+
+    X_train = X[train_idxs, ...]
+
+    if normalize:
+        X_train = normalize_img(X_train)
+
+    y_train = y[train_idxs]
+
+    testsets = {}
+
+    for x in test_xs:
+        if kind == 'arch':
+            test_idxs = df_meta[((df_meta['model'].isin(test_model_names)) & (df_meta['x'].isin([x])))]['index']
+        elif kind == 'lsb':
+            test_idxs = df_meta[((df_meta['x'].isin([x])))]['index']
+            
+
+        test_idxs = df_meta[((df_meta['model'].isin(test_model_names)) & (df_meta['x'] == x))]['index']
+        
+        X_test = X[test_idxs, ...]
+
+        if normalize:
+            X_test = normalize_img(X_test)
+
+        y_test = y[test_idxs]
+
+        testsets[x] = (X_test, y_test)
+
+    return (X_train, y_train), testsets
+
+def get_fullds_randsplit(
+    dataset_name: str='torch_pretrained_models', 
+    train_size: float=0.8,
+    train_x: int=1,
+
+    test_xs: Iterable[int] = range(0,24),
+):
+    X,y,meta = get_fullds(dataset_name)
+    df_meta = get_metadf(meta)
+
+    return _get_fullds_randsplit(df_meta, X, y, train_size, train_x, test_xs)
 
 def get_siamese_results_filename(
     mc_name:Literal['famous_le_10m', 'famous_le_100m']="famous_le_10m",

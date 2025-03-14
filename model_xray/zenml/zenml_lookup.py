@@ -53,10 +53,12 @@ def get_artifact_preprocessed_image(
 
 
 def get_pp_imgs_dataset_by_name(
-    dataset_name:str
+    dataset_name:str,
+    return_meta:bool=False,
 ):
     x_name = f'{dataset_name}_x'
     y_name = f'{dataset_name}_y'
+    meta_name = f'{dataset_name}_meta'
 
     try:
         import warnings
@@ -69,10 +71,23 @@ def get_pp_imgs_dataset_by_name(
         y = zenml_client.get_artifact_version(
             y_name
         )
+
+        if return_meta:
+            meta = zenml_client.get_artifact_version(
+                meta_name
+            )
+        
     except Exception as e:
         print(f'get_pp_imgs_dataset_by_name: dataset {dataset_name} not found')
+        
+        if return_meta:
+            return None, None, None
+        
         return None, None
     
+    if return_meta:
+        return x.load(), y.load(), meta.load()
+
     return x.load(), y.load()
 
 def get_pp_imgs_dataset_by_params(

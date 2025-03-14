@@ -119,9 +119,9 @@ class SRNet(tf.keras.Model):
 
         self.include_top = include_top
         self.num_classes = num_classes
+        self.flatten = tf.keras.layers.Flatten()
 
         if include_top:
-            self.flatten = tf.keras.layers.Flatten()
             self.dense = tf.keras.layers.Dense(num_classes, activation='softmax')
         
 
@@ -131,8 +131,9 @@ class SRNet(tf.keras.Model):
         x = self.type_3s(x, training=training)
         x = self.type_4(x, training=training)
 
+        x = self.flatten(x)
+
         if self.include_top:
-            x = self.flatten(x)
             x = self.dense(x)
 
         return x

@@ -3,7 +3,7 @@
 from typing import Literal, Optional
 from model_xray.configs.models import ImagePreprocessConfig, ImageRepConfig
 from model_xray.models.srnet import SRNet
-from model_xray.models.cvtstego import cvtstego
+# from model_xray.models.cvtstego import cvtstego
 import numpy as np
 from numpy import linalg as LA
 from sklearn.neighbors import KNeighborsClassifier
@@ -13,11 +13,11 @@ from itertools import combinations, product
 import math
 
 import operator
-
+import gc
 import random
 # random.seed(seed)
 
-from random import sample
+from random import choice, choices, sample
 from sklearn.utils import shuffle
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
@@ -47,10 +47,10 @@ from tqdm import tqdm
 tf.keras.saving.get_custom_objects().clear()
 
 
-def make_triplets(x,y, size=None, is_shuffle=False):
-    def preprocess_sample(sample):
-        sample = np.expand_dims(sample, axis=(-1))
-        return sample
+def make_triplets(x,y, size=None, is_shuffle=False, return_tfds:bool=True):
+    # def preprocess_sample(sample):
+    #     sample = np.expand_dims(sample, axis=(-1))
+    #     return sample
     triplets = []
 
     benign_idxs = np.where(y == 0)[0]
@@ -61,27 +61,47 @@ def make_triplets(x,y, size=None, is_shuffle=False):
         mal_idxs = sample(list(mal_idxs), min(size, len(mal_idxs)))
 
     for anchor_idx, positive_idx in combinations(benign_idxs, 2):
-        anchor = preprocess_sample(x[anchor_idx])
-        positive = preprocess_sample(x[positive_idx])
+        anchor = x[anchor_idx, ...]
+        positive = x[positive_idx, ...]
 
         for negative_idx in mal_idxs:
-            negative = preprocess_sample(x[negative_idx])
+            negative = x[negative_idx, ...]
             triplets.append([anchor, positive, negative])
 
     for anchor_idx, positive_idx in combinations(mal_idxs, 2):
-        anchor = preprocess_sample(x[anchor_idx])
-        positive = preprocess_sample(x[positive_idx])
+        anchor = x[anchor_idx, ...]
+        positive = x[positive_idx, ...]
 
         for negative_idx in benign_idxs:
-            negative = preprocess_sample(x[negative_idx])
+            negative = x[negative_idx, ...]
             triplets.append([anchor, positive, negative])
 
     anchors, positives, negatives = zip(*triplets)
     if is_shuffle:
         anchors, positives, negatives = shuffle(anchors, positives, negatives)
-    return [np.array(anchors), np.array(positives), np.array(negatives)]
 
+    anchors, positives, negatives = np.array(anchors), np.array(positives), np.array(negatives)
 
+    if return_tfds:
+        # return tf.data.Dataset.from_tensor_slices((anchors, positives, negatives))
+        anchor_dataset = tf.data.Dataset.from_tensor_slices(anchors)
+        positive_dataset = tf.data.Dataset.from_tensor_slices(positives)
+        negative_dataset = tf.data.Dataset.from_tensor_slices(negatives)
+
+        dataset = tf.data.Dataset.zip((anchor_dataset, positive_dataset, negative_dataset))
+        dataset = dataset.batch(32, drop_remainder=False)
+        dataset = dataset.prefetch(tf.data.AUTOTUNE)
+
+        return dataset
+    else:
+        return [anchors, positives, negatives]
+    # return [np.array(anchors), np.array(positives), np.array(negatives)]
+
+def make_triplets_v2(x,y, size=None, is_shuffle=False, return_tfds:bool=True):
+    triplets = []
+
+    benign_idxs = np.where(y == 0)[0]
+    mal_idxs = np.where(y == 1)[0]
 
 class MyThresholdCallback(tf.keras.callbacks.Callback):
     def __init__(self, ub_mode=True ,threshold_upper=0.5, threshold_lower=0.5):
@@ -102,6 +122,46 @@ class MyThresholdCallback(tf.keras.callbacks.Callback):
     def on_train_end(self, logs=None):
         self.last_loss = logs["loss"]
 
+@tf.function
+def pairwise_euclidean_distance(X: tf.Tensor, Y: Optional[tf.Tensor]=None, sqrt:bool=False) -> tf.Tensor:
+    """
+    Given an (n, m) tensor X of n vectors (each of dimension m),
+    returns an (n, n) matrix of Euclidean distances between each pair of vectors.
+    """
+
+    if Y is None:
+        Y = X
+
+    # # 1) Compute the squared L2 norm of each row vector: shape (n, 1).
+    # X_sq = tf.reduce_sum(tf.square(X), axis=1, keepdims=True)  # (n, 1)
+
+    # # 2) Use the formula: dist^2 = X_sq + X_sq^T - 2 * X * X^T
+    # #    Here we use matmul with transpose_b=True to get X * X^T
+    # dist_sq = X_sq + tf.transpose(X_sq) - 2.0 * tf.matmul(X, X, transpose_b=True)
+    # dist_sq = tf.maximum(dist_sq, 0.0)
+    
+    # distances = tf.sqrt(dist_sq)
+
+    # 1) Compute the squared L2 norms of each row in X and Y.
+    #    => X_sq: (n, 1), Y_sq: (p, 1)
+    X_sq = tf.reduce_sum(tf.square(X), axis=1, keepdims=True)  # shape: (n, 1)
+    Y_sq = tf.reduce_sum(tf.square(Y), axis=1, keepdims=True)  # shape: (p, 1)
+    
+    # 2) Compute pairwise squared distances.
+    #    The result should be (n, p).
+    #    dist^2(X[i], Y[j]) = ||X[i]||^2 + ||Y[j]||^2 - 2 * X[i] dot Y[j]
+    dist_sq = X_sq + tf.transpose(Y_sq) - 2.0 * tf.matmul(X, Y, transpose_b=True)
+    
+    # 3) Clamp negative values to 0 for numerical stability, then sqrt.
+    distances = tf.maximum(dist_sq, 0.0)
+    if sqrt:
+        distances = tf.sqrt(distances)
+
+    distances = tf.linalg.set_diag(distances, tf.zeros(tf.shape(distances)[0], distances.dtype))
+
+    return distances
+
+@tf.function
 def calc_dist(a,b, dist:Literal["l2", "cosine"]="l2"):
     def dist_cosine(a,b):
         # a = tf.math.l2_normalize(a, axis=-1)
@@ -110,6 +170,7 @@ def calc_dist(a,b, dist:Literal["l2", "cosine"]="l2"):
 
         return 1 + tf.losses.cosine_similarity(tf.nn.l2_normalize(a, 0), tf.nn.l2_normalize(b, 0), -1)
 
+    @tf.function
     def dist_l2(a,b):
         return tf.reduce_sum(tf.square(a - b), -1)
 
@@ -122,19 +183,19 @@ def calc_dist(a,b, dist:Literal["l2", "cosine"]="l2"):
 
 @tf.keras.saving.register_keras_serializable(package="MyLayers")
 class DistanceLayer(tf.keras.layers.Layer):
-        """
-        This layer is responsible for computing the distance between the anchor
-        embedding and the positive embedding, and the anchor embedding and the
-        negative embedding.
-        """
-        def __init__(self, dist:Literal["l2", "cosine"]="l2", **kwargs):
-            super().__init__(**kwargs)
-            self.dist=dist
+    """
+    This layer is responsible for computing the distance between the anchor
+    embedding and the positive embedding, and the anchor embedding and the
+    negative embedding.
+    """
+    def __init__(self, dist:Literal["l2", "cosine"]="l2", **kwargs):
+        super().__init__(**kwargs)
+        self.dist=dist
 
-        def call(self, anchor, positive, negative):
-            ap_distance = calc_dist(anchor, positive, dist=self.dist)
-            an_distance = calc_dist(anchor, negative, dist=self.dist)
-            return (ap_distance, an_distance)
+    def call(self, anchor, positive, negative):
+        ap_distance = calc_dist(anchor, positive, dist=self.dist)
+        an_distance = calc_dist(anchor, negative, dist=self.dist)
+        return (ap_distance, an_distance)
 
 
 def reset_weights(model):
@@ -169,7 +230,7 @@ class Siamese(Model):
                 #  weights_init = "random", 
                  dropout_rate=0.5,
                  model=None,
-                 model_arch:Literal['osl_siamese_cnn', 'srnet', 'cvtstego']='osl_siamese_cnn',
+                 model_arch:Literal['osl_siamese_cnn', 'srnet', 'cvtstego', 'mobilenetv2']='srnet',
                  optimizer=None,
 
                  train_data=None,
@@ -210,6 +271,10 @@ class Siamese(Model):
             elif model_arch == 'srnet':
                 assert img_input_shape == (256,256,1), "srnet only supports 256x256x1 images"
                 model = SRNet(include_top=False)
+
+            elif model_arch == 'mobilenetv2':
+                model = tf.keras.applications.MobileNetV2(input_shape=img_input_shape, include_top=False, weights=None)
+                model.trainable = True
             elif model_arch == 'cvtstego':
                 assert img_input_shape == (256,256,1), "srnet only supports 256x256x1 images"
                 model = cvtstego(include_top=False, compile=False)
@@ -246,10 +311,34 @@ class Siamese(Model):
 
     def fit_and_keep_refs(self, x_train, y_train,
                           epochs=10, batch_size=16, verbose=1, is_shuffle=True, callbacks = [],
-                          train_metadata: Optional[dict]=None,):
-        triplets_train = make_triplets(x_train, y_train, is_shuffle=is_shuffle)
+                          train_metadata: Optional[dict]=None,
+                          size:Optional[int]=None,
+                          online_train:bool=False):
+        if online_train:
+            if x_train.ndim == 3:
+                x_train = np.expand_dims(x_train, axis=-1)
 
-        fit_ret = self.fit(triplets_train, epochs=epochs, batch_size=batch_size, verbose=verbose, callbacks=callbacks)
+            n=3
+
+            x_train_ds = tf.data.Dataset.from_tensor_slices(x_train).batch(32)
+            # triplets_train = self.online_triplet_mine(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds)
+
+            rounds = epochs // n
+
+            for i in range(rounds):
+                
+                triplets_train = self.online_triplet_mine(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds)
+
+                fit_ret = self.fit(triplets_train, epochs=n, batch_size=batch_size, verbose=verbose, callbacks=callbacks)
+                loss = fit_ret.history['loss'][0]
+
+                print(f"round {i+1}/{rounds}, loss: {loss}")
+                
+                if loss < 0.45:
+                    break
+        else:
+            triplets_train = make_triplets(x_train, y_train, is_shuffle=is_shuffle, size=size)
+            fit_ret = self.fit(triplets_train, epochs=epochs, batch_size=batch_size, verbose=verbose, callbacks=callbacks)
 
         train_data = {
             'x': x_train,
@@ -259,7 +348,97 @@ class Siamese(Model):
 
         self.train_data = train_data
 
+        self.calc_centroids(x_train, y_train)
+
         return fit_ret
+
+    def online_triplet_mine(self, x, y, return_tfds:bool=True, x_train_ds:Optional[tf.data.Dataset]=None, k=1):
+        benign_idxs = np.where(y == 0)[0]
+        mal_idxs = np.where(y == 1)[0]
+
+        # # x_emb_benign = self.embedding.predict(x[benign_idxs, ...], batch_size=4)
+        # # x_emb_mal = self.embedding.predict(x[mal_idxs, ...], batch_size=4)
+
+        # if x.ndim == 3:
+        #     x = np.expand_dims(x, axis=-1)
+
+        # print(x.shape)
+
+        # x_emb_benign = self.embedding(x[benign_idxs, ...])
+        # x_emb_mal = self.embedding(x[mal_idxs, ...])
+
+        x_emb = self.embedding.predict(x_train_ds, batch_size=32, verbose=0)
+        x_emb_benign = x_emb[benign_idxs, ...]
+        x_emb_mal = x_emb[mal_idxs, ...]
+        
+        gc.collect()
+
+        x_benign = x[benign_idxs, ...]
+        x_mal = x[mal_idxs, ...]
+
+
+        benign_distances = pairwise_euclidean_distance(x_emb_benign)
+        benign_mal_distances = pairwise_euclidean_distance(x_emb_benign, x_emb_mal)
+        # benign_hard_positives = tf.argmax(benign_distances, axis=1)
+        benign_hard_positives = tf.math.top_k(benign_distances, k=k).indices.numpy()
+        # benign_hard_negatives = tf.argmin(benign_mal_distances, axis=1)
+        # benign_hard_negatives = tf.math.top_k(-benign_mal_distances, k=k).indices.numpy()
+
+        mal_distances = pairwise_euclidean_distance(x_emb_mal)
+        mal_hard_positives = tf.math.top_k(mal_distances, k=k).indices.numpy()
+        # mal_hard_negatives = tf.argmin(tf.transpose(benign_mal_distances), axis=1)
+        # mal_hard_negatives = tf.math.top_k(-tf.transpose(benign_mal_distances), k=k).indices.numpy()
+
+        triplets = []
+
+        for benign_anchor_idx, anchor in enumerate(x_benign):
+            # anchor = x[benign_anchor_idx, ...]
+            
+            for benign_positive_idx in benign_hard_positives[benign_anchor_idx]:
+                positive = x_benign[benign_positive_idx, ...]
+
+                # for benign_negative_idx in benign_hard_negatives[benign_anchor_idx]:
+                for benign_negative_idx in choices(range(len(mal_idxs)), k=k):
+                    negative = x_mal[benign_negative_idx, ...]
+                    triplets.append([anchor, positive, negative])
+
+        # for mal_anchor_idx in mal_idxs:
+        #     anchor = x[mal_anchor_idx, ...]
+        for mal_anchor_idx, anchor in enumerate(x_mal):
+
+            for mal_positive_idx in mal_hard_positives[mal_anchor_idx]:
+                positive = x_mal[mal_positive_idx, ...]
+
+                # for mal_negative_idx in mal_hard_negatives[mal_anchor_idx]:
+                for mal_negative_idx in choices(range(len(benign_idxs)), k=k):
+                    negative = x_benign[mal_negative_idx, ...]
+                    triplets.append([anchor, positive, negative])
+
+        anchors, positives, negatives = zip(*triplets)
+        anchors, positives, negatives = np.array(anchors), np.array(positives), np.array(negatives)
+
+        if return_tfds:
+            # return tf.data.Dataset.from_tensor_slices((anchors, positives, negatives))
+            anchor_dataset = tf.data.Dataset.from_tensor_slices(anchors)
+            positive_dataset = tf.data.Dataset.from_tensor_slices(positives)
+            negative_dataset = tf.data.Dataset.from_tensor_slices(negatives)
+
+            dataset = tf.data.Dataset.zip((anchor_dataset, positive_dataset, negative_dataset))
+            dataset = dataset.batch(32, drop_remainder=False)
+            dataset = dataset.prefetch(tf.data.AUTOTUNE)
+
+            return dataset
+        else:
+            return [anchors, positives, negatives]
+        # benign_mal_distances = pairwise_euclidean_distance(x_emb_benign, x_emb_mal)
+
+        # for anchor_idx, positive_idx in combinations(benign_idxs, 2):
+        #     anchor = x[anchor_idx, ...]
+        #     positive = x[positive_idx, ...]
+
+        #     for negative_idx in mal_idxs:
+        #         negative = x[negative_idx, ...]
+        #         triplets.append([anchor, positive, negative])
 
     def call(self, inputs):
         return self.siamese_network(inputs)
@@ -319,7 +498,7 @@ class Siamese(Model):
         benign_idxs_train = np.where(y_train==0)[0]
         mal_idxs_train = np.where(y_train==1)[0]
 
-        x_train_embeddings = self.embedding(x_train)
+        x_train_embeddings = self.embedding.predict(x_train)
 
         for benign_idx, mal_idx in product(benign_idxs_train, mal_idxs_train):
             test_single(x_train_embeddings[benign_idx], x_train_embeddings[mal_idx])
@@ -343,14 +522,8 @@ class Siamese(Model):
             print(f'mal success: {mal_success}')
 
         return benign_success, mal_success
-    
-    def inference_centroid(self, x_test, x_train=None, y_train=None, apply_transforms=False):
-        if self.train_data is not None:
-            x_train = self.train_data['x']
-            y_train = self.train_data['y']
-        else:
-            assert x_train is not None and y_train is not None, "train data must be provided"
 
+    def calc_train_embeddings(self, x_train, y_train):
         benign_idxs_train = np.where(y_train==0)[0]
         mal_idxs_train = np.where(y_train==1)[0]
 
@@ -358,8 +531,35 @@ class Siamese(Model):
         x_train_embeddings_benign = tf.gather(x_train_embeddings, indices=benign_idxs_train)
         x_train_embeddings_mal = tf.gather(x_train_embeddings, indices=mal_idxs_train)
 
+        if self.train_data is not None:
+            self.train_data['x_train_embeddings'] = x_train_embeddings
+            self.train_data['x_train_embeddings_benign'] = x_train_embeddings_benign
+            self.train_data['x_train_embeddings_mal'] = x_train_embeddings_mal
+
+        return x_train_embeddings_benign, x_train_embeddings_mal
+
+    def calc_centroids(self, x_train, y_train):
+        if self.train_data is not None and 'x_train_embeddings_benign' in self.train_data:
+            x_train_embeddings_benign = self.train_data['x_train_embeddings_benign']
+            x_train_embeddings_mal = self.train_data['x_train_embeddings_mal']
+        else:
+            x_train_embeddings_benign, x_train_embeddings_mal = self.calc_train_embeddings(x_train, y_train)
+
         centroid_benign = tf.reduce_mean(x_train_embeddings_benign, axis=0)
         centroid_mal = tf.reduce_mean(x_train_embeddings_mal, axis=0)
+
+        if self.train_data is not None:
+            self.train_data['x_train_embeddings_benign'] = x_train_embeddings_benign
+            self.train_data['x_train_embeddings_mal'] = x_train_embeddings_mal
+
+        return centroid_benign, centroid_mal
+
+    def inference_centroid(self, x_test, x_train=None, y_train=None, apply_transforms=False):
+        if self.train_data is not None and 'centroid_benign' in self.train_data:
+            centroid_benign = self.train_data['centroid_benign']
+            centroid_mal = self.train_data['centroid_mal']
+        else:
+            centroid_benign, centroid_mal = self.calc_centroids(x_train, y_train)
 
         batch_size = 16
         split_size = math.ceil(len(x_test) / batch_size)
@@ -406,7 +606,10 @@ class Siamese(Model):
         x_test_preds = [self.embedding(curr) for curr in x_test_splits]
         x_test_embeddings = np.vstack(x_test_preds)
 
-        x_train_embeddings = self.embedding(x_train)
+        if self.train_data is not None and 'x_train_embeddings' in self.train_data:
+            x_train_embeddings = self.train_data['x_train_embeddings']
+        else:
+            x_train_embeddings = self.embedding.predict(x_train)
 
         knn = KNeighborsClassifier(n_neighbors=k, metric=metric)
         knn.fit(x_train_embeddings, y_train)
