@@ -9,8 +9,8 @@ from model_xray.configs.enums import *
 from PIL import Image
 
 def pillow_preprocess(image: np.ndarray, image_preprocess_config: ImagePreprocessConfig) -> np.ndarray:
-    if image.ndim == 3:
-        image = image[0]
+    # if image.ndim == 3:
+    #     image = image[0]
     im = Image.fromarray(image)
 
     im_resized = im.resize(
@@ -28,16 +28,21 @@ def execute_image_preprocess(image: np.ndarray, image_preprocess_config: ImagePr
         raise NotImplementedError(f'execute_image_preprocess | got {preprocess_backend_type}, not implemented')
 
     if image.ndim == 3:
-        if image.shape[0] == 1:
-            image = image[0]
+        n_models, imsize, imsize = image.shape
+    elif image.ndim == 4:
+        n_models, imsize, imsize, n_channels = image.shape
 
-            ret = preprocess_backend(image, image_preprocess_config)
-        else:
-            images_preprocessed = []
-            for image_curr in image:
-                images_preprocessed.append(preprocess_backend(image_curr, image_preprocess_config))
+    if n_models == 1:
+        image = image[0]
 
-            ret = np.array(images_preprocessed)
+        ret = preprocess_backend(image, image_preprocess_config)
+    else:
+        images_preprocessed = []
+        for image_curr in image:
+            images_preprocessed.append(preprocess_backend(image_curr, image_preprocess_config))
+
+        ret = np.array(images_preprocessed)
+    
 
     return ret
 

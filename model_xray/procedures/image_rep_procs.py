@@ -13,14 +13,23 @@ def is_square(num: int) -> bool:
     return calc_closest_square(num) == num
 
 def ret_padded_square(data: np.ndarray) -> np.ndarray:
-    n_models, n_weights = data.shape
+    orig_shape = data.shape
+
+    if data.ndim == 2:
+        data = data.reshape(1, -1)
+    
+    n_models, n_weights, n_channels = data.shape
 
     closest_square = calc_closest_square(n_weights)
     closest_square_sqrt = int(np.sqrt(closest_square))
 
-    data_padded = np.pad(data, ((0, 0), (0, closest_square-n_weights),), mode='constant', constant_values=0)
+    data_padded = np.pad(data, ((0, 0), (0, closest_square-n_weights), (0, 0)), mode='constant', constant_values=0)
 
-    data_padded_reshaped = data_padded.reshape(data_padded.shape[:-1] + (closest_square_sqrt, closest_square_sqrt))
+    final_shape = (n_models, closest_square_sqrt, closest_square_sqrt)
+    if n_channels > 1:
+        final_shape += (n_channels,)
+
+    data_padded_reshaped = data_padded.reshape(final_shape)
 
     return data_padded_reshaped
 
@@ -137,6 +146,17 @@ def _grayscale_threepart_weighted_avg(data: np.ndarray[np.float32], config: Imag
     avereged_bytes = np.average(all_bytes, axis=-1, weights=[byte_1_weight, byte_2_weight, byte_3_weight]).astype(np.uint8)
 
     return ret_padded_square(avereged_bytes)
+
+def _rgb(data: np.ndarray[np.float32], config: ImageRepConfig = None) -> np.ndarray:
+    assert data.dtype == np.float32 or data.dtype.itemsize==4, f"rgb image rep expects 4-byte long data, got {data.dtype.itemsize}-byte long data"
+
+    assert data.ndim == 2, f"grayscale_weighted_avg image rep expects 2D data (n_models, n_weights), got {data.ndim}D data"
+
+    data_bytes = ndarray_to_bytes_arr(data)
+    last_3_bytes = data_bytes[..., -3:]
+
+    # return ret_padded_square(avereged_bytes)
+    return ret_padded_square(last_3_bytes)
 
 def execute_image_rep_proc(data: np.ndarray, image_rep_config: ImageRepConfig, try_coerce=True) -> np.ndarray:
     image_rep_type = image_rep_config.image_rep_proc_config.image_rep_type
