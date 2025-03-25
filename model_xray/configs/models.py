@@ -279,6 +279,11 @@ class OpenCVPreprocessConfig(BaseModel):
 
     image_preprocess_backend: Literal[ImagePreprocessBackend.OPENCV] = ImagePreprocessBackend.OPENCV
 
+class NumpyPreprocessConfig(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+
+    image_preprocess_backend: Literal[ImagePreprocessBackend.NUMPY] = ImagePreprocessBackend.NUMPY
+
 class ImagePreprocessConfig(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
 
@@ -290,6 +295,7 @@ class ImagePreprocessConfig(BaseModel):
         Union[
             PillowPreprocessConfig,
             OpenCVPreprocessConfig,
+            NumpyPreprocessConfig,
         ],
         Field(default=PillowPreprocessConfig(), discriminator='image_preprocess_backend')
     ]

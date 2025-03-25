@@ -79,6 +79,7 @@ class ImageResamplingFilter(StrEnum):
 class ImagePreprocessBackend(StrEnum):
     PILLOW = 'pillow'
     OPENCV = 'opencv'
+    NUMPY = 'numpy'
 
 class PreprocessedImageDatasetLabel(IntEnum):
     BENIGN = 0
