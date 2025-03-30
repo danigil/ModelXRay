@@ -157,9 +157,35 @@ def pairwise_euclidean_distance(X: tf.Tensor, Y: Optional[tf.Tensor]=None, sqrt:
     if sqrt:
         distances = tf.sqrt(distances)
 
-    distances = tf.linalg.set_diag(distances, tf.zeros(tf.shape(distances)[0], distances.dtype))
+    # distances = tf.linalg.set_diag(distances, tf.zeros(tf.shape(distances)[0], distances.dtype))
 
     return distances
+
+@tf.function
+def compute_C(A: tf.Tensor, B: tf.Tensor) -> tf.Tensor:
+    """
+    Compute tensor C of shape (n, q, p) such that C[i, j, k] = B[i, k] - A[i, j].
+
+    Parameters:
+    A (tf.Tensor): Tensor of shape (n, q)
+    B (tf.Tensor): Tensor of shape (n, p)
+
+    Returns:
+    tf.Tensor: Tensor C of shape (n, q, p)
+    """
+    if A.ndim != 2:
+        A = tf.expand_dims(A, axis=0)  # Add batch dimension if A is not 2D
+    
+    if B.ndim != 2:
+        B = tf.expand_dims(B, axis=0)
+
+    # Expand dimensions to enable broadcasting
+    A_expanded = tf.expand_dims(A, axis=2)  # Now A_expanded has shape (n, q, 1)
+    B_expanded = tf.expand_dims(B, axis=1)  # Now B_expanded has shape (n, 1, p)
+    
+    # Use broadcasting to compute the result
+    C = B_expanded - A_expanded  # Resulting shape is (n, q, p)
+    return C
 
 @tf.function
 def calc_dist(a,b, dist:Literal["l2", "cosine"]="l2"):
@@ -216,6 +242,35 @@ def ret_initializer_weights_rand():
 def ret_initializer_bias_rand():
     return tf.keras.initializers.RandomNormal(mean=0.5, stddev=0.01)
 
+def create_embedding_model(input_shape=(50, 50, 3), embedding_dim=128):
+    inputs = Input(shape=input_shape)
+    
+    # Block 1
+    x = tf.keras.layers.Conv2D(32, (3,3), padding="same", activation="relu",kernel_initializer=ret_initializer_weights_rand(), kernel_regularizer=l2(2e-4))(inputs)
+    x = tf.keras.layers.MaxPooling2D((2,2))(x)  # 25x25x32
+    
+    # Block 2
+    x = tf.keras.layers.Conv2D(64, (3,3), padding="same", activation="relu",
+                               kernel_initializer=ret_initializer_weights_rand(),
+                                bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4))(x)
+    x = tf.keras.layers.MaxPooling2D((2,2))(x)  # 12x12x64
+    
+    # Block 3
+    x = tf.keras.layers.Conv2D(128, (3,3), padding="same", activation="relu",kernel_initializer=ret_initializer_weights_rand(),
+                                bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4))(x)
+    x = tf.keras.layers.MaxPooling2D((2,2))(x)  # 6x6x128
+    
+    # Flatten and Fully Connected Layer to produce embedding
+    x = tf.keras.layers.Flatten()(x)
+    embeddings = tf.keras.layers.Dense(embedding_dim,kernel_regularizer=l2(1e-3),
+                    kernel_initializer=ret_initializer_bias_rand(),bias_initializer=ret_initializer_bias_rand(),activation=None)(x)
+    
+    # Optional L2-normalization (common in metric learning)
+    embeddings = tf.keras.layers.Lambda(lambda t: tf.math.l2_normalize(t, axis=1))(embeddings)
+    
+    model = tf.keras.models.Model(inputs, embeddings)
+    return model
+
 @tf.keras.saving.register_keras_serializable(package="MyModels")
 class Siamese(Model):
     # partially based on code from https://keras.io/examples/vision/siamese_network/
@@ -230,7 +285,7 @@ class Siamese(Model):
                 #  weights_init = "random", 
                  dropout_rate=0.5,
                  model=None,
-                 model_arch:Literal['osl_siamese_cnn', 'srnet', 'cvtstego', 'mobilenetv2']='srnet',
+                 model_arch:Literal['osl_siamese_cnn', 'srnet', 'cvtstego', 'mobilenetv2', 'e128']='srnet',
                  optimizer=None,
 
                  train_data=None,
@@ -269,15 +324,18 @@ class Siamese(Model):
                     kernel_regularizer=l2(1e-3),
                     kernel_initializer=ret_initializer_bias_rand(),bias_initializer=ret_initializer_bias_rand()))
             elif model_arch == 'srnet':
-                assert img_input_shape == (256,256,1), "srnet only supports 256x256x1 images"
+                # assert img_input_shape == (256,256,1), "srnet only supports 256x256x1 images"
                 model = SRNet(include_top=False)
 
             elif model_arch == 'mobilenetv2':
-                model = tf.keras.applications.MobileNetV2(input_shape=img_input_shape, include_top=False, weights=None)
+                model = tf.keras.applications.MobileNetV2(input_shape=img_input_shape, include_top=True, weights=None,classifier_activation=None)
                 model.trainable = True
+                self.preprocess_func = tf.keras.applications.mobilenet_v2.preprocess_input
             elif model_arch == 'cvtstego':
-                assert img_input_shape == (256,256,1), "srnet only supports 256x256x1 images"
+                assert img_input_shape == (256,256,1), "cvtstego only supports 256x256x1 images"
                 model = cvtstego(include_top=False, compile=False)
+            elif model_arch == 'e128':
+                model = create_embedding_model(input_shape=img_input_shape, embedding_dim=128)
         
         embedding = model
 
@@ -313,12 +371,21 @@ class Siamese(Model):
                           epochs=10, batch_size=16, verbose=1, is_shuffle=True, callbacks = [],
                           train_metadata: Optional[dict]=None,
                           size:Optional[int]=None,
-                          online_train:bool=False):
+                          online_train:bool=False,
+                          test_data:Optional[tuple]=None,):
+        triplets_test=None
+        if test_data is not None:
+            x_test, y_test = test_data
+            if x_test.ndim == 3:
+                x_test = np.expand_dims(x_test, axis=-1)
+
+            triplets_test = make_triplets(x_test, y_test, is_shuffle=False, size=size)
+        
         if online_train:
             if x_train.ndim == 3:
                 x_train = np.expand_dims(x_train, axis=-1)
 
-            n=3
+            n=1
 
             x_train_ds = tf.data.Dataset.from_tensor_slices(x_train).batch(32)
             # triplets_train = self.online_triplet_mine(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds)
@@ -329,16 +396,16 @@ class Siamese(Model):
                 
                 triplets_train = self.online_triplet_mine(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds)
 
-                fit_ret = self.fit(triplets_train, epochs=n, batch_size=batch_size, verbose=verbose, callbacks=callbacks)
-                loss = fit_ret.history['loss'][0]
+                fit_ret = self.fit(triplets_train, epochs=n, batch_size=batch_size, verbose=verbose, callbacks=callbacks, validation_data=triplets_test)
+                loss = fit_ret.history['loss'][-1]
 
                 print(f"round {i+1}/{rounds}, loss: {loss}")
                 
-                if loss < 0.45:
-                    break
+                # if loss < 0.45:
+                #     break
         else:
             triplets_train = make_triplets(x_train, y_train, is_shuffle=is_shuffle, size=size)
-            fit_ret = self.fit(triplets_train, epochs=epochs, batch_size=batch_size, verbose=verbose, callbacks=callbacks)
+            fit_ret = self.fit(triplets_train, epochs=epochs, batch_size=batch_size, verbose=verbose, callbacks=callbacks, validation_data=triplets_test)
 
         train_data = {
             'x': x_train,
@@ -379,26 +446,48 @@ class Siamese(Model):
 
         benign_distances = pairwise_euclidean_distance(x_emb_benign)
         benign_mal_distances = pairwise_euclidean_distance(x_emb_benign, x_emb_mal)
+        # print(f'benign_distances: {benign_distances.shape}')
         # benign_hard_positives = tf.argmax(benign_distances, axis=1)
         benign_hard_positives = tf.math.top_k(benign_distances, k=k).indices.numpy()
         # benign_hard_negatives = tf.argmin(benign_mal_distances, axis=1)
         # benign_hard_negatives = tf.math.top_k(-benign_mal_distances, k=k).indices.numpy()
+        # benign_pos_minus_neg = compute_C(benign_distances, benign_mal_distances)
+        # benign_pos_minus_neg_top = tf.math.top_k(benign_pos_minus_neg, k=k).indices.numpy()
+        # print(benign_pos_minus_neg_top.shape)
 
         mal_distances = pairwise_euclidean_distance(x_emb_mal)
+        mal_benign_distances = tf.transpose(benign_mal_distances)
         mal_hard_positives = tf.math.top_k(mal_distances, k=k).indices.numpy()
         # mal_hard_negatives = tf.argmin(tf.transpose(benign_mal_distances), axis=1)
         # mal_hard_negatives = tf.math.top_k(-tf.transpose(benign_mal_distances), k=k).indices.numpy()
+        # mal_pos_minus_neg = compute_C(mal_distances, mal_benign_distances)
+        # mal_pos_minus_neg_top = tf.math.top_k(mal_pos_minus_neg, k=k).indices.numpy()
 
         triplets = []
 
         for benign_anchor_idx, anchor in enumerate(x_benign):
             # anchor = x[benign_anchor_idx, ...]
+
+            # idx_tensor = tf.convert_to_tensor([benign_anchor_idx,], dtype=tf.int32)
+
+            benign_pos_minus_neg = compute_C(benign_distances[benign_anchor_idx,...], benign_mal_distances[benign_anchor_idx,...])
+            # print(f'benign_pos_minus_neg: {benign_pos_minus_neg.shape}')
+            benign_pos_minus_neg_top = tf.math.top_k(benign_pos_minus_neg, k=k).indices.numpy()
             
             for benign_positive_idx in benign_hard_positives[benign_anchor_idx]:
                 positive = x_benign[benign_positive_idx, ...]
 
                 # for benign_negative_idx in benign_hard_negatives[benign_anchor_idx]:
-                for benign_negative_idx in choices(range(len(mal_idxs)), k=k):
+                # for benign_negative_idx in choices(range(len(mal_idxs)), k=k):
+                # for benign_negative_idx in benign_pos_minus_neg_top[benign_anchor_idx, benign_positive_idx]:
+                for benign_negative_idx in benign_pos_minus_neg_top[0, benign_positive_idx]:
+                    curr_diff = benign_pos_minus_neg[0, benign_positive_idx, benign_negative_idx]
+
+                    if curr_diff <= 0:
+                        benign_negative_idx = choice(range(len(mal_idxs)))
+                        # continue
+                    
+                    # print(f'f(b,m) - f(b,b): {benign_pos_minus_neg[0, benign_positive_idx, benign_negative_idx]}')
                     negative = x_mal[benign_negative_idx, ...]
                     triplets.append([anchor, positive, negative])
 
@@ -406,11 +495,21 @@ class Siamese(Model):
         #     anchor = x[mal_anchor_idx, ...]
         for mal_anchor_idx, anchor in enumerate(x_mal):
 
+            mal_pos_minus_neg = compute_C(mal_distances[mal_anchor_idx,...], mal_benign_distances[mal_anchor_idx,...])
+            mal_pos_minus_neg_top = tf.math.top_k(mal_pos_minus_neg, k=k).indices.numpy()
+
             for mal_positive_idx in mal_hard_positives[mal_anchor_idx]:
                 positive = x_mal[mal_positive_idx, ...]
 
                 # for mal_negative_idx in mal_hard_negatives[mal_anchor_idx]:
-                for mal_negative_idx in choices(range(len(benign_idxs)), k=k):
+                # for mal_negative_idx in choices(range(len(benign_idxs)), k=k):
+                for mal_negative_idx in mal_pos_minus_neg_top[0, mal_positive_idx]:
+                    curr_diff = mal_pos_minus_neg[0, mal_positive_idx, mal_negative_idx]
+
+                    if curr_diff <= 0:
+                        mal_negative_idx = choice(range(len(benign_idxs)))
+                        # continue
+                    # print(f'f(m,b) - f(m,m): {mal_pos_minus_neg[0, mal_positive_idx, mal_negative_idx]}')
                     negative = x_benign[mal_negative_idx, ...]
                     triplets.append([anchor, positive, negative])
 
@@ -527,7 +626,7 @@ class Siamese(Model):
         benign_idxs_train = np.where(y_train==0)[0]
         mal_idxs_train = np.where(y_train==1)[0]
 
-        x_train_embeddings = self.embedding(x_train)
+        x_train_embeddings = self.embedding.predict(x_train, batch_size=32, verbose=0)
         x_train_embeddings_benign = tf.gather(x_train_embeddings, indices=benign_idxs_train)
         x_train_embeddings_mal = tf.gather(x_train_embeddings, indices=mal_idxs_train)
 
@@ -549,8 +648,10 @@ class Siamese(Model):
         centroid_mal = tf.reduce_mean(x_train_embeddings_mal, axis=0)
 
         if self.train_data is not None:
-            self.train_data['x_train_embeddings_benign'] = x_train_embeddings_benign
-            self.train_data['x_train_embeddings_mal'] = x_train_embeddings_mal
+            # self.train_data['x_train_embeddings_benign'] = x_train_embeddings_benign
+            # self.train_data['x_train_embeddings_mal'] = x_train_embeddings_mal
+            self.train_data['centroid_benign'] = centroid_benign
+            self.train_data['centroid_mal'] = centroid_mal
 
         return centroid_benign, centroid_mal
 
