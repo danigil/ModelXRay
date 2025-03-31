@@ -122,7 +122,8 @@ class SRNet(tf.keras.Model):
         self.flatten = tf.keras.layers.Flatten()
 
         if include_top:
-            self.dense = tf.keras.layers.Dense(num_classes, activation='softmax')
+            self.dense = tf.keras.layers.Dense(num_classes, activation=None)
+            # self.l2_reg = tf.keras.regularizers.l2(0.0001)
         
 
     def call(self, inputs, training=False):
