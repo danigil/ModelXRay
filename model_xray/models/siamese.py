@@ -115,6 +115,7 @@ class MyThresholdCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         if self.ub_mode:
             train_loss = logs["loss"]
+            val_loss = logs.get("val_loss")
             # print(f"train loss: {train_loss}")
             if self.threshold_lower <= train_loss <= self.threshold_upper:
                 self.model.stop_training = True
@@ -243,28 +244,28 @@ def ret_initializer_weights_rand():
 def ret_initializer_bias_rand():
     return tf.keras.initializers.RandomNormal(mean=0.5, stddev=0.01)
 
-def create_embedding_model(input_shape=(50, 50, 3), embedding_dim=128, dropout_rate=0.5):
+def create_embedding_model(input_shape=(50, 50, 3), embedding_dim=128, spatial_dropout_rate=0.0,dropout_rate=0.5):
     inputs = Input(shape=input_shape)
     
     # Block 1
     x = tf.keras.layers.Conv2D(32, (3,3), padding="same", activation="relu",kernel_initializer=ret_initializer_weights_rand(), kernel_regularizer=l2(2e-4))(inputs)
-    if dropout_rate > 0:
-        x = tf.keras.layers.SpatialDropout2D(dropout_rate)(x)
+    if spatial_dropout_rate > 0:
+        x = tf.keras.layers.SpatialDropout2D(spatial_dropout_rate)(x)
     x = tf.keras.layers.MaxPooling2D((2,2))(x)  # 25x25x32
     
     # Block 2
     x = tf.keras.layers.Conv2D(64, (3,3), padding="same", activation="relu",
                                kernel_initializer=ret_initializer_weights_rand(),
                                 bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4))(x)
-    if dropout_rate > 0:
-        x = tf.keras.layers.SpatialDropout2D(dropout_rate)(x)
+    if spatial_dropout_rate > 0:
+        x = tf.keras.layers.SpatialDropout2D(spatial_dropout_rate)(x)
     x = tf.keras.layers.MaxPooling2D((2,2))(x)  # 12x12x64
     
     # Block 3
     x = tf.keras.layers.Conv2D(128, (3,3), padding="same", activation="relu",kernel_initializer=ret_initializer_weights_rand(),
                                 bias_initializer=ret_initializer_bias_rand(), kernel_regularizer=l2(2e-4))(x)
-    if dropout_rate > 0:
-        x = tf.keras.layers.SpatialDropout2D(dropout_rate)(x)
+    if spatial_dropout_rate > 0:
+        x = tf.keras.layers.SpatialDropout2D(spatial_dropout_rate)(x)
     x = tf.keras.layers.MaxPooling2D((2,2))(x)  # 6x6x128
     
     # Flatten and Fully Connected Layer to produce embedding
@@ -277,8 +278,10 @@ def create_embedding_model(input_shape=(50, 50, 3), embedding_dim=128, dropout_r
         embeddings = tf.keras.layers.Dropout(dropout_rate)(embeddings)
     
     # Optional L2-normalization (common in metric learning)
-    # embeddings = tf.keras.layers.Lambda(lambda t: tf.math.l2_normalize(t, axis=1))(embeddings)
+    embeddings = tf.keras.layers.Lambda(lambda t: tf.math.l2_normalize(t, axis=1))(embeddings)
     
+    # embeddings = tf.keras.layers.BatchNormalization()(embeddings)
+
     model = tf.keras.models.Model(inputs, embeddings)
     return model
 
@@ -348,6 +351,8 @@ class Siamese(Model):
             elif model_arch == 'e128':
                 model = create_embedding_model(input_shape=img_input_shape, embedding_dim=128)
         
+        # embedding = tf.keras.layers.BatchNormalization()(model)
+        # embedding = 
         embedding = model
 
         anchor_input = tf.keras.layers.Input(name="anchor", shape=img_input_shape)
@@ -389,6 +394,9 @@ class Siamese(Model):
             x_test, y_test = test_data
             if x_test.ndim == 3:
                 x_test = np.expand_dims(x_test, axis=-1)
+        else:
+            x_test = None
+            y_test = None
 
         if x_train.ndim == 3:
             x_train = np.expand_dims(x_train, axis=-1)
@@ -410,7 +418,7 @@ class Siamese(Model):
             x_test = layer(x_test)
         
         if online_train:
-            n=1
+            n=10
 
             x_train_ds = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(x_train)).batch(32)
 
@@ -420,11 +428,11 @@ class Siamese(Model):
 
             for i in range(rounds):
                 
-                triplets_train = self.online_triplet_mine(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds, benign_sample_fraction=1.0, mal_sample_fraction=1.0, skip_hard_negatives=False,k=3)
+                triplets_train = self.online_triplet_mine(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds, benign_sample_fraction=0.5, mal_sample_fraction=0.5, skip_hard_negatives=False,k=1, only_benign_triplets=False,)
 
                 if test_data is not None:
                     x_test_ds = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(x_test)).batch(32)
-                    triplets_test = self.online_triplet_mine(x_test, y_test, return_tfds=True, x_train_ds=x_test_ds, benign_sample_fraction=1.0, mal_sample_fraction=0.5,skip_hard_negatives=False)
+                    triplets_test = self.online_triplet_mine(x_test, y_test, return_tfds=True, x_train_ds=x_test_ds, benign_sample_fraction=1.0, mal_sample_fraction=0.5,skip_hard_negatives=False, only_benign_triplets=False,)
 
                 if len(triplets_train) == 0:
                     print("No triplets found, exiting training.")
@@ -432,9 +440,9 @@ class Siamese(Model):
                 fit_ret = self.fit(triplets_train, epochs=n, batch_size=batch_size, verbose=verbose, callbacks=callbacks, validation_data=triplets_test)
                 loss = fit_ret.history['loss'][-1]
 
-                print(f"round {i+1}/{rounds}, loss: {loss}")
+                # print(f"round {i+1}/{rounds}, loss: {loss}")
                 
-                # if loss < 0.45:
+                # if loss < 0.1:
                 #     break
         else:
             triplets_test = make_triplets(x_test, y_test, is_shuffle=False, size=size)
@@ -454,7 +462,7 @@ class Siamese(Model):
 
         return fit_ret
 
-    def online_triplet_mine(self, x, y, return_tfds:bool=True, x_train_ds:Optional[tf.data.Dataset]=None, k=1, benign_sample_fraction:float=1.0, mal_sample_fraction:float=0.1, skip_hard_negatives:bool=False):
+    def online_triplet_mine(self, x, y, return_tfds:bool=True, x_train_ds:Optional[tf.data.Dataset]=None, k=1, benign_sample_fraction:float=1.0, mal_sample_fraction:float=0.1, skip_hard_negatives:bool=False, only_benign_triplets:bool=True):
         benign_idxs = np.where(y == 0)[0]
         mal_idxs = np.where(y == 1)[0]
 
@@ -471,6 +479,8 @@ class Siamese(Model):
 
         # x_emb = self.embedding.predict(x_train_ds, batch_size=32, verbose=1)/
         x_emb = tf.convert_to_tensor(self.embedding.predict(x_train_ds, batch_size=32, verbose=1))
+        # print(f'x: {x.shape}')
+        # print(f'x_emb: {x_emb.shape}')
 
         benign_sample_size = int(len(benign_idxs) * benign_sample_fraction)
         mal_sample_size = int(len(mal_idxs) * mal_sample_fraction)
@@ -480,11 +490,16 @@ class Siamese(Model):
         benign_idxs = np.random.choice(benign_idxs, benign_sample_size, replace=False)
         mal_idxs = np.random.choice(mal_idxs, mal_sample_size, replace=False)
 
+        # print(f'max(benign_idxs): {benign_idxs.max()}, min(benign_idxs): {benign_idxs.min()}')
+        # print(f'max(mal_idxs): {mal_idxs.max()}, min(mal_idxs): {mal_idxs.min()}')
+
         
         # x_emb_benign = x_emb[benign_idxs, ...]
         # x_emb_mal = x_emb[mal_idxs, ...]
         x_emb_benign = tf.gather(x_emb, indices=benign_idxs)
         x_emb_mal = tf.gather(x_emb, indices=mal_idxs)
+        # print(f'x_emb_benign: {x_emb_benign.shape}')
+        # print(f'x_emb_mal: {x_emb_mal.shape}')
         
         gc.collect()
 
@@ -493,13 +508,19 @@ class Siamese(Model):
         x_benign = tf.gather(x, indices=benign_idxs)
         x_mal = tf.gather(x, indices=mal_idxs)
 
+        benign_amnt = len(benign_idxs)
+        mal_amnt = len(mal_idxs)
+
 
         benign_distances = pairwise_euclidean_distance(x_emb_benign)
         benign_mal_distances = pairwise_euclidean_distance(x_emb_benign, x_emb_mal)
+        # print(f'benign_distances: {benign_distances.shape},')
+        # print(f'benign_mal_distances: {benign_mal_distances.shape}')
         # print(f'benign_mal_distances: {benign_mal_distances.shape}, dtype: {benign_mal_distances.dtype}, type: {type(benign_mal_distances)}')
         # print(f'benign_distances: {benign_distances.shape}')
         # benign_hard_positives = tf.argmax(benign_distances, axis=1)
-        benign_hard_positives = tf.math.top_k(benign_distances, k=k).indices.numpy()
+        benign_hard_positives = tf.math.top_k(benign_distances, k=min(k, benign_amnt)).indices.numpy()
+        # print(f'benign_hard_positives: {benign_hard_positives.shape}')
         # benign_hard_negatives = tf.argmin(benign_mal_distances, axis=1)
         # benign_hard_negatives = tf.math.top_k(-benign_mal_distances, k=k).indices.numpy()
         # benign_pos_minus_neg = compute_C(benign_distances, benign_mal_distances)
@@ -508,27 +529,33 @@ class Siamese(Model):
 
         mal_distances = pairwise_euclidean_distance(x_emb_mal)
         mal_benign_distances = tf.transpose(benign_mal_distances)
-        mal_hard_positives = tf.math.top_k(mal_distances, k=k).indices.numpy()
+        mal_hard_positives = tf.math.top_k(mal_distances, k=min(k, mal_amnt)).indices.numpy()
         # mal_hard_negatives = tf.argmin(tf.transpose(benign_mal_distances), axis=1)
         # mal_hard_negatives = tf.math.top_k(-tf.transpose(benign_mal_distances), k=k).indices.numpy()
         # mal_pos_minus_neg = compute_C(mal_distances, mal_benign_distances)
         # mal_pos_minus_neg_top = tf.math.top_k(mal_pos_minus_neg, k=k).indices.numpy()
 
-        print(f'starting triplet mining, benign sample size: {benign_sample_size}, mal sample size: {mal_sample_size}')
+        # print(f'starting triplet mining, benign sample size: {benign_sample_size}, mal sample size: {mal_sample_size}')
 
         triplets = []
+        triplets_idxs = []
 
         compute_c_batch_size = 32
-        benign_idxs_split = np.array_split(benign_idxs, math.ceil(len(benign_idxs) / compute_c_batch_size))
-        mal_idxs_split = np.array_split(mal_idxs, math.ceil(len(mal_idxs) / compute_c_batch_size))
+        benign_idxs_split = np.array_split(range(len(benign_idxs)), math.ceil(len(benign_idxs) / compute_c_batch_size))
+        # print(f'benign_idxs_split: {benign_idxs_split}')
+        mal_idxs_split = np.array_split(range(len(mal_idxs)), math.ceil(len(mal_idxs) / compute_c_batch_size))
 
         for split_idx, benign_anchor_idxs in enumerate(benign_idxs_split):
             benign_pos_minus_neg = compute_C(tf.gather(benign_distances, benign_anchor_idxs), tf.gather(benign_mal_distances, benign_anchor_idxs))
             # print(f'benign_pos_minus_neg: {benign_pos_minus_neg.shape}')
-            benign_pos_minus_neg_top = tf.math.top_k(benign_pos_minus_neg, k=k).indices.numpy()
+            benign_pos_minus_neg_top = tf.math.top_k(benign_pos_minus_neg, k=min(k, benign_amnt)).indices.numpy()
+
+            # print(f'benign_pos_minus_neg: {benign_pos_minus_neg.shape}')
+            # print(f'benign_pos_minus_neg_top: {benign_pos_minus_neg_top.shape}')
 
             for local_idx, benign_anchor_idx in enumerate(benign_anchor_idxs):
-                anchor = x[benign_anchor_idx, ...]
+                # print(f'benign_anchor_idx: {benign_anchor_idx}')
+                anchor = x_benign[benign_anchor_idx, ...]
         # for benign_anchor_idx, anchor in enumerate(x_benign):
 
             # anchor = x[benign_anchor_idx, ...]
@@ -541,6 +568,9 @@ class Siamese(Model):
                 
                 for benign_positive_idx in benign_hard_positives[benign_anchor_idx]:
                     positive = x_benign[benign_positive_idx, ...]
+
+                    # print(f'benign_positive_idx: {benign_positive_idx}')
+                    # print(f'benign_hard_positives: {benign_hard_positives[benign_anchor_idx]}')
 
                     # for benign_negative_idx in benign_hard_negatives[benign_anchor_idx]:
                     # for benign_negative_idx in choices(range(len(mal_idxs)), k=k):
@@ -556,32 +586,41 @@ class Siamese(Model):
                         # print(f'f(b,m) - f(b,b): {benign_pos_minus_neg[0, benign_positive_idx, benign_negative_idx]}')
                         negative = x_mal[benign_negative_idx, ...]
                         triplets.append([anchor, positive, negative])
+                        triplets_idxs.append([benign_anchor_idx, benign_positive_idx, benign_negative_idx])
 
+        n_benign_triplets = len(triplets)
+        # print(f'benign triplets: {n_benign_triplets}')
+        # print(f'benign_triplets_idxs: {triplets_idxs}')
+        if not only_benign_triplets:
         # for mal_anchor_idx in mal_idxs:
         #     anchor = x[mal_anchor_idx, ...]
         # for mal_anchor_idx, anchor in enumerate(x_mal):
-        for split_idx, mal_anchor_idxs in enumerate(mal_idxs_split):
+            for split_idx, mal_anchor_idxs in enumerate(mal_idxs_split):
 
-            mal_pos_minus_neg = compute_C(tf.gather(mal_distances, mal_anchor_idxs), tf.gather(mal_benign_distances, mal_anchor_idxs))
-            mal_pos_minus_neg_top = tf.math.top_k(mal_pos_minus_neg, k=k).indices.numpy()
+                mal_pos_minus_neg = compute_C(tf.gather(mal_distances, mal_anchor_idxs), tf.gather(mal_benign_distances, mal_anchor_idxs))
+                mal_pos_minus_neg_top = tf.math.top_k(mal_pos_minus_neg, k=min(k, mal_amnt)).indices.numpy()
 
-            for local_idx, mal_anchor_idx in enumerate(mal_anchor_idxs):
-                anchor = x[mal_anchor_idx, ...]
-                for mal_positive_idx in mal_hard_positives[mal_anchor_idx]:
-                    positive = x_mal[mal_positive_idx, ...]
+                for local_idx, mal_anchor_idx in enumerate(mal_anchor_idxs):
+                    anchor = x[mal_anchor_idx, ...]
+                    for mal_positive_idx in mal_hard_positives[mal_anchor_idx]:
+                        positive = x_mal[mal_positive_idx, ...]
 
-                    # for mal_negative_idx in mal_hard_negatives[mal_anchor_idx]:
-                    # for mal_negative_idx in choices(range(len(benign_idxs)), k=k):
-                    for mal_negative_idx in mal_pos_minus_neg_top[local_idx, mal_positive_idx]:
-                        curr_diff = mal_pos_minus_neg[local_idx, mal_positive_idx, mal_negative_idx]
+                        # for mal_negative_idx in mal_hard_negatives[mal_anchor_idx]:
+                        # for mal_negative_idx in choices(range(len(benign_idxs)), k=k):
+                        for mal_negative_idx in mal_pos_minus_neg_top[local_idx, mal_positive_idx]:
+                            curr_diff = mal_pos_minus_neg[local_idx, mal_positive_idx, mal_negative_idx]
 
-                        if curr_diff <= 0:
-                            # mal_negative_idx = choice(range(len(benign_idxs)))
-                            if skip_hard_negatives:
-                                continue
-                        # print(f'f(m,b) - f(m,m): {mal_pos_minus_neg[0, mal_positive_idx, mal_negative_idx]}')
-                        negative = x_benign[mal_negative_idx, ...]
-                        triplets.append([anchor, positive, negative])
+                            if curr_diff <= 0:
+                                # mal_negative_idx = choice(range(len(benign_idxs)))
+                                if skip_hard_negatives:
+                                    continue
+                            # print(f'f(m,b) - f(m,m): {mal_pos_minus_neg[0, mal_positive_idx, mal_negative_idx]}')
+                            negative = x_benign[mal_negative_idx, ...]
+                            triplets.append([anchor, positive, negative])
+
+
+
+        # print(f'mal triplets: {len(triplets) - n_benign_triplets}')
 
         if len(triplets) == 0:
             print("No triplets found, returning empty dataset.")
@@ -589,6 +628,9 @@ class Siamese(Model):
 
         anchors, positives, negatives = zip(*triplets)
         anchors, positives, negatives = np.array(anchors), np.array(positives), np.array(negatives)
+
+        # tf.reset_default_graph()
+        tf.keras.backend.clear_session()
 
         if return_tfds:
             # return tf.data.Dataset.from_tensor_slices((anchors, positives, negatives))
@@ -613,8 +655,8 @@ class Siamese(Model):
         #         negative = x[negative_idx, ...]
         #         triplets.append([anchor, positive, negative])
 
-    def call(self, inputs):
-        return self.siamese_network(inputs)
+    def call(self, inputs, training=False):
+        return self.siamese_network(inputs, training=training)
 
     def test(self, x,y, verbose=None, ref_idxs=None):
         triplets_test = make_triplets(x,y, size=None, is_shuffle=False)
@@ -863,7 +905,7 @@ class Siamese(Model):
         # the gradients and apply them using the optimizer specified in
         # `compile()`.
         with tf.GradientTape() as tape:
-            loss = self._compute_loss(data)
+            loss = self._compute_loss(data, training=True)
 
         # Storing the gradients of the loss function with respect to the
         # weights/parameters.
@@ -879,23 +921,35 @@ class Siamese(Model):
         return {"loss": self.loss_tracker.result()}
 
     def test_step(self, data):
-        loss = self._compute_loss(data)
+        loss = self._compute_loss(data, training=False)
 
         # Let's update and return the loss metric.
         self.loss_tracker.update_state(loss)
         return {"loss": self.loss_tracker.result()}
 
-    def _compute_loss(self, data):
+    def _compute_loss(self, data, training=False):
         # The output of the network is a tuple containing the distances
         # between the anchor and the positive example, and the anchor and
         # the negative example.
-        ap_distance, an_distance = self.siamese_network(data)
+        ap_distance, an_distance = self.siamese_network(data, training=training)
 
         # Computing the Triplet Loss by subtracting both distances and
         # making sure we don't get a negative value.
         loss = ap_distance - an_distance
         loss = tf.maximum(loss + self.margin, 0.0)
         return loss
+
+    def get_embeddings(self, x):
+        if x.ndim == 3:
+            x = np.expand_dims(x, axis=-1)
+
+        if x.dtype == np.uint8:
+            x = x.astype(np.float32) / 255.0
+
+        # x = self.normalization_layer(x)
+        return self.embedding.predict(x)
+
+    # def visualize_learned_embedding(self, )
 
     @property
     def metrics(self):
