@@ -244,7 +244,7 @@ def ret_initializer_weights_rand():
 def ret_initializer_bias_rand():
     return tf.keras.initializers.RandomNormal(mean=0.5, stddev=0.01)
 
-def create_embedding_model(input_shape=(50, 50, 3), embedding_dim=128, spatial_dropout_rate=0.0,dropout_rate=0.2):
+def create_embedding_model(input_shape=(50, 50, 3), embedding_dim=128, spatial_dropout_rate=0.0,dropout_rate=0.05):
     inputs = Input(shape=input_shape)
     
     # Block 1
@@ -278,7 +278,7 @@ def create_embedding_model(input_shape=(50, 50, 3), embedding_dim=128, spatial_d
         embeddings = tf.keras.layers.Dropout(dropout_rate)(embeddings)
     
     # Optional L2-normalization (common in metric learning)
-    embeddings = tf.keras.layers.Lambda(lambda t: tf.math.l2_normalize(t, axis=1))(embeddings)
+    # embeddings = tf.keras.layers.Lambda(lambda t: tf.math.l2_normalize(t, axis=1))(embeddings)
     
     # embeddings = tf.keras.layers.BatchNormalization()(embeddings)
 
@@ -296,6 +296,9 @@ def bulk_indexof(a,b):
     ret = sorter[np.searchsorted(b, a, sorter=sorter)]
 
     return ret
+
+def coarse_label_map(y):
+    return [0 if i == 0 else 1 for i in y]
 
 @tf.keras.saving.register_keras_serializable(package="MyModels")
 class Siamese(Model):
@@ -365,7 +368,11 @@ class Siamese(Model):
         
         # embedding = tf.keras.layers.BatchNormalization()(model)
         # embedding = 
-        embedding = model
+        # embedding = model
+        embedding = Sequential([
+            model,
+            tf.keras.layers.Lambda(lambda t: tf.math.l2_normalize(t, axis=1)),
+        ])
 
         anchor_input = tf.keras.layers.Input(name="anchor", shape=img_input_shape)
         positive_input = tf.keras.layers.Input(name="positive", shape=img_input_shape)
@@ -400,7 +407,8 @@ class Siamese(Model):
                           train_metadata: Optional[dict]=None,
                           size:Optional[int]=None,
                           online_train:bool=False,
-                          test_data:Optional[tuple]=None,):
+                          test_data:Optional[tuple]=None,
+                          skip_hard_negatives:bool=False,):
         triplets_test=None
         if test_data is not None:
             x_test, y_test = test_data
@@ -430,29 +438,34 @@ class Siamese(Model):
             x_test = layer(x_test)
         
         if online_train:
-            n=10
+            n=1
 
-            x_train_ds = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(x_train)).batch(32)
+            x_train_ds = None
+            # x_train_ds = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(x_train)).batch(32)
 
             # triplets_train = self.online_triplet_mine(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds)
 
-            rounds = epochs // n
+            rounds = math.ceil(epochs / n)
+
+            curr_skip_hard_negatives = False
 
             for i in range(rounds):
                 
-                triplets_train = self.online_triplet_mine_generalized(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds, skip_hard_negatives=False,k=1, only_benign_triplets=False,)
+                triplets_train = self.online_triplet_mine_generalized(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds, skip_hard_negatives=curr_skip_hard_negatives,k=3, only_benign_triplets=False,)
+
+                curr_skip_hard_negatives = skip_hard_negatives
 
                 if test_data is not None:
                     x_test_ds = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(x_test)).batch(32)
-                    triplets_test = self.online_triplet_mine_efficient(x_test, y_test, return_tfds=True, x_train_ds=x_test_ds, benign_sample_fraction=1.0, mal_sample_fraction=0.5,skip_hard_negatives=False, only_benign_triplets=True,)
+                    triplets_test = self.online_triplet_mine_generalized(x_test, y_test, return_tfds=True, x_train_ds=x_test_ds,skip_hard_negatives=False, only_benign_triplets=False,)
 
                 if len(triplets_train) == 0:
-                    print("No triplets found, exiting training.")
-                    break
-                fit_ret = self.fit(triplets_train, epochs=n, batch_size=batch_size, verbose=verbose, callbacks=callbacks, validation_data=triplets_test)
+                    print("No triplets found, skipping round.")
+                    continue
+                fit_ret = self.fit(triplets_train, epochs=min(n, epochs), batch_size=batch_size, verbose=verbose, callbacks=callbacks, validation_data=triplets_test)
                 loss = fit_ret.history['loss'][-1]
 
-                # print(f"round {i+1}/{rounds}, loss: {loss}")
+                print(f"round {i+1}/{rounds}, loss: {loss}")
                 
                 # if loss < 0.1:
                 #     break
@@ -480,7 +493,7 @@ class Siamese(Model):
         return_tfds:bool=True,
         x_train_ds:Optional[tf.data.Dataset]=None,
         k=1,
-        sample_fractions:Optional[dict]={},
+        sample_fractions:Optional[dict]={0: 0.5},
         skip_hard_negatives:bool=False, only_benign_triplets:bool=True
     ):
         unique_labels = np.unique(y)
@@ -507,7 +520,15 @@ class Siamese(Model):
         # mal_idxs_relative 
         # ma
 
-        x_emb = tf.convert_to_tensor(self.embedding.predict(x_train_ds, batch_size=32, verbose=0))
+        all_idxs = np.concatenate([benign_idxs, mal_idxs])
+        benign_idxs_relative_to_all = bulk_indexof(benign_idxs, all_idxs)
+        mal_idxs_relative_to_all = bulk_indexof(mal_idxs, all_idxs)
+
+
+        x_subset = tf.gather(x, indices=all_idxs, axis=0)
+        x_subset_emb = x_emb = self.embedding.predict(x_subset, batch_size=32, verbose=0)
+
+        # x_emb = tf.convert_to_tensor(self.embedding.predict(x_train_ds, batch_size=32, verbose=0))
         # x_emb_specific = {
         #     label: tf.gather(x_emb, indices=idxs) for label, idxs in specific_label_idxs_sampled.items()
         # }
@@ -525,13 +546,13 @@ class Siamese(Model):
 
         all_distances = pairwise_euclidean_distance(x_emb)
 
-        benign_distances = tf.gather(all_distances, indices=benign_idxs, axis=0)
-        benign_distances = tf.gather(benign_distances, indices=benign_idxs, axis=1)
+        benign_distances = tf.gather(all_distances, indices=benign_idxs_relative_to_all, axis=0)
+        benign_distances = tf.gather(benign_distances, indices=benign_idxs_relative_to_all, axis=1)
         # benign_distances = pairwise_euclidean_distance(x_emb_specific[benign_label])
         benign_hard_positives = tf.math.top_k(benign_distances, k=min(k, benign_amnt)).indices
 
-        benign_mal_distances = tf.gather(all_distances, indices=benign_idxs, axis=0)
-        benign_mal_distances = tf.gather(benign_mal_distances, indices=mal_idxs, axis=1)
+        benign_mal_distances = tf.gather(all_distances, indices=benign_idxs_relative_to_all, axis=0)
+        benign_mal_distances = tf.gather(benign_mal_distances, indices=mal_idxs_relative_to_all, axis=1)
 
         # mal_distances = tf.gather(all_distances, indices=mal_idxs, axis=0)
         # mal_distances = tf.gather(mal_distances, indices=mal_idxs, axis=1)
@@ -581,7 +602,7 @@ class Siamese(Model):
 
                             if curr_diff <= 0:
                                 if skip_hard_negatives:
-                                    continue
+                                    break
 
                             benign_negative_idx = mal_idxs[benign_negative_idx_relative]
                             
@@ -634,7 +655,7 @@ class Siamese(Model):
 
                             if curr_diff <= 0:
                                 if skip_hard_negatives:
-                                    continue
+                                    break
 
                             mal_negative_idx = benign_idxs[mal_negative_idx_relative]
                             
@@ -680,6 +701,12 @@ class Siamese(Model):
                 return (anchor, positive, negative)
 
             dataset = triplet_idx_dataset.map(gather_triplet)
+
+            # dataset_anchors = tf.data.Dataset.from_tensor_slices(tf.gather(x, anchor_idxs_tf))
+            # dataset_positives = tf.data.Dataset.from_tensor_slices(tf.gather(x, positive_idxs_tf))
+            # dataset_negatives = tf.data.Dataset.from_tensor_slices(tf.gather(x, negative_idxs_tf))
+
+            # dataset = tf.data.Dataset.zip((dataset_anchors, dataset_positives, dataset_negatives))
             
             # anchor_dataset = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(anchors))
             # positive_dataset = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(positives))
@@ -1183,7 +1210,7 @@ class Siamese(Model):
 
         return centroid_specific, centroid_knn
 
-    def inference_centroid(self, x_test, x_train=None, y_train=None, apply_transforms:Literal['NA', 'L2', 'CL2']='NA'):
+    def inference_centroid(self, x_test, x_train=None, y_train=None, apply_transforms:Literal['NA', 'L2', 'CL2']='NA', coarse_label: bool=False):
         if self.train_data is not None and 'centroid_knn' in self.train_data:
             # centroid_benign = self.train_data['centroid_benign']
             # centroid_mal = self.train_data['centroid_mal']
@@ -1230,12 +1257,19 @@ class Siamese(Model):
         
 
         y_pred = centroid_knn.predict(x_test_embeddings)
+
+        if coarse_label:
+            y_pred = coarse_label_map(y_pred)
+
         return y_pred
             
-    def test_centroid(self, x_test, y_test, x_train=None, y_train=None, is_print=True, apply_transforms:Literal['NA', 'L2', 'CL2']='NA', return_acc=True):
+    def test_centroid(self, x_test, y_test, x_train=None, y_train=None, is_print=True, apply_transforms:Literal['NA', 'L2', 'CL2']='NA', return_acc=True, coarse_label: bool=False):
 
-        y_pred = self.inference_centroid(x_test, x_train=x_train, y_train=y_train, apply_transforms=apply_transforms)
+        y_pred = self.inference_centroid(x_test, x_train=x_train, y_train=y_train, apply_transforms=apply_transforms, coarse_label=coarse_label)
         if return_acc:
+            if coarse_label:
+                y_test = coarse_label_map(y_test)
+
             acc = accuracy_score(y_test, y_pred)
             if is_print:
                 print(f'knn (centroid) accuracy: {acc}')
@@ -1243,7 +1277,7 @@ class Siamese(Model):
         else:
             return y_pred
 
-    def inference_nn(self, x_test, x_train=None, y_train=None, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean',):
+    def inference_nn(self, x_test, x_train=None, y_train=None, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean',coarse_label: bool=False):
         if self.train_data is not None:
             x_train = self.train_data['x']
             y_train = self.train_data['y']
@@ -1267,13 +1301,18 @@ class Siamese(Model):
         knn.fit(x_train_embeddings, y_train)
 
         y_pred = knn.predict(x_test_embeddings)
+        if coarse_label:
+            y_pred = coarse_label_map(y_pred)
 
         return y_pred
     
-    def test_nn(self, x_test, y_test, x_train=None, y_train=None, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', is_print=True, return_acc=True):
-        y_pred = self.inference_nn(x_test, x_train=x_train, y_train=y_train, k=k, metric=metric)
+    def test_nn(self, x_test, y_test, x_train=None, y_train=None, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', is_print=True, return_acc=True, coarse_label: bool=False):
+        y_pred = self.inference_nn(x_test, x_train=x_train, y_train=y_train, k=k, metric=metric, coarse_label=coarse_label)
         
         if return_acc:
+            if coarse_label:
+                y_test = coarse_label_map(y_test)
+
             acc = accuracy_score(y_test, y_pred)
             if is_print:
                 print(f'accuracy: {acc}')
@@ -1281,9 +1320,9 @@ class Siamese(Model):
         else:
             return y_pred
     
-    def test_all(self, x_test, y_test, x_train=None, y_train=None, is_print=True, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', return_acc=True, centroid_apply_transforms:Literal['NA', 'L2', 'CL2']='NA'):
-        ret_centroid = self.test_centroid(x_test, y_test, x_train=x_train, y_train=y_train, is_print=is_print, apply_transforms=centroid_apply_transforms, return_acc=return_acc)
-        ret_nn = self.test_nn(x_test, y_test, x_train=x_train, y_train=y_train, k=k, metric=metric, is_print=is_print, return_acc=return_acc)
+    def test_all(self, x_test, y_test, x_train=None, y_train=None, is_print=True, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', return_acc=True, centroid_apply_transforms:Literal['NA', 'L2', 'CL2']='NA', coarse_label: bool=False):
+        ret_centroid = self.test_centroid(x_test, y_test, x_train=x_train, y_train=y_train, is_print=is_print, apply_transforms=centroid_apply_transforms, return_acc=return_acc, coarse_label=coarse_label)
+        ret_nn = self.test_nn(x_test, y_test, x_train=x_train, y_train=y_train, k=k, metric=metric, is_print=is_print, return_acc=return_acc, coarse_label=coarse_label)
 
         return {'centroid': ret_centroid, 'nn': ret_nn}
 
