@@ -244,7 +244,7 @@ def ret_initializer_weights_rand():
 def ret_initializer_bias_rand():
     return tf.keras.initializers.RandomNormal(mean=0.5, stddev=0.01)
 
-def create_embedding_model(input_shape=(50, 50, 3), embedding_dim=128, spatial_dropout_rate=0.0,dropout_rate=0.5):
+def create_embedding_model(input_shape=(50, 50, 3), embedding_dim=128, spatial_dropout_rate=0.0,dropout_rate=0.2):
     inputs = Input(shape=input_shape)
     
     # Block 1
@@ -444,7 +444,7 @@ class Siamese(Model):
 
                 if test_data is not None:
                     x_test_ds = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(x_test)).batch(32)
-                    triplets_test = self.online_triplet_mine_efficient(x_test, y_test, return_tfds=True, x_train_ds=x_test_ds, benign_sample_fraction=1.0, mal_sample_fraction=0.5,skip_hard_negatives=False, only_benign_triplets=False,)
+                    triplets_test = self.online_triplet_mine_efficient(x_test, y_test, return_tfds=True, x_train_ds=x_test_ds, benign_sample_fraction=1.0, mal_sample_fraction=0.5,skip_hard_negatives=False, only_benign_triplets=True,)
 
                 if len(triplets_train) == 0:
                     print("No triplets found, exiting training.")
@@ -533,6 +533,10 @@ class Siamese(Model):
         benign_mal_distances = tf.gather(all_distances, indices=benign_idxs, axis=0)
         benign_mal_distances = tf.gather(benign_mal_distances, indices=mal_idxs, axis=1)
 
+        # mal_distances = tf.gather(all_distances, indices=mal_idxs, axis=0)
+        # mal_distances = tf.gather(mal_distances, indices=mal_idxs, axis=1)
+        # mal_hard_positives = tf.math.top_k(mal_distances, k=min(k, len(mal_idxs))).indices
+
         # benign_mal_distances = pairwise_euclidean_distance(x_emb_specific[benign_label], x_emb_specific[mal_labels[0]])
         # benign_non_benign_distances = {i: pairwise_euclidean_distance(x_emb_specific[benign_label], x_emb_specific[i])  for i in mal_labels}
 
@@ -542,6 +546,7 @@ class Siamese(Model):
         compute_c_batch_size = 32
         
         benign_idxs_split = np.array_split(range(benign_amnt), math.ceil(benign_amnt / compute_c_batch_size))
+        mal_idxs_split = np.array_split(range(len(mal_idxs)), math.ceil(len(mal_idxs) / compute_c_batch_size))
 
         for split_idx, benign_anchor_idxs_relative in enumerate(benign_idxs_split):
             # benign_anchor_idxs_absolute = benign_idxs[benign_anchor_idxs_relative]
@@ -557,6 +562,8 @@ class Siamese(Model):
                 
                 for benign_positive_idx_relative in benign_hard_positives[benign_anchor_idx_relative]:
                     benign_positive_idx = benign_idxs[benign_positive_idx_relative]
+
+                    # print(f'benign_anchor_idx_relative: {benign_anchor_idx_relative}, benign_positive_idx_relative: {benign_positive_idx_relative}, benign_positive_idx: {benign_positive_idx}')
                     # positive = x_benign[benign_positive_idx, ...]
 
                     for mal_label in mal_labels:
@@ -578,9 +585,62 @@ class Siamese(Model):
 
                             benign_negative_idx = mal_idxs[benign_negative_idx_relative]
                             
+                            # print(f'benign_anchor_idx: {benign_anchor_idx}, benign_positive_idx: {benign_positive_idx}, benign_negative_idx: {benign_negative_idx}')
                             # negative = x_mal[benign_negative_idx, ...]
                             # triplets.append([anchor, positive, negative])
                             triplets_idxs.append([benign_anchor_idx, benign_positive_idx, benign_negative_idx])
+
+        if not only_benign_triplets:
+            # for split_idx, mal_anchor_idxs_relative in enumerate(mal_idxs_split):
+            for mal_label in mal_labels:
+                # mal_anchor_idxs_absolute = mal_idxs[mal_anchor_idxs_relative]
+
+                mal_anchor_idxs_absolute = curr_mal_idxs_absolute = specific_label_idxs_sampled[mal_label]
+                mal_anchor_idxs_relative = curr_mal_idxs_relative = bulk_indexof(curr_mal_idxs_absolute, mal_idxs)
+
+                # print(f'mal_anchor_idxs_relative: {mal_anchor_idxs_relative.shape}, mal_anchor_idxs_absolute: {mal_anchor_idxs_absolute.shape}')
+
+                mal_distances_curr = tf.gather(all_distances, indices=mal_anchor_idxs_absolute, axis=0)
+                mal_distances_curr = tf.gather(mal_distances_curr, indices=mal_anchor_idxs_absolute, axis=1)
+                mal_hard_positives_curr = tf.math.top_k(mal_distances_curr, k=min(k, specific_label_amnts[mal_label])).indices.numpy()
+                
+                mal_benign_distances_curr = tf.gather(all_distances, indices=benign_idxs, axis=0)
+                mal_benign_distances_curr = tf.gather(mal_benign_distances_curr, indices=mal_anchor_idxs_absolute, axis=1)
+                mal_benign_distances_curr = tf.transpose(mal_benign_distances_curr)
+                
+                mal_pos_minus_neg = compute_C(mal_distances_curr, mal_benign_distances_curr)
+
+                for local_idx, mal_anchor_idx_relative in enumerate(mal_anchor_idxs_relative):
+                    # anchor = x_mal[mal_anchor_idx, ...]
+                    mal_anchor_idx = mal_idxs[mal_anchor_idx_relative]
+
+                    for mal_positive_idx_relative in mal_hard_positives_curr[local_idx]:
+                        # positive = x_mal[mal_positive_idx, ...]
+
+                        # mal_positive_idx = mal_idxs[mal_positive_idx_relative]
+                        mal_positive_idx = mal_anchor_idxs_absolute[mal_positive_idx_relative]
+                        # print(f'mal_positive_idx_relative: {mal_positive_idx_relative}, mal_positive_idx: {mal_positive_idx}')
+
+                        # for benign_label in benign_labels:
+                            # curr_benign_idxs_absolute = specific_label_idxs_sampled[benign_label]
+                            # curr_benign_idxs_relative = bulk_indexof(curr_benign_idxs_absolute, benign_idxs)
+
+
+                        # mal_pos_minus_neg_curr = tf.gather(mal_pos_minus_neg, curr_benign_idxs_relative, axis=2)
+                        mal_pos_minus_neg_top = tf.math.top_k(mal_pos_minus_neg, k=min(k, specific_label_amnts[benign_label])).indices.numpy()
+
+                        for mal_negative_idx_relative in mal_pos_minus_neg_top[local_idx, mal_positive_idx_relative]:
+                            curr_diff = mal_pos_minus_neg[local_idx, mal_positive_idx_relative, mal_negative_idx_relative]
+
+                            if curr_diff <= 0:
+                                if skip_hard_negatives:
+                                    continue
+
+                            mal_negative_idx = benign_idxs[mal_negative_idx_relative]
+                            
+                            # negative = x_benign[mal_negative_idx, ...]
+                            # triplets.append([anchor, positive, negative])
+                            triplets_idxs.append([mal_anchor_idx, mal_positive_idx, mal_negative_idx])
 
         if len(triplets_idxs) == 0:
             print("No triplets found, returning empty dataset.")
