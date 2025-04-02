@@ -285,6 +285,18 @@ def create_embedding_model(input_shape=(50, 50, 3), embedding_dim=128, spatial_d
     model = tf.keras.models.Model(inputs, embeddings)
     return model
 
+def calc_reverse_index_mapping(a):
+    # vals, idxs = np.unique(a, return_inverse=True)
+    mapping = {val: idx for idx, val in enumerate(a)}
+
+    return mapping
+
+def bulk_indexof(a,b):
+    sorter = np.argsort(b)
+    ret = sorter[np.searchsorted(b, a, sorter=sorter)]
+
+    return ret
+
 @tf.keras.saving.register_keras_serializable(package="MyModels")
 class Siamese(Model):
     # partially based on code from https://keras.io/examples/vision/siamese_network/
@@ -428,11 +440,11 @@ class Siamese(Model):
 
             for i in range(rounds):
                 
-                triplets_train = self.online_triplet_mine(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds, benign_sample_fraction=0.5, mal_sample_fraction=0.5, skip_hard_negatives=False,k=1, only_benign_triplets=False,)
+                triplets_train = self.online_triplet_mine_generalized(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds, skip_hard_negatives=False,k=1, only_benign_triplets=False,)
 
                 if test_data is not None:
                     x_test_ds = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(x_test)).batch(32)
-                    triplets_test = self.online_triplet_mine(x_test, y_test, return_tfds=True, x_train_ds=x_test_ds, benign_sample_fraction=1.0, mal_sample_fraction=0.5,skip_hard_negatives=False, only_benign_triplets=False,)
+                    triplets_test = self.online_triplet_mine_efficient(x_test, y_test, return_tfds=True, x_train_ds=x_test_ds, benign_sample_fraction=1.0, mal_sample_fraction=0.5,skip_hard_negatives=False, only_benign_triplets=False,)
 
                 if len(triplets_train) == 0:
                     print("No triplets found, exiting training.")
@@ -461,6 +473,166 @@ class Siamese(Model):
         self.calc_train_embeddings(x_train, y_train)
 
         return fit_ret
+
+    def online_triplet_mine_generalized(   
+        self,
+        x, y,
+        return_tfds:bool=True,
+        x_train_ds:Optional[tf.data.Dataset]=None,
+        k=1,
+        sample_fractions:Optional[dict]={},
+        skip_hard_negatives:bool=False, only_benign_triplets:bool=True
+    ):
+        unique_labels = np.unique(y)
+        benign_label = 0
+        mal_labels = unique_labels[unique_labels != benign_label]
+
+        specific_label_idxs = {
+            label: np.where(y == label)[0] for label in unique_labels
+        }
+
+        specific_label_sample_sizes = {
+            label: int(len(idxs) * sample_fractions.get(label, 0.5)) for label, idxs in specific_label_idxs.items()
+        }
+
+        specific_label_idxs_sampled = {
+            label: np.random.choice(idxs, specific_label_sample_sizes[label], replace=False) for label, idxs in specific_label_idxs.items()
+        }
+
+        benign_idxs = specific_label_idxs_sampled[benign_label]
+        # benign_idxs_reverse_mapping = calc_reverse_index_mapping(benign_idxs)
+        # benign_idxs_reverse = benign_idxs.copy()[benign_idxs]
+        mal_idxs = np.concatenate([specific_label_idxs_sampled[label] for label in mal_labels])
+        # mal_idxs_reverse_mapping = calc_reverse_index_mapping(mal_idxs)
+        # mal_idxs_relative 
+        # ma
+
+        x_emb = tf.convert_to_tensor(self.embedding.predict(x_train_ds, batch_size=32, verbose=0))
+        # x_emb_specific = {
+        #     label: tf.gather(x_emb, indices=idxs) for label, idxs in specific_label_idxs_sampled.items()
+        # }
+        # x_specific = {
+        #     label: tf.gather(x, indices=idxs) for label, idxs in specific_label_idxs_sampled.items()
+        # }
+
+        gc.collect()
+
+        specific_label_amnts = {
+            label: len(idxs) for label, idxs in specific_label_idxs_sampled.items()
+        }
+
+        benign_amnt = specific_label_amnts[benign_label]
+
+        all_distances = pairwise_euclidean_distance(x_emb)
+
+        benign_distances = tf.gather(all_distances, indices=benign_idxs, axis=0)
+        benign_distances = tf.gather(benign_distances, indices=benign_idxs, axis=1)
+        # benign_distances = pairwise_euclidean_distance(x_emb_specific[benign_label])
+        benign_hard_positives = tf.math.top_k(benign_distances, k=min(k, benign_amnt)).indices
+
+        benign_mal_distances = tf.gather(all_distances, indices=benign_idxs, axis=0)
+        benign_mal_distances = tf.gather(benign_mal_distances, indices=mal_idxs, axis=1)
+
+        # benign_mal_distances = pairwise_euclidean_distance(x_emb_specific[benign_label], x_emb_specific[mal_labels[0]])
+        # benign_non_benign_distances = {i: pairwise_euclidean_distance(x_emb_specific[benign_label], x_emb_specific[i])  for i in mal_labels}
+
+        triplets = []
+        triplets_idxs = []
+
+        compute_c_batch_size = 32
+        
+        benign_idxs_split = np.array_split(range(benign_amnt), math.ceil(benign_amnt / compute_c_batch_size))
+
+        for split_idx, benign_anchor_idxs_relative in enumerate(benign_idxs_split):
+            # benign_anchor_idxs_absolute = benign_idxs[benign_anchor_idxs_relative]
+            benign_distances_curr = tf.gather(benign_distances, benign_anchor_idxs_relative, axis=0)
+            benign_mal_distances_curr = tf.gather(benign_mal_distances, benign_anchor_idxs_relative, axis=0)
+            
+            benign_pos_minus_neg = compute_C(benign_distances_curr, benign_mal_distances_curr)
+            # benign_pos_minus_neg_top = tf.math.top_k(benign_pos_minus_neg, k=min(k, benign_amnt)).indices.numpy()
+
+            for local_idx, benign_anchor_idx_relative in enumerate(benign_anchor_idxs_relative):
+                # anchor = x_benign[benign_anchor_idx, ...]
+                benign_anchor_idx = benign_idxs[benign_anchor_idx_relative]
+                
+                for benign_positive_idx_relative in benign_hard_positives[benign_anchor_idx_relative]:
+                    benign_positive_idx = benign_idxs[benign_positive_idx_relative]
+                    # positive = x_benign[benign_positive_idx, ...]
+
+                    for mal_label in mal_labels:
+                        curr_mal_idxs_absolute = specific_label_idxs_sampled[mal_label]
+                        curr_mal_idxs_relative = bulk_indexof(curr_mal_idxs_absolute, mal_idxs)
+
+                        benign_pos_minus_neg_curr = tf.gather(benign_pos_minus_neg, curr_mal_idxs_relative, axis=2)
+                        benign_pos_minus_neg_top = tf.math.top_k(benign_pos_minus_neg_curr, k=min(k, specific_label_amnts[mal_label])).indices
+                        # print(f'benign_pos_minus_neg_top: {benign_pos_minus_neg_top.shape}')
+
+                        # print(f'anchor: {benign_anchor_idx_relative}, positive: {benign_positive_idx_relative}, negative: {benign_pos_minus_neg_top.shape}')
+
+                        for benign_negative_idx_relative in benign_pos_minus_neg_top[local_idx, benign_positive_idx_relative]:
+                            curr_diff = benign_pos_minus_neg[local_idx, benign_positive_idx_relative, benign_negative_idx_relative]
+
+                            if curr_diff <= 0:
+                                if skip_hard_negatives:
+                                    continue
+
+                            benign_negative_idx = mal_idxs[benign_negative_idx_relative]
+                            
+                            # negative = x_mal[benign_negative_idx, ...]
+                            # triplets.append([anchor, positive, negative])
+                            triplets_idxs.append([benign_anchor_idx, benign_positive_idx, benign_negative_idx])
+
+        if len(triplets_idxs) == 0:
+            print("No triplets found, returning empty dataset.")
+            return []
+
+        # counts = {}
+
+        for anchor_idx, positive_idx, negative_idx in triplets_idxs:
+            y_anchor, y_positive, y_negative = y[anchor_idx], y[positive_idx], y[negative_idx]
+
+            assert y_anchor == y_positive, f"anchor and positive labels do not match: {y_anchor} != {y_positive}"
+            assert y_anchor != y_negative, f"anchor and negative labels match: {y_anchor} == {y_negative}"
+            # counts[y_anchor] = {counts[]}
+
+
+        anchor_idxs, positive_idxs, negative_idxs = zip(*triplets_idxs)
+
+        # anchors, positives, negatives = zip(*triplets)
+        # anchors, positives, negatives = np.array(anchors), np.array(positives), np.array(negatives)
+
+        tf.keras.backend.clear_session()
+
+        if return_tfds:
+            anchor_idxs_tf, positive_idxs_tf, negative_idxs_tf = [tf.convert_to_tensor(idx, dtype=tf.int32) for idx in [anchor_idxs, positive_idxs, negative_idxs]]
+            triplet_idx_dataset = tf.data.Dataset.from_tensor_slices(
+                (anchor_idxs_tf, positive_idxs_tf, negative_idxs_tf)
+            )
+
+            # 5. Map index tuples to actual feature triplets
+            def gather_triplet(a_idx, p_idx, n_idx):
+                # assert y[a_idx] == y[p_idx], f"anchor and positive labels do not match: {y[a_idx]} != {y[p_idx]}"
+                # assert y[a_idx] != y[n_idx], f"anchor and negative labels match: {y[a_idx]} == {y[n_idx]}"
+
+                anchor = tf.gather(x, a_idx)
+                positive = tf.gather(x, p_idx)
+                negative = tf.gather(x, n_idx)
+                return (anchor, positive, negative)
+
+            dataset = triplet_idx_dataset.map(gather_triplet)
+            
+            # anchor_dataset = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(anchors))
+            # positive_dataset = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(positives))
+            # negative_dataset = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(negatives))
+
+            # dataset = tf.data.Dataset.zip((anchor_dataset, positive_dataset, negative_dataset))
+            dataset = dataset.batch(32, drop_remainder=False)
+            dataset = dataset.prefetch(tf.data.AUTOTUNE)
+            dataset = dataset.shuffle(buffer_size=1000, reshuffle_each_iteration=True)
+
+            return dataset
+        else:
+            return
 
     def online_triplet_mine(self, x, y, return_tfds:bool=True, x_train_ds:Optional[tf.data.Dataset]=None, k=1, benign_sample_fraction:float=1.0, mal_sample_fraction:float=0.1, skip_hard_negatives:bool=False, only_benign_triplets:bool=True):
         benign_idxs = np.where(y == 0)[0]
@@ -585,7 +757,7 @@ class Siamese(Model):
                         
                         # print(f'f(b,m) - f(b,b): {benign_pos_minus_neg[0, benign_positive_idx, benign_negative_idx]}')
                         negative = x_mal[benign_negative_idx, ...]
-                        triplets.append([anchor, positive, negative])
+                        # triplets.append([anchor, positive, negative])
                         triplets_idxs.append([benign_anchor_idx, benign_positive_idx, benign_negative_idx])
 
         n_benign_triplets = len(triplets)
@@ -616,7 +788,8 @@ class Siamese(Model):
                                     continue
                             # print(f'f(m,b) - f(m,m): {mal_pos_minus_neg[0, mal_positive_idx, mal_negative_idx]}')
                             negative = x_benign[mal_negative_idx, ...]
-                            triplets.append([anchor, positive, negative])
+                            # triplets.append([anchor, positive, negative])
+                            triplets_idxs.append([mal_anchor_idx, mal_positive_idx, mal_negative_idx])
 
 
 
@@ -654,6 +827,129 @@ class Siamese(Model):
         #     for negative_idx in mal_idxs:
         #         negative = x[negative_idx, ...]
         #         triplets.append([anchor, positive, negative])
+
+    def online_triplet_mine_efficient(self, x, y, return_tfds:bool=True, x_train_ds:Optional[tf.data.Dataset]=None, k=1, benign_sample_fraction:float=1.0, mal_sample_fraction:float=0.1, skip_hard_negatives:bool=False, only_benign_triplets:bool=True):
+        benign_idxs = np.where(y == 0)[0]
+        mal_idxs = np.where(y == 1)[0]
+
+        x_emb = tf.convert_to_tensor(self.embedding.predict(x_train_ds, batch_size=32, verbose=1))
+
+        benign_sample_size = int(len(benign_idxs) * benign_sample_fraction)
+        mal_sample_size = int(len(mal_idxs) * mal_sample_fraction)
+        benign_sample_size = min(benign_sample_size, len(benign_idxs))
+        mal_sample_size = min(mal_sample_size, len(mal_idxs))
+
+        benign_idxs = np.random.choice(benign_idxs, benign_sample_size, replace=False)
+        mal_idxs = np.random.choice(mal_idxs, mal_sample_size, replace=False)
+
+        x_emb_benign = tf.gather(x_emb, indices=benign_idxs)
+        x_emb_mal = tf.gather(x_emb, indices=mal_idxs)
+
+        
+        gc.collect()
+
+        x_benign = tf.gather(x, indices=benign_idxs)
+        x_mal = tf.gather(x, indices=mal_idxs)
+
+        benign_amnt = len(benign_idxs)
+        mal_amnt = len(mal_idxs)
+
+
+        benign_distances = pairwise_euclidean_distance(x_emb_benign)
+        benign_mal_distances = pairwise_euclidean_distance(x_emb_benign, x_emb_mal)
+
+        benign_hard_positives = tf.math.top_k(benign_distances, k=min(k, benign_amnt)).indices.numpy()
+
+        mal_distances = pairwise_euclidean_distance(x_emb_mal)
+        mal_benign_distances = tf.transpose(benign_mal_distances)
+        mal_hard_positives = tf.math.top_k(mal_distances, k=min(k, mal_amnt)).indices.numpy()
+
+        triplets = []
+        triplets_idxs = []
+
+        compute_c_batch_size = 32
+        benign_idxs_split = np.array_split(range(len(benign_idxs)), math.ceil(len(benign_idxs) / compute_c_batch_size))
+        mal_idxs_split = np.array_split(range(len(mal_idxs)), math.ceil(len(mal_idxs) / compute_c_batch_size))
+
+        for split_idx, benign_anchor_idxs in enumerate(benign_idxs_split):
+            benign_pos_minus_neg = compute_C(tf.gather(benign_distances, benign_anchor_idxs), tf.gather(benign_mal_distances, benign_anchor_idxs))
+            benign_pos_minus_neg_top = tf.math.top_k(benign_pos_minus_neg, k=min(k, benign_amnt)).indices.numpy()
+
+            for local_idx, benign_anchor_idx in enumerate(benign_anchor_idxs):
+                # anchor = x_benign[benign_anchor_idx, ...]
+                
+                for benign_positive_idx in benign_hard_positives[benign_anchor_idx]:
+                    # positive = x_benign[benign_positive_idx, ...]
+
+                    for benign_negative_idx in benign_pos_minus_neg_top[local_idx, benign_positive_idx]:
+                        curr_diff = benign_pos_minus_neg[local_idx, benign_positive_idx, benign_negative_idx]
+
+                        if curr_diff <= 0:
+                            if skip_hard_negatives:
+                                continue
+                        # negative = x_mal[benign_negative_idx, ...]
+                        triplets_idxs.append([benign_anchor_idx, benign_positive_idx, benign_negative_idx])
+
+        # n_benign_triplets = len(triplets)
+        # if not only_benign_triplets:
+        #     for split_idx, mal_anchor_idxs in enumerate(mal_idxs_split):
+
+        #         mal_pos_minus_neg = compute_C(tf.gather(mal_distances, mal_anchor_idxs), tf.gather(mal_benign_distances, mal_anchor_idxs))
+        #         mal_pos_minus_neg_top = tf.math.top_k(mal_pos_minus_neg, k=min(k, mal_amnt)).indices.numpy()
+
+        #         for local_idx, mal_anchor_idx in enumerate(mal_anchor_idxs):
+        #             # anchor = x[mal_anchor_idx, ...]
+        #             for mal_positive_idx in mal_hard_positives[mal_anchor_idx]:
+        #                 # positive = x_mal[mal_positive_idx, ...]
+        #                 for mal_negative_idx in mal_pos_minus_neg_top[local_idx, mal_positive_idx]:
+        #                     curr_diff = mal_pos_minus_neg[local_idx, mal_positive_idx, mal_negative_idx]
+
+        #                     if curr_diff <= 0:
+        #                         if skip_hard_negatives:
+        #                             continue
+        #                     # negative = x_benign[mal_negative_idx, ...]
+        #                     triplets_idxs.append([mal_anchor_idx, mal_positive_idx, mal_negative_idx])
+
+
+        if len(triplets_idxs) == 0:
+            print("No triplets found, returning empty dataset.")
+            return []
+
+        anchor_idxs, positive_idxs, negative_idxs = zip(*triplets_idxs)
+
+        # anchors, positives, negatives = zip(*triplets)
+        # anchors, positives, negatives = np.array(anchors), np.array(positives), np.array(negatives)
+
+        tf.keras.backend.clear_session()
+
+        if return_tfds:
+            anchor_idxs_tf, positive_idxs_tf, negative_idxs_tf = [tf.convert_to_tensor(idx, dtype=tf.int32) for idx in [anchor_idxs, positive_idxs, negative_idxs]]
+            triplet_idx_dataset = tf.data.Dataset.from_tensor_slices(
+                (anchor_idxs_tf, positive_idxs_tf, negative_idxs_tf)
+            )
+
+            # 5. Map index tuples to actual feature triplets
+            def gather_triplet(a_idx, p_idx, n_idx):
+                anchor = tf.gather(x_benign, a_idx)
+                positive = tf.gather(x_benign, p_idx)
+                negative = tf.gather(x_mal, n_idx)
+                return (anchor, positive, negative)
+
+            dataset = triplet_idx_dataset.map(gather_triplet)
+            
+            # anchor_dataset = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(anchors))
+            # positive_dataset = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(positives))
+            # negative_dataset = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(negatives))
+
+            # dataset = tf.data.Dataset.zip((anchor_dataset, positive_dataset, negative_dataset))
+            dataset = dataset.batch(32, drop_remainder=False)
+            dataset = dataset.prefetch(tf.data.AUTOTUNE)
+            dataset = dataset.shuffle(buffer_size=1000, reshuffle_each_iteration=True)
+
+            return dataset
+        else:
+            return
+            # return [anchors, positives, negatives]
 
     def call(self, inputs, training=False):
         return self.siamese_network(inputs, training=training)
@@ -739,63 +1035,93 @@ class Siamese(Model):
         return benign_success, mal_success
 
     def calc_train_embeddings(self, x_train, y_train):
-        benign_idxs_train = np.where(y_train==0)[0]
-        mal_idxs_train = np.where(y_train==1)[0]
+        if x_train is None or y_train is None:
+            x_train = self.train_data['x']
+            y_train = self.train_data['y']
+
+        y_vals = np.unique(y_train)
+        # benign_label = 0
+        # mal_labels = y_vals[y_vals != benign_label]
+
+        specific_idxs_train = {
+            label: np.where(y_train == label)[0] for label in y_vals
+        }
 
         x_train_embeddings = self.embedding.predict(x_train, batch_size=32, verbose=0)
-        x_train_embeddings_benign = tf.gather(x_train_embeddings, indices=benign_idxs_train)
-        x_train_embeddings_mal = tf.gather(x_train_embeddings, indices=mal_idxs_train)
+        x_train_embeddings_specific = {
+            label: tf.gather(x_train_embeddings, indices=specific_idxs_train[label]) for label in y_vals
+        }
 
         if self.train_data is not None:
             self.train_data['x_train_embeddings'] = x_train_embeddings
-            self.train_data['x_train_embeddings_benign'] = x_train_embeddings_benign
-            self.train_data['x_train_embeddings_mal'] = x_train_embeddings_mal
+            # self.train_data['x_train_embeddings_benign'] = x_train_embeddings_benign
+            # self.train_data['x_train_embeddings_mal'] = x_train_embeddings_mal
+            self.train_data['x_train_embeddings_specific'] = x_train_embeddings_specific
 
-        return x_train_embeddings_benign, x_train_embeddings_mal
+        return x_train_embeddings_specific
 
     def calc_centroids(self, x_train, y_train, apply_transforms:Literal['NA', 'L2', 'CL2']='NA'):
-        if self.train_data is not None and 'x_train_embeddings_benign' in self.train_data:
-            x_train_embeddings_benign = self.train_data['x_train_embeddings_benign']
-            x_train_embeddings_mal = self.train_data['x_train_embeddings_mal']
+        if self.train_data is not None and 'x_train_embeddings_specific' in self.train_data:
+            # x_train_embeddings_benign = self.train_data['x_train_embeddings_benign']
+            # x_train_embeddings_mal = self.train_data['x_train_embeddings_mal']
+            x_train_embeddings_specific = self.train_data['x_train_embeddings_specific']
         else:
-            x_train_embeddings_benign, x_train_embeddings_mal = self.calc_train_embeddings(x_train, y_train)
+            # x_train_embeddings_benign, x_train_embeddings_mal = self.calc_train_embeddings(x_train, y_train)
+            x_train_embeddings_specific = self.calc_train_embeddings(x_train, y_train)
 
-        centroid_benign = copy.deepcopy(x_train_embeddings_benign)
-        centroid_mal = copy.deepcopy(x_train_embeddings_mal)
+        # centroid_benign = copy.deepcopy(x_train_embeddings_benign)
+        # centroid_mal = copy.deepcopy(x_train_embeddings_mal)
+        # centroid_specific = x_train_embeddings_specific
 
         # print(f'centroid_benign: {centroid_benign.shape}')
         # print(f'centroid_mal: {centroid_mal.shape}')
         # print(f'benign norm: {tf.norm(centroid_benign, ord=2, axis=-1)}')
 
+        centroid_specific = {label: tf.reduce_mean(embeddings, axis=0) for label, embeddings in x_train_embeddings_specific.items()}
+
         if apply_transforms != 'NA':
             if apply_transforms == 'CL2':
                 x_train_embeddings = self.train_data['x_train_embeddings']
                 mean_train = tf.reduce_mean(x_train_embeddings, axis=0)
-                centroid_benign -= mean_train
-                centroid_mal -= mean_train
+                
+                for label, centroid in centroid_specific.items():
+                    # centroid = tf.reduce_mean(embeddings, axis=0)
+                    centroid -= mean_train
+                    # centroid /= LA.norm(centroid, 2)
+                    centroid /= tf.norm(centroid, ord=2, axis=0)
+
+                    centroid_specific[label] = centroid
 
                 self.train_data['mean_train'] = mean_train
             # x_train_embeddings /= LA.norm(x_train_embeddings, 2, 1)[:, None]
-            centroid_benign /= tf.norm(centroid_benign, ord=2, axis=0)
-            centroid_mal /= tf.norm(centroid_mal, ord=2, axis=0)
+            elif apply_transforms == 'L2':
+                for label, centroid in centroid_specific.items():
+                    # centroid = tf.reduce_mean(embeddings, axis=0)
+                    centroid /= tf.norm(centroid, ord=2, axis=0)
 
-        centroid_benign = tf.reduce_mean(centroid_benign, axis=0).numpy()
-        centroid_mal = tf.reduce_mean(centroid_mal, axis=0).numpy()
+                    centroid_specific[label] = centroid
+
+        
+
+        # centroid_benign = tf.reduce_mean(centroid_benign, axis=0).numpy()
+        # centroid_mal = tf.reduce_mean(centroid_mal, axis=0).numpy()
 
         # print(f'centroid_benign: {centroid_benign.shape}')
         # print(f'centroid_mal: {centroid_mal.shape}')
 
         centroid_knn = KNeighborsClassifier(n_neighbors=1)
-        centroid_knn.fit(np.array([centroid_benign, centroid_mal]), [0,1])
+        centroid_knn.fit(np.array(list(centroid_specific.values())), list(centroid_specific.keys()))
+        # centroid_knn.fit(np.array([centroid_benign, centroid_mal]), [0,1])
 
         if self.train_data is not None:
             # self.train_data['x_train_embeddings_benign'] = x_train_embeddings_benign
             # self.train_data['x_train_embeddings_mal'] = x_train_embeddings_mal
             # self.train_data['centroid_benign'] = centroid_benign
             # self.train_data['centroid_mal'] = centroid_mal
+            self.train_data['centroid_specific'] = centroid_specific
             self.train_data[f'centroid_knn_{apply_transforms}'] = centroid_knn
 
-        return centroid_benign, centroid_mal, centroid_knn
+        return centroid_specific, centroid_knn
 
     def inference_centroid(self, x_test, x_train=None, y_train=None, apply_transforms:Literal['NA', 'L2', 'CL2']='NA'):
         if self.train_data is not None and 'centroid_knn' in self.train_data:
@@ -804,7 +1130,7 @@ class Siamese(Model):
             centroid_knn = self.train_data[f'centroid_knn_{apply_transforms}']
         else:
             # centroid_benign, centroid_mal = self.calc_centroids(x_train, y_train, apply_transforms=apply_transforms)
-            centroid_knn = self.calc_centroids(x_train, y_train, apply_transforms=apply_transforms)[2]
+            centroid_knn = self.calc_centroids(x_train, y_train, apply_transforms=apply_transforms)[1]
 
         batch_size = 16
         split_size = math.ceil(len(x_test) / batch_size)
@@ -820,10 +1146,13 @@ class Siamese(Model):
                 else:
                     mean_train = tf.reduce_mean(self.embedding.predict(x_train), axis=0)
                 x_test_embeddings -= mean_train
+                x_test_embeddings /= tf.norm(x_test_embeddings, ord=2, axis=0)
+            elif apply_transforms == 'L2':
+                x_test_embeddings /= tf.norm(x_test_embeddings, ord=2, axis=0)
 
 
             # print(f'x_test_embeddings: {x_test_embeddings.shape}')
-            x_test_embeddings /= tf.norm(x_test_embeddings, ord=2, axis=0)
+            # x_test_embeddings /= tf.norm(x_test_embeddings, ord=2, axis=0)
 
 
         # if apply_transforms:
