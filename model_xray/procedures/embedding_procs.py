@@ -110,13 +110,15 @@ def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackCon
 
     # n_w = len(host_bytes)
     capacity = x_lsb_attack_config.x*n_w
-    byte_capacity = math.ceil(capacity / 8)
+    byte_capacity_single = math.ceil(capacity / 8)
+    byte_capacity = byte_capacity_single * n_m
 
     n_total_bits = host.dtype.itemsize * 8
     n_unattacked_bits = n_total_bits - x_lsb_attack_config.x
 
     mal_bytes = mal_bytes_gen.get_bytes(n_bytes = byte_capacity)
-    mal_bytes = np.frombuffer(mal_bytes, dtype=np.uint8)[:byte_capacity].reshape((byte_capacity, 1))
+    # mal_bytes = np.frombuffer(mal_bytes, dtype=np.uint8)[:byte_capacity].reshape((byte_capacity, 1))
+    mal_bytes = np.frombuffer(mal_bytes, dtype=np.uint8)[:byte_capacity].reshape((n_m, byte_capacity_single))
 
     if n_unattacked_bits == 0:
         return bytes_arr_to_ndarray(mal_bytes, dtype=host.dtype, shape=host.shape)
@@ -125,8 +127,11 @@ def _x_lsb_attack_numpy_bin(host: np.ndarray, x_lsb_attack_config: XLSBAttackCon
 
     host_bytes_unpacked = np.unpackbits(host_bytes, axis=-1, count=n_unattacked_bits, bitorder='big')
 
-    mal_bits = np.unpackbits(mal_bytes, bitorder='big')[:capacity].reshape((n_w, x_lsb_attack_config.x))
-    mal_bits = np.broadcast_to(mal_bits, (n_m, n_w, x_lsb_attack_config.x))
+    # mal_bits = np.unpackbits(mal_bytes, bitorder='big')[:capacity].reshape((n_w, x_lsb_attack_config.x))
+    # mal_bits = np.broadcast_to(mal_bits, (n_m, n_w, x_lsb_attack_config.x))
+
+    mal_bits = np.unpackbits(mal_bytes, bitorder='big')[:capacity*n_m].reshape((n_m, n_w, x_lsb_attack_config.x))
+    # mal_bits = np.broadcast_to(mal_bits, (n_m, n_w, x_lsb_attack_config.x))
 
     stacked = np.concatenate((host_bytes_unpacked, mal_bits), axis=-1)
 
