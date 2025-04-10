@@ -284,6 +284,11 @@ class NumpyPreprocessConfig(BaseModel):
 
     image_preprocess_backend: Literal[ImagePreprocessBackend.NUMPY] = ImagePreprocessBackend.NUMPY
 
+class SKImagePreprocessConfig(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+
+    image_preprocess_backend: Literal[ImagePreprocessBackend.SKIMAGE] = ImagePreprocessBackend.SKIMAGE
+
 class ImagePreprocessConfig(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
 
@@ -296,6 +301,7 @@ class ImagePreprocessConfig(BaseModel):
             PillowPreprocessConfig,
             OpenCVPreprocessConfig,
             NumpyPreprocessConfig,
+            SKImagePreprocessConfig,
         ],
         Field(default=PillowPreprocessConfig(), discriminator='image_preprocess_backend')
     ]

@@ -80,6 +80,7 @@ class ImagePreprocessBackend(StrEnum):
     PILLOW = 'pillow'
     OPENCV = 'opencv'
     NUMPY = 'numpy'
+    SKIMAGE = 'skimage'
 
 class PreprocessedImageDatasetLabel(IntEnum):
     BENIGN = 0

@@ -7,6 +7,7 @@ from model_xray.configs.models import ImagePreprocessConfig
 from model_xray.configs.enums import *
 
 from PIL import Image
+from skimage.transform import resize as skimage_resize
 
 def pillow_preprocess(image: np.ndarray, image_preprocess_config: ImagePreprocessConfig) -> np.ndarray:
     # if image.ndim == 3:
@@ -51,7 +52,21 @@ def numpy_preprocess(images: np.ndarray, image_preprocess_config: ImagePreproces
 
     return downsampled
     
-    
+def skimage_preprocess(images: np.ndarray, image_preprocess_config: ImagePreprocessConfig) -> np.ndarray:
+    imsize_h = image_preprocess_config.image_height
+    imsize_w = image_preprocess_config.image_width
+
+    images_n, images_h, images_w, images_c = images.shape  
+
+    images_resized = skimage_resize(
+        images,
+        output_shape=(images_n, imsize_h, imsize_w),
+        preserve_range=True,
+        anti_aliasing=True,
+        clip=False,
+    )
+
+    return images_resized
 
 def execute_image_preprocess(image: np.ndarray, image_preprocess_config: ImagePreprocessConfig) -> np.ndarray:
     preprocess_backend_type = image_preprocess_config.image_preprocess_config.image_preprocess_backend
@@ -86,5 +101,6 @@ def execute_image_preprocess(image: np.ndarray, image_preprocess_config: ImagePr
 
 preprocess_backend_type_map = {
     ImagePreprocessBackend.PILLOW: pillow_preprocess,
-    ImagePreprocessBackend.NUMPY: numpy_preprocess
+    ImagePreprocessBackend.NUMPY: numpy_preprocess,
+    ImagePreprocessBackend.SKIMAGE: skimage_preprocess,
 }

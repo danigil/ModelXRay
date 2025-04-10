@@ -158,6 +158,33 @@ def _rgb(data: np.ndarray[np.float32], config: ImageRepConfig = None) -> np.ndar
     # return ret_padded_square(avereged_bytes)
     return ret_padded_square(last_3_bytes)
 
+def _bits_1d(data: np.ndarray[np.float32], config: ImageRepConfig = None) -> np.ndarray:
+    assert data.dtype == np.float32 or data.dtype.itemsize==4, f"bitbytes image rep expects 4-byte long data, got {data.dtype.itemsize}-byte long data"
+    assert data.ndim == 2, f"bitbytes image rep expects 2D data (n_models, n_weights), got {data.ndim}D data"
+
+    n_models, n_weights = data.shape
+
+    data_bytes = ndarray_to_bytes_arr(data)
+    data_bits = np.unpackbits(data_bytes, axis=-1, bitorder='big')
+    
+    return data_bits
+
+def _bitbytes(data: np.ndarray[np.float32], config: ImageRepConfig = None) -> np.ndarray:
+    assert data.dtype == np.float32 or data.dtype.itemsize==4, f"bitbytes image rep expects 4-byte long data, got {data.dtype.itemsize}-byte long data"
+    assert data.ndim == 2, f"bitbytes image rep expects 2D data (n_models, n_weights), got {data.ndim}D data"
+
+    n_models, n_weights = data.shape
+
+    n_pad = 8 % n_weights
+    arr_padded = np.pad(data, ((0, 0), (0, n_pad)), mode='constant', constant_values=0)
+    data_bytes = ndarray_to_bytes_arr(arr_padded)
+    data_bits = np.unpackbits(data_bytes, axis=-1, bitorder='big')
+    # data_bits = np.moveaxis(data_bits, -1, 1)
+    data_bytes_compiled = np.packbits(data_bits, axis=1, bitorder='big')
+    data_final = ret_padded_square(data_bytes_compiled)
+
+    return data_final
+
 def execute_image_rep_proc(data: np.ndarray, image_rep_config: ImageRepConfig, try_coerce=True) -> np.ndarray:
     image_rep_type = image_rep_config.image_rep_proc_config.image_rep_type
     image_rep_func = image_rep_map.get(image_rep_type, None)
