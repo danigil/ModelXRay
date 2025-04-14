@@ -63,7 +63,7 @@ def skimage_preprocess(images: np.ndarray, image_preprocess_config: ImagePreproc
         output_shape=(images_n, imsize_h, imsize_w),
         preserve_range=True,
         anti_aliasing=True,
-        clip=False,
+        clip=True,
     )
 
     return images_resized
