@@ -244,7 +244,7 @@ def ret_initializer_weights_rand():
 def ret_initializer_bias_rand():
     return tf.keras.initializers.RandomNormal(mean=0.5, stddev=0.01)
 
-def create_embedding_model(input_shape=(50, 50, 3), embedding_dim=128, spatial_dropout_rate=0.0,dropout_rate=0.05):
+def create_embedding_model(input_shape=(50, 50, 3), embedding_dim=128, spatial_dropout_rate=0.00,dropout_rate=0.00):
     inputs = Input(shape=input_shape)
     
     # Block 1
@@ -438,7 +438,7 @@ class Siamese(Model):
             x_test = layer(x_test)
         
         if online_train:
-            n=1
+            n=5
 
             x_train_ds = None
             # x_train_ds = tf.data.Dataset.from_tensor_slices(tf.convert_to_tensor(x_train)).batch(32)
@@ -451,7 +451,7 @@ class Siamese(Model):
 
             for i in range(rounds):
                 
-                triplets_train = self.online_triplet_mine_generalized(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds, skip_hard_negatives=curr_skip_hard_negatives,k=3, only_benign_triplets=False,)
+                triplets_train = self.online_triplet_mine_generalized(x_train, y_train, return_tfds=True, x_train_ds=x_train_ds, skip_hard_negatives=curr_skip_hard_negatives,k=3, only_benign_triplets=True,)
 
                 curr_skip_hard_negatives = skip_hard_negatives
 
@@ -493,7 +493,7 @@ class Siamese(Model):
         return_tfds:bool=True,
         x_train_ds:Optional[tf.data.Dataset]=None,
         k=1,
-        sample_fractions:Optional[dict]={0: 0.5},
+        sample_fractions:Optional[dict]={0: 1.0},
         skip_hard_negatives:bool=False, only_benign_triplets:bool=True
     ):
         unique_labels = np.unique(y)
@@ -1210,7 +1210,7 @@ class Siamese(Model):
 
         return centroid_specific, centroid_knn
 
-    def inference_centroid(self, x_test, x_train=None, y_train=None, apply_transforms:Literal['NA', 'L2', 'CL2']='NA', coarse_label: bool=False):
+    def inference_centroid(self, x_test, x_train=None, y_train=None, apply_transforms:Literal['NA', 'L2', 'CL2']='NA', coarse_label: bool=False, x_test_embeddings=None):
         if self.train_data is not None and 'centroid_knn' in self.train_data:
             # centroid_benign = self.train_data['centroid_benign']
             # centroid_mal = self.train_data['centroid_mal']
@@ -1219,12 +1219,15 @@ class Siamese(Model):
             # centroid_benign, centroid_mal = self.calc_centroids(x_train, y_train, apply_transforms=apply_transforms)
             centroid_knn = self.calc_centroids(x_train, y_train, apply_transforms=apply_transforms)[1]
 
-        batch_size = 16
-        split_size = math.ceil(len(x_test) / batch_size)
+        if x_test_embeddings is None:
+            batch_size = 16
+            split_size = math.ceil(len(x_test) / batch_size)
 
-        x_test_splits = np.array_split(x_test, split_size)
-        x_test_preds = [self.embedding(curr) for curr in x_test_splits]
-        x_test_embeddings = np.vstack(x_test_preds)
+            x_test_splits = np.array_split(x_test, split_size)
+            x_test_preds = [self.embedding(curr) for curr in x_test_splits]
+            x_test_embeddings = np.vstack(x_test_preds)
+        else:
+            x_test_embeddings = copy.deepcopy(x_test_embeddings)
 
         if apply_transforms != 'NA':
             if apply_transforms == 'CL2':
@@ -1263,9 +1266,9 @@ class Siamese(Model):
 
         return y_pred
             
-    def test_centroid(self, x_test, y_test, x_train=None, y_train=None, is_print=True, apply_transforms:Literal['NA', 'L2', 'CL2']='NA', return_acc=True, coarse_label: bool=False):
+    def test_centroid(self, x_test, y_test, x_train=None, y_train=None, is_print=True, apply_transforms:Literal['NA', 'L2', 'CL2']='NA', return_acc=True, coarse_label: bool=False,x_test_embeddings=None):
 
-        y_pred = self.inference_centroid(x_test, x_train=x_train, y_train=y_train, apply_transforms=apply_transforms, coarse_label=coarse_label)
+        y_pred = self.inference_centroid(x_test, x_train=x_train, y_train=y_train, apply_transforms=apply_transforms, coarse_label=coarse_label, x_test_embeddings=x_test_embeddings)
         if return_acc:
             if coarse_label:
                 y_test = coarse_label_map(y_test)
@@ -1277,20 +1280,21 @@ class Siamese(Model):
         else:
             return y_pred
 
-    def inference_nn(self, x_test, x_train=None, y_train=None, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean',coarse_label: bool=False):
+    def inference_nn(self, x_test, x_train=None, y_train=None, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean',coarse_label: bool=False,x_test_embeddings=None):
         if self.train_data is not None:
             x_train = self.train_data['x']
             y_train = self.train_data['y']
         else:
             assert x_train is not None and y_train is not None, "train data must be provided"
 
-        batch_size = 16
-        
-        split_size = math.ceil(len(x_test) / batch_size)
+        if x_test_embeddings is None:
+            batch_size = 16
+            
+            split_size = math.ceil(len(x_test) / batch_size)
 
-        x_test_splits = np.array_split(x_test, split_size)
-        x_test_preds = [self.embedding(curr) for curr in x_test_splits]
-        x_test_embeddings = np.vstack(x_test_preds)
+            x_test_splits = np.array_split(x_test, split_size)
+            x_test_preds = [self.embedding(curr) for curr in x_test_splits]
+            x_test_embeddings = np.vstack(x_test_preds)
 
         if self.train_data is not None and 'x_train_embeddings' in self.train_data:
             x_train_embeddings = self.train_data['x_train_embeddings']
@@ -1306,8 +1310,8 @@ class Siamese(Model):
 
         return y_pred
     
-    def test_nn(self, x_test, y_test, x_train=None, y_train=None, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', is_print=True, return_acc=True, coarse_label: bool=False):
-        y_pred = self.inference_nn(x_test, x_train=x_train, y_train=y_train, k=k, metric=metric, coarse_label=coarse_label)
+    def test_nn(self, x_test, y_test, x_train=None, y_train=None, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', is_print=True, return_acc=True, coarse_label: bool=False,x_test_embeddings=None):
+        y_pred = self.inference_nn(x_test, x_train=x_train, y_train=y_train, k=k, metric=metric, coarse_label=coarse_label,x_test_embeddings=x_test_embeddings)
         
         if return_acc:
             if coarse_label:
@@ -1321,8 +1325,10 @@ class Siamese(Model):
             return y_pred
     
     def test_all(self, x_test, y_test, x_train=None, y_train=None, is_print=True, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', return_acc=True, centroid_apply_transforms:Literal['NA', 'L2', 'CL2']='NA', coarse_label: bool=False):
-        ret_centroid = self.test_centroid(x_test, y_test, x_train=x_train, y_train=y_train, is_print=is_print, apply_transforms=centroid_apply_transforms, return_acc=return_acc, coarse_label=coarse_label)
-        ret_nn = self.test_nn(x_test, y_test, x_train=x_train, y_train=y_train, k=k, metric=metric, is_print=is_print, return_acc=return_acc, coarse_label=coarse_label)
+        x_test_embeddings = self.get_embeddings(x_test)
+        
+        ret_centroid = self.test_centroid(x_test, y_test, x_train=x_train, y_train=y_train, is_print=is_print, apply_transforms=centroid_apply_transforms, return_acc=return_acc, coarse_label=coarse_label,x_test_embeddings=x_test_embeddings)
+        ret_nn = self.test_nn(x_test, y_test, x_train=x_train, y_train=y_train, k=k, metric=metric, is_print=is_print, return_acc=return_acc, coarse_label=coarse_label,x_test_embeddings=x_test_embeddings)
 
         return {'centroid': ret_centroid, 'nn': ret_nn}
 
