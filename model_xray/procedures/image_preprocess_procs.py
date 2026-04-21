@@ -55,17 +55,27 @@ def numpy_preprocess(images: np.ndarray, image_preprocess_config: ImagePreproces
 def skimage_preprocess(images: np.ndarray, image_preprocess_config: ImagePreprocessConfig) -> np.ndarray:
     imsize_h = image_preprocess_config.image_height
     imsize_w = image_preprocess_config.image_width
+    if images.ndim == 4:
+        images_n, images_h, images_w, images_c = images.shape  
 
-    images_n, images_h, images_w, images_c = images.shape  
+        images_resized = skimage_resize(
+            images,
+            output_shape=(images_n, imsize_h, imsize_w),
+            preserve_range=True,
+            anti_aliasing=True,
+            clip=True,
+        )
 
-    images_resized = skimage_resize(
-        images,
-        output_shape=(images_n, imsize_h, imsize_w),
-        preserve_range=True,
-        anti_aliasing=True,
-        clip=False,
-    )
-
+    elif images.ndim == 3:
+        images_n, images_h, images_c = images.shape
+        images_resized = skimage_resize(
+            images,
+            output_shape=(images_n, imsize_h),
+            preserve_range=True,
+            anti_aliasing=True,
+            clip=True,
+        )
+    
     return images_resized
 
 def execute_image_preprocess(image: np.ndarray, image_preprocess_config: ImagePreprocessConfig) -> np.ndarray:

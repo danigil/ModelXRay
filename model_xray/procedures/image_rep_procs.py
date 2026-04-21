@@ -169,6 +169,20 @@ def _bits_1d(data: np.ndarray[np.float32], config: ImageRepConfig = None) -> np.
     
     return data_bits
 
+def _bitbytes1d(data: np.ndarray[np.float32], config: ImageRepConfig = None) -> np.ndarray:
+    assert data.dtype == np.float32 or data.dtype.itemsize==4, f"bitbytes image rep expects 4-byte long data, got {data.dtype.itemsize}-byte long data"
+    assert data.ndim == 2, f"bitbytes image rep expects 2D data (n_models, n_weights), got {data.ndim}D data"
+
+    n_models, n_weights = data.shape
+
+    n_pad = 8 % n_weights
+    arr_padded = np.pad(data, ((0, 0), (0, n_pad)), mode='constant', constant_values=0)
+    data_bytes = ndarray_to_bytes_arr(arr_padded)
+    data_bits = np.unpackbits(data_bytes, axis=-1, bitorder='big')
+    data_final = np.packbits(data_bits, axis=1, bitorder='big')
+
+    return data_final
+
 def _bitbytes(data: np.ndarray[np.float32], config: ImageRepConfig = None) -> np.ndarray:
     assert data.dtype == np.float32 or data.dtype.itemsize==4, f"bitbytes image rep expects 4-byte long data, got {data.dtype.itemsize}-byte long data"
     assert data.ndim == 2, f"bitbytes image rep expects 2D data (n_models, n_weights), got {data.ndim}D data"
@@ -182,6 +196,17 @@ def _bitbytes(data: np.ndarray[np.float32], config: ImageRepConfig = None) -> np
     # data_bits = np.moveaxis(data_bits, -1, 1)
     data_bytes_compiled = np.packbits(data_bits, axis=1, bitorder='big')
     data_final = ret_padded_square(data_bytes_compiled)
+
+    return data_final
+
+def _straight(data: np.ndarray[np.float32], config: ImageRepConfig = None) -> np.ndarray:
+    assert data.dtype == np.float32 or data.dtype.itemsize==4, f"bitbytes image rep expects 4-byte long data, got {data.dtype.itemsize}-byte long data"
+    assert data.ndim == 2, f"bitbytes image rep expects 2D data (n_models, n_weights), got {data.ndim}D data"
+
+    n_models, n_weights = data.shape
+    data_expanded = np.expand_dims(data, axis=-1)
+    data_final = ret_padded_square(data_expanded)
+    data_final = np.expand_dims(data_final, axis=-1)
 
     return data_final
 
