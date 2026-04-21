@@ -13,6 +13,8 @@ seed = 122
 from itertools import combinations, product
 import math
 
+import time
+
 import operator
 import gc
 import random
@@ -1320,11 +1322,23 @@ class Siamese(Model):
         else:
             return y_pred
     
-    def test_all(self, x_test, y_test, x_train=None, y_train=None, is_print=True, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', return_acc=True, centroid_apply_transforms:Literal['NA', 'L2', 'CL2']='NA', coarse_label: bool=False):
+    def test_all(self, x_test, y_test, x_train=None, y_train=None, is_print=True, k=1, metric:Literal['cosine', 'euclidean', 'cityblock']='euclidean', return_acc=True, centroid_apply_transforms:Literal['NA', 'L2', 'CL2']='NA', coarse_label: bool=False, include_time: bool=False):
+        time_centroid_start = time.time()
         ret_centroid = self.test_centroid(x_test, y_test, x_train=x_train, y_train=y_train, is_print=is_print, apply_transforms=centroid_apply_transforms, return_acc=return_acc, coarse_label=coarse_label)
-        ret_nn = self.test_nn(x_test, y_test, x_train=x_train, y_train=y_train, k=k, metric=metric, is_print=is_print, return_acc=return_acc, coarse_label=coarse_label)
+        time_centroid_end = time.time()
 
-        return {'centroid': ret_centroid, 'nn': ret_nn}
+        time_nn_start = time.time()
+        ret_nn = self.test_nn(x_test, y_test, x_train=x_train, y_train=y_train, k=k, metric=metric, is_print=is_print, return_acc=return_acc, coarse_label=coarse_label)
+        time_nn_end = time.time()
+
+        if include_time:
+            times = {
+                'centroid_time': time_centroid_end - time_centroid_start,
+                'nn_time': time_nn_end - time_nn_start,
+            }
+            return {'centroid': ret_centroid, 'nn': ret_nn, 'times': times}
+        else:
+            return {'centroid': ret_centroid, 'nn': ret_nn}
 
 
     def train_step(self, data):
