@@ -1,0 +1,92 @@
+"""Regenerate exp2_id_oml.png + exp2_ood_oml.png — Experiment 2 OML view.
+
+ID  = Famous Small CNNs  (paper fig:exp2_oml_id)
+OOD = Famous Large CNNs  (paper fig:exp2_oml)
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+from typing import Tuple
+
+import numpy as np
+import pandas as pd
+
+from model_xray.plots._style import (
+    FSL_STYLES_EXP2, MALCONV_STYLE, NAIVE_STYLES,
+    agg_with_ci, default_out_dir, finalize, init_axes, plot_band, repo_root, save_fig,
+)
+
+
+RESULTS_DIR = os.path.join(repo_root(), "results", "exp2")
+
+DATASETS = {
+    "famous_le_10m":  ("Famous Small CNNs", "small"),
+    "famous_le_100m": ("Famous Large CNNs", "large"),
+}
+
+
+def _fsl_curve(csv_path: str, mc: str, eval_col: str) -> pd.DataFrame:
+    df = pd.read_csv(csv_path)
+    df = df[df["mc"] == mc]
+    diag = df[df["lsb"] == df["model_lsb"]]
+    per_run = diag.groupby(["run num", "model_lsb"])[eval_col].mean().reset_index()
+    return agg_with_ci(per_run, "model_lsb", eval_col).rename(columns={"model_lsb": "X"})
+
+
+def _malconv_curve(suffix: str) -> pd.DataFrame:
+    p = os.path.join(RESULTS_DIR, f"b3_malconv_{suffix}.csv")
+    if not os.path.exists(p):
+        return pd.DataFrame()
+    return agg_with_ci(pd.read_csv(p), "X", "acc_mean_test")
+
+
+def _naive_groups(suffix: str) -> pd.DataFrame:
+    p = os.path.join(RESULTS_DIR, f"b4_b7_threshold_{suffix}.csv")
+    return pd.read_csv(p) if os.path.exists(p) else pd.DataFrame()
+
+
+def plot_one(dataset_key: str, dataset_label: str, suffix: str, out_path: str, ylim: Tuple[float, float]):
+    fig, ax = init_axes()
+
+    for arch_label, suffix_arch in (("OSL CNN", "osl"), ("SRNet", "srnet")):
+        path = os.path.join(RESULTS_DIR, f"fsl_{suffix_arch}_{suffix}.csv")
+        if not os.path.exists(path):
+            print(f"  skip missing FSL {path}")
+            continue
+        for eval_label, col in (("Centroid", "test_acc_centroid"), ("1NN", "test_acc_nn")):
+            c = _fsl_curve(path, mc=dataset_key, eval_col=col)
+            plot_band(ax, c, FSL_STYLES_EXP2[f"{arch_label} ({eval_label})"], linewidth=2.0, alpha=0.10)
+
+    mc = _malconv_curve(suffix)
+    if not mc.empty:
+        mc = mc.sort_values("X")
+        plot_band(ax, mc, MALCONV_STYLE, linewidth=1.3, alpha=0.12, marker_size=4)
+
+    nv = _naive_groups(suffix)
+    for baseline_name, style in NAIVE_STYLES.items():
+        sub = nv[nv["baseline"] == baseline_name]
+        if sub.empty:
+            continue
+        c = agg_with_ci(sub, "X", "acc_mean_test").sort_values("X")
+        plot_band(ax, c, style, linewidth=1.3, alpha=0.12, marker_size=4)
+
+    finalize(ax, title=f"Model Collection = {dataset_label}",
+             ylim=ylim,
+             ylabel="Test Accuracy (Benign + Malicious) (X=Model LSB)")
+    save_fig(fig, out_path)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--id-out", default=os.path.join(default_out_dir(), "exp2_id_oml.png"))
+    parser.add_argument("--ood-out", default=os.path.join(default_out_dir(), "exp2_ood_oml.png"))
+    args = parser.parse_args()
+
+    plot_one("famous_le_10m",  "Famous Small CNNs", "small", args.id_out,  ylim=(0.0, 1.02))
+    plot_one("famous_le_100m", "Famous Large CNNs", "large", args.ood_out, ylim=(0.4, 1.05))
+
+
+if __name__ == "__main__":
+    main()
