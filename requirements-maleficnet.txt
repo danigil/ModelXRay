@@ -1,18 +1,27 @@
 # Isolated environment for regenerating the MaleficNet attacked-model dataset (D4).
-# Upstream MaleficNet dependencies conflict with the primary env's TF/Torch stack,
+# Upstream MaleficNet (vendored in external_code/maleficnet/) pins pytorch_lightning
+# + pyldpc + an older NumPy that conflict with the primary env's TF/Torch stack,
 # so this is intentionally separate.
 #
 # Tested with Python 3.11.9 on Ubuntu 20.04, CUDA 11.8.
 #
 # After installing, run:
 #   python scripts/data_creation/04_create_maleficnet_attacks.py --help
-#
-# Pins TBD pending Step 6 migration of external_code/maleficnet/ deps.
-# See external_code/maleficnet/ for the vendored MaleficNet implementation.
 
+# Deep learning + Lightning training loop used by external_code/maleficnet/maleficnet/maleficnet.py
 torch==2.4.0
 torchvision==0.19.0
+pytorch-lightning==2.3.3
+
+# LDPC encoder/decoder used by injector.py / extractor.py (spread-spectrum payload)
+pyldpc==0.7.9
+
+# Classical numerics + IO + utilities used across the maleficnet package
 numpy==1.26.4
+scipy==1.14.0
 pillow==10.4.0
 tqdm==4.66.5
-# TODO: pin remaining maleficnet upstream deps in step 6
+bitarray==2.9.2
+
+# Used by ingest path to render GF images via the primary library after attack injection
+scikit-image==0.24.0

@@ -80,12 +80,29 @@ def plot_one(dataset_key: str, dataset_label: str, suffix: str, out_path: str, y
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--id-out", default=os.path.join(default_out_dir(), "exp2_id_oml.png"))
-    parser.add_argument("--ood-out", default=os.path.join(default_out_dir(), "exp2_ood_oml.png"))
+    parser.add_argument("--id-out",  default=None,
+                        help=f"Output path for exp2_id_oml.png (default: {os.path.join(default_out_dir(), 'exp2_id_oml.png')}).")
+    parser.add_argument("--ood-out", default=None,
+                        help=f"Output path for exp2_ood_oml.png (default: {os.path.join(default_out_dir(), 'exp2_ood_oml.png')}).")
+    parser.add_argument("--only", choices=["id", "ood", "both"], default=None,
+                        help="Render only one of the two panels (default: render whichever --*-out was passed; both if neither).")
     args = parser.parse_args()
 
-    plot_one("famous_le_10m",  "Famous Small CNNs", "small", args.id_out,  ylim=(0.0, 1.02))
-    plot_one("famous_le_100m", "Famous Large CNNs", "large", args.ood_out, ylim=(0.4, 1.05))
+    if args.only is None:
+        # If exactly one --*-out is set, treat that as a single-panel request.
+        if args.id_out is not None and args.ood_out is None:
+            args.only = "id"
+        elif args.ood_out is not None and args.id_out is None:
+            args.only = "ood"
+        else:
+            args.only = "both"
+
+    if args.only in ("id", "both"):
+        out = args.id_out or os.path.join(default_out_dir(), "exp2_id_oml.png")
+        plot_one("famous_le_10m",  "Famous Small CNNs", "small", out, ylim=(0.0, 1.02))
+    if args.only in ("ood", "both"):
+        out = args.ood_out or os.path.join(default_out_dir(), "exp2_ood_oml.png")
+        plot_one("famous_le_100m", "Famous Large CNNs", "large", out, ylim=(0.4, 1.05))
 
 
 if __name__ == "__main__":

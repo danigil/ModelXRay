@@ -15,15 +15,23 @@ from model_xray.plots._style import (
 
 
 RESULTS_DIR = os.path.join(repo_root(), "results", "exp1")
+B1_CSV = os.path.join(RESULTS_DIR, "b1_gilkarov_per_x.csv")
 
-# B1 (Gilkarov) was not re-run in our reproduction; values transcribed from the
-# dotted-green line in the originally published exp1_id_oml.png. See main.tex
-# Section sec:baselines_academic for the source.
+# Fallback B1 (Gilkarov) values, transcribed from the dotted-green line in the
+# originally published exp1_id_oml.png. Used only when results/exp1/b1_gilkarov_per_x.csv
+# is missing — i.e. when scripts/experiments/baselines/run_b1_gilkarov.py hasn't
+# been executed yet. Once that runs, the real CSV takes precedence.
 GILKAROV_PIECEWISE = {
     1: 0.50, 2: 0.50, 3: 0.50, 4: 0.50, 5: 0.50, 6: 0.50, 7: 0.50, 8: 0.50,
     9: 0.50, 10: 0.50, 11: 0.50, 12: 0.50, 13: 0.50, 14: 0.50, 15: 0.50,
     16: 0.55, 17: 0.65, 18: 0.80, 19: 0.92, 20: 0.97, 21: 0.99, 22: 1.00, 23: 1.00,
 }
+
+
+def _b1_curve_from_csv(classifier: str = "xgboost") -> pd.DataFrame:
+    df = pd.read_csv(B1_CSV)
+    df = df[df["classifier"] == classifier]
+    return agg_with_ci(df, "X", "accuracy")
 
 
 def _fsl_curve(eval_col: str) -> pd.DataFrame:
@@ -58,8 +66,12 @@ def main():
         c = _fsl_curve(col)
         plot_band(ax, c, FSL_STYLES[label], linewidth=2.0, alpha=0.15)
 
-    xs = sorted(GILKAROV_PIECEWISE)
-    ax.plot(xs, [GILKAROV_PIECEWISE[x] for x in xs], **GILKAROV_STYLE)
+    if os.path.exists(B1_CSV):
+        b1 = _b1_curve_from_csv()
+        plot_band(ax, b1.sort_values("X"), GILKAROV_STYLE, linewidth=1.6, alpha=0.12)
+    else:
+        xs = sorted(GILKAROV_PIECEWISE)
+        ax.plot(xs, [GILKAROV_PIECEWISE[x] for x in xs], **GILKAROV_STYLE)
 
     mc = _malconv_curve()
     if not mc.empty:
