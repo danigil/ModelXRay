@@ -4,7 +4,6 @@ import copy
 from typing import Literal, Optional
 from model_xray.configs.models import ImagePreprocessConfig, ImageRepConfig
 from model_xray.models.srnet import SRNet
-# from model_xray.models.cvtstego import cvtstego
 import numpy as np
 from numpy import linalg as LA
 from sklearn.neighbors import KNeighborsClassifier
@@ -316,7 +315,7 @@ class Siamese(Model):
                 #  weights_init = "random", 
                  dropout_rate=0.5,
                  model=None,
-                 model_arch:Literal['osl_siamese_cnn', 'srnet', 'cvtstego', 'mobilenetv2', 'e128']='srnet',
+                 model_arch:Literal['osl_siamese_cnn', 'srnet']='srnet',
                  optimizer=None,
 
                  train_data=None,
@@ -358,15 +357,8 @@ class Siamese(Model):
                 # assert img_input_shape == (256,256,1), "srnet only supports 256x256x1 images"
                 model = SRNet(include_top=False)
 
-            elif model_arch == 'mobilenetv2':
-                model = tf.keras.applications.MobileNetV2(input_shape=img_input_shape, include_top=True, weights=None,classifier_activation=None)
-                model.trainable = True
-                self.preprocess_func = tf.keras.applications.mobilenet_v2.preprocess_input
-            elif model_arch == 'cvtstego':
-                assert img_input_shape == (256,256,1), "cvtstego only supports 256x256x1 images"
-                model = cvtstego(include_top=False, compile=False)
-            elif model_arch == 'e128':
-                model = create_embedding_model(input_shape=img_input_shape, embedding_dim=128)
+            else:
+                raise ValueError(f"Unknown model_arch={model_arch!r}; supported: osl_siamese_cnn, srnet")
         
         # embedding = tf.keras.layers.BatchNormalization()(model)
         # embedding = 
