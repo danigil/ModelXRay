@@ -1,0 +1,18 @@
+# Isolated environment for regenerating the MaleficNet attacked-model dataset (D4).
+# Upstream MaleficNet dependencies conflict with the primary env's TF/Torch stack,
+# so this is intentionally separate.
+#
+# Tested with Python 3.11.9 on Ubuntu 20.04, CUDA 11.8.
+#
+# After installing, run:
+#   python scripts/data_creation/04_create_maleficnet_attacks.py --help
+#
+# Pins TBD pending Step 6 migration of external_code/maleficnet/ deps.
+# See external_code/maleficnet/ for the vendored MaleficNet implementation.
+
+torch==2.4.0
+torchvision==0.19.0
+numpy==1.26.4
+pillow==10.4.0
+tqdm==4.66.5
+# TODO: pin remaining maleficnet upstream deps in step 6
