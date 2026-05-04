@@ -33,11 +33,12 @@ Each end-to-end script supports `--quick` for a small smoke-test subset.
 
 ## Data setup (for end-to-end runs only)
 
-End-to-end reruns require the GHRP model zoos and (for MaleficNet OOD) attacked model files. Set:
+End-to-end reruns require the GHRP model zoos and (for MaleficNet OOD) attacked model files. Set the env vars listed in [SETUP.md](SETUP.md), at minimum:
 
 ```bash
-export MODELXRAY_ZOO_ROOT=/path/to/zoos        # parent of GHRP zoo subdirs
-export MODELXRAY_MALEFICNET_DIR=/path/to/maleficnet_imgs
+export MODELXRAY_GHRP_DIR=/path/to/zoos               # GHRP zoo parent dir (D1, D2, D3)
+export MODELXRAY_RESNET_MZ_ROOT=/path/to/resnet18     # ResNet18 checkpoint root (D5)
+export MODELXRAY_MALEFICNET_DIR=/path/to/maleficnet_imgs   # D4 image cache
 ```
 
 Then fetch the GHRP zoos:
