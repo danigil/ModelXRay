@@ -5,11 +5,15 @@
 # Tested with Python 3.11.9 on Ubuntu 20.04, CUDA 11.8.
 
 # Deep learning
-tensorflow[and-cuda]==2.13.0
+# Use plain `tensorflow` (CPU + auto-detect GPU) instead of `tensorflow[and-cuda]`
+# to avoid an nvidia-cublas-cu12 conflict with torch 2.4's pinned CUDA wheels.
+# If you need TF on GPU, install nvidia drivers + cudnn separately, or replace
+# this line with `tensorflow[and-cuda]==2.15.1` and uninstall the conflicting torch wheels.
+tensorflow==2.15.1
 torch==2.4.0
 torchvision==0.19.0
 torchaudio==2.4.0
-keras==2.13.1
+keras==2.15.0
 
 # Classical ML / numerics
 numpy==1.26.4

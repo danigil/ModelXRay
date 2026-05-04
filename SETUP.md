@@ -8,11 +8,21 @@ Tested on Python 3.11.9, Ubuntu 20.04, CUDA 11.8.
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
+# Required only for GHRP zoo loading (D1 SCZ STL10, D5 ResNet18-TinyImageNet).
+# `dataset.pt` files are pickled with `ghrp.*` module references, so the
+# vendored upstream package must be importable at unpickle time.
+pip install -e external_code/ghrp/
 ```
 
-This pulls TensorFlow 2.13 + Torch 2.4 (cu118) + Keras + scikit-learn +
-xgboost + matplotlib/seaborn + Pydantic + Pillow + scikit-image, plus
-`bitstring`, `tqdm`, `transformers`, `huggingface-hub`, and `h5py`.
+This pulls TensorFlow 2.15 (CPU + auto-GPU) + Torch 2.4 (cu121) + Keras 2.15 +
+scikit-learn + xgboost + matplotlib/seaborn + Pydantic + Pillow +
+scikit-image, plus `bitstring`, `tqdm`, `transformers`, `huggingface-hub`,
+and `h5py`. Verified end-to-end on Python 3.11.9.
+
+If you need TF on GPU, replace `tensorflow==2.15.1` with
+`tensorflow[and-cuda]==2.15.1` and reinstall — note that the `[and-cuda]`
+extra pins `nvidia-cublas-cu12==12.2.5.6`, which conflicts with torch 2.4's
+`12.1.3.1`. To use both on GPU, install torch in a separate venv from TF.
 
 **Optional**: `pip install memory-profiler` to populate the `peak_memory`
 column produced by `scripts/experiments/run_runtime_memory.py`.

@@ -84,16 +84,23 @@ def attacked_weights(
     x: int,
     malware_bits_or_path,
     chunk_weights: int = 2_000_000,
+    *,
+    rng: np.random.Generator | None = None,
 ) -> np.ndarray:
     """Convenience: float32 benign -> float32 attacked at severity X.
 
-    `malware_bits_or_path` is either a preloaded bit array of shape (n*x,) or a path
-    to a payload file (in which case the needed bits are loaded lazily).
+    `malware_bits_or_path` may be:
+      - a path-like (str/bytes) to a payload file (lazy-loaded),
+      - a preloaded bit array of shape (n*x,),
+      - or None to use a uniform pseudo-random payload (Experiment 4 setting).
     """
     n = benign_weights.shape[0]
     needed_bits = n * x
     if isinstance(malware_bits_or_path, (str, bytes)):
         mbits = load_malware_bits(str(malware_bits_or_path), needed_bits)
+    elif malware_bits_or_path is None:
+        rng = rng if rng is not None else np.random.default_rng()
+        mbits = rng.integers(0, 2, size=needed_bits, dtype=np.uint8)
     else:
         mbits = malware_bits_or_path
         assert mbits.shape == (needed_bits,), f"expected ({needed_bits},), got {mbits.shape}"
