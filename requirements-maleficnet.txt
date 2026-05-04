@@ -22,6 +22,7 @@ scipy==1.14.0
 pillow==10.4.0
 tqdm==4.66.5
 bitarray==2.9.2
+bitstring==4.2.3
 
 # Used by ingest path to render GF images via the primary library after attack injection
 scikit-image==0.24.0

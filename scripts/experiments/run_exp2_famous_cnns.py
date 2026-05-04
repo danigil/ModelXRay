@@ -152,6 +152,12 @@ def main():
     parser.add_argument("--small-h5", default=None,
                         help="Path to famous_le_10m/mcwa.h5 (default: $MODELXRAY_GHRP_DIR/famous_le_10m/mcwa.h5).")
     parser.add_argument("--large-h5", default=None)
+    parser.add_argument("--small-train-archs", nargs="+", default=list(SMALL_TRAIN),
+                        help="Override training arch list (default: paper's 3 small CNNs).")
+    parser.add_argument("--small-test-archs", nargs="+", default=list(SMALL_TEST),
+                        help="Override ID test arch list (default: paper's 5 small CNNs).")
+    parser.add_argument("--large-test-archs", nargs="+", default=list(LARGE_TEST),
+                        help="Override OOD test arch list (default: paper's 16 large CNNs).")
     parser.add_argument("--n-repeats", type=int, default=30)
     parser.add_argument("--x-range", type=int, nargs="+", default=X_RANGE)
     parser.add_argument("--payload-file", default=None)
@@ -174,9 +180,9 @@ def main():
         args.large_h5 = os.path.join(_paths.get_ghrp_dir(), "famous_le_100m", "mcwa.h5")
 
     print(f"Loading {args.small_h5}, {args.large_h5} ...")
-    small_train = _load_collection(args.small_h5, SMALL_TRAIN)
-    small_test = _load_collection(args.small_h5, SMALL_TEST)
-    large_test = _load_collection(args.large_h5, LARGE_TEST)
+    small_train = _load_collection(args.small_h5, args.small_train_archs)
+    small_test = _load_collection(args.small_h5, args.small_test_archs)
+    large_test = _load_collection(args.large_h5, args.large_test_archs)
     print(f"Train(small)={len(small_train)}  test(small)={len(small_test)}  test(large)={len(large_test)}")
     os.makedirs(args.out_dir, exist_ok=True)
 

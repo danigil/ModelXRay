@@ -58,10 +58,20 @@ def _attack_block(weights: np.ndarray, x: int) -> np.ndarray:
     return np.stack([attacked_weights(w, x=x, malware_bits_or_path=None) for w in weights])
 
 
-def _gf_pixels(weights: np.ndarray, x: int, imsize: int = 50) -> np.ndarray:
-    """(n, imsize, imsize) GF images at severity X (X=0 = benign), flattened."""
-    imgs = img_pp_xlsb_attack(weights, imsize=imsize, x=x, payload_filepath=None, image_rep="gf")
-    return imgs.reshape(imgs.shape[0], -1).astype(np.float32)
+def _gf_pixels(weights: np.ndarray, x: int, imsize: int = 50, batch_size: int = 4) -> np.ndarray:
+    """(n, imsize*imsize) flattened GF images at severity X (X=0 = benign).
+
+    Batched over the model axis so the GF intermediate (~6720x6720 per model
+    on ResNet18-TinyImageNet) fits in RAM. Without this, computing GF on the
+    full (116, 11.28M) tensor at once blows >20 GB before the skimage resize.
+    """
+    n = weights.shape[0]
+    outs = []
+    for i in range(0, n, batch_size):
+        imgs = img_pp_xlsb_attack(weights[i:i + batch_size], imsize=imsize,
+                                   x=x, payload_filepath=None, image_rep="gf")
+        outs.append(imgs.reshape(imgs.shape[0], -1).astype(np.float32))
+    return np.concatenate(outs, axis=0)
 
 
 def _byte_window(weights: np.ndarray, x: int, window: int = MALCONV_BYTE_WINDOW) -> np.ndarray:

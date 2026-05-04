@@ -67,15 +67,19 @@ def skimage_preprocess(images: np.ndarray, image_preprocess_config: ImagePreproc
         )
 
     elif images.ndim == 3:
-        images_n, images_h, images_c = images.shape
+        # Treat 3D as (n_models, height, width) — single-channel grayscale stacks
+        # (the GF representation produces this layout). The legacy branch that
+        # interpreted axis 2 as channels and only resized height was a bug:
+        # it left axis 2 at the original GF tile width.
+        images_n, images_h, images_w = images.shape
         images_resized = skimage_resize(
             images,
-            output_shape=(images_n, imsize_h),
+            output_shape=(images_n, imsize_h, imsize_w),
             preserve_range=True,
             anti_aliasing=True,
             clip=True,
         )
-    
+
     return images_resized
 
 def execute_image_preprocess(image: np.ndarray, image_preprocess_config: ImagePreprocessConfig) -> np.ndarray:

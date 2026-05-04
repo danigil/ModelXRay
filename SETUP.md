@@ -31,10 +31,15 @@ column produced by `scripts/experiments/run_runtime_memory.py`.
 
 The vendored MaleficNet implementation has upstream pins that conflict with the
 primary stack. If you need to regenerate the MaleficNet attacked-model dataset
-(Experiment 2.5), create a separate venv and install:
+(Experiment 2.5), create a separate venv and install. `pyldpc==0.7.9` is a
+source-only release whose `setup.py` imports `numpy` at build time, so install
+numpy + wheel first and then disable build isolation for pyldpc:
 
 ```bash
 python -m venv .venv-maleficnet && source .venv-maleficnet/bin/activate
+pip install --upgrade pip wheel setuptools
+pip install numpy==1.26.4 cython
+pip install --no-build-isolation pyldpc==0.7.9
 pip install -r requirements-maleficnet.txt
 pip install -e .
 ```

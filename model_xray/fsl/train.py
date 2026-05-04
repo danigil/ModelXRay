@@ -65,6 +65,11 @@ def train_fsl(
             threshold_upper=train_loss_threshold_upper,
         )]
 
+    # Siamese expects a channel axis; add one for grayscale image reps that
+    # ship as (n, h, w) from the data.attack_pipeline path.
+    if X_train.ndim == 3:
+        X_train = np.expand_dims(X_train, axis=-1)
+
     model = Siamese(
         img_input_shape=(imsize, imsize, n_channels),
         dist=dist,
@@ -72,6 +77,10 @@ def train_fsl(
         dropout_rate=dropout_rate,
         model_arch=model_arch,
     )
+    # Pass training data as the validation triplet source — Siamese.fit_and_keep_refs
+    # constructs validation triplets unconditionally and crashes on (None, None).
+    # Using train as val is fine for the FSL setting (3+3 samples; eval happens via
+    # test_all afterwards).
     model.fit_and_keep_refs(
         X_train, y_train,
         epochs=epochs,
@@ -79,5 +88,6 @@ def train_fsl(
         verbose=verbose,
         callbacks=callbacks,
         size=triplets_per_class,
+        test_data=(X_train, y_train),
     )
     return model
