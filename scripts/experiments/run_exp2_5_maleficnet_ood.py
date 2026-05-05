@@ -56,6 +56,8 @@ def main():
     parser.add_argument("--small-h5", default=None)
     parser.add_argument("--mz-imsize", type=int, default=50,
                         help="MaleficNet image size to load (must match the cache built by 04_*).")
+    parser.add_argument("--mz-image-rep", default="gf", choices=["gf", "rgb", "s"],
+                        help="MaleficNet cached image rep (default: gf; pre-existing caches may be rgb).")
     parser.add_argument("--fsl-imsize", type=int, default=100,
                         help="FSL training imsize (paper: 100 for OSL CNN).")
     parser.add_argument("--model-arch", default="osl_siamese_cnn",
@@ -81,10 +83,15 @@ def main():
     print(f"Loading FSL training set from {args.small_h5} ...")
     small_train = _load_archs(args.small_h5, SMALL_TRAIN)
     print(f"Loading MaleficNet OOD test set (imsize={args.mz_imsize}) ...")
-    X_oo, y_oo = ret_maleficnet_data(imsize=args.mz_imsize, image_rep="gf",
+    X_oo, y_oo = ret_maleficnet_data(imsize=args.mz_imsize, image_rep=args.mz_image_rep,
                                      split_benign_mal=False, flatten_imgs=False)
+    # The FSL detector was trained on (n, fsl_imsize, fsl_imsize, 1) grayscale
+    # GF images. Coerce the cached MaleficNet test set to that shape:
+    #   - if it is RGB (n, h, w, 3), collapse channels by mean-averaging,
+    #   - then resize each (h, w) frame to (fsl_imsize, fsl_imsize) via PIL.
+    if X_oo.ndim == 4 and X_oo.shape[-1] == 3:
+        X_oo = X_oo.mean(axis=-1)  # collapse RGB -> grayscale
     if args.mz_imsize != args.fsl_imsize:
-        # Resize via PIL so the OOD eval images match the trained input shape.
         from PIL import Image
         X_resized = np.zeros((X_oo.shape[0], args.fsl_imsize, args.fsl_imsize), dtype=X_oo.dtype)
         for i in range(X_oo.shape[0]):

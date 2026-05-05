@@ -168,6 +168,9 @@ def run_threshold_b5_b7(weights: np.ndarray, *, x_range, n_splits, n_repeats, se
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     parser.add_argument("--mz-name", default="tiny-imagenet_resnet18")
+    parser.add_argument("--n-models", type=int, default=None,
+                        help="Subset of benign models to use (default: all). "
+                             "Useful for memory-bound smoke tests on b2_yin / b3_malconv.")
     parser.add_argument("--n-splits", type=int, default=5)
     parser.add_argument("--n-repeats", type=int, default=5)
     parser.add_argument("--x-range", type=int, nargs="+", default=X_RANGE)
@@ -183,6 +186,8 @@ def main():
         args.n_splits = 2; args.n_repeats = 2; args.x_range = [4, 12, 20]
 
     weights = _load_resnet18(args.mz_name)
+    if args.n_models is not None:
+        weights = weights[: args.n_models]
     print(f"Loaded ResNet18 zoo: {weights.shape}")
     os.makedirs(args.out_dir, exist_ok=True)
 
