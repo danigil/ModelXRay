@@ -61,21 +61,32 @@ def _attack_block(weights: np.ndarray, x: int) -> np.ndarray:
     return np.stack([attacked_weights(w, x=x, malware_bits_or_path=None) for w in weights])
 
 
-def _gf_pixels(weights: np.ndarray, x: int, imsize: int = 50, batch_size: int = 4) -> np.ndarray:
+_GF_FEATURE_CACHE: dict[int, np.ndarray] = {}
+
+
+def _gf_pixels(weights: np.ndarray, x: int, imsize: int = 50) -> np.ndarray:
     """(n, imsize*imsize) flattened GF images at severity X (X=0 = benign).
 
-    Batched over the model axis so the GF intermediate (~6720x6720 per model
-    on ResNet18-TinyImageNet) fits in RAM. Without this, computing GF on the
-    full (116, 11.28M) tensor at once blows >20 GB before the skimage resize.
+    Uses PIL Image.BOX resampling (area-averaging) for the 6720x6720 -> 50x50
+    downsample -- ~0.02 s/model, matching the paper's run_gf_xgboost_resnet18.py.
+    The previous skimage anti-aliased path was ~10 min/model.
+
+    Cached per X so gf_xgb and gf_1nn share one computation per attack severity.
     """
-    from model_xray.data.attack_pipeline import img_pp_xlsb_attack  # lazy: pulls TF
+    if x in _GF_FEATURE_CACHE:
+        return _GF_FEATURE_CACHE[x]
+
+    from PIL import Image
+    from model_xray.procedures.image_rep_procs import _grayscale_fourpart
     n = weights.shape[0]
-    outs = []
-    for i in range(0, n, batch_size):
-        imgs = img_pp_xlsb_attack(weights[i:i + batch_size], imsize=imsize,
-                                   x=x, payload_filepath=None, image_rep="gf")
-        outs.append(imgs.reshape(imgs.shape[0], -1).astype(np.float32))
-    return np.concatenate(outs, axis=0)
+    out = np.zeros((n, imsize * imsize), dtype=np.float32)
+    for i in range(n):
+        ws_i = weights[i] if x == 0 else attacked_weights(weights[i], x=x, malware_bits_or_path=None)
+        img = _grayscale_fourpart(ws_i.reshape(1, -1))[0]  # (H, W) uint8
+        img = Image.fromarray(img).resize((imsize, imsize), Image.BOX)
+        out[i] = np.asarray(img, dtype=np.float32).reshape(-1)
+    _GF_FEATURE_CACHE[x] = out
+    return out
 
 
 def _byte_window(weights: np.ndarray, x: int, window: int = MALCONV_BYTE_WINDOW) -> np.ndarray:
