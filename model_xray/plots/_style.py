@@ -33,7 +33,7 @@ FSL_STYLES_EXP2 = {
 }
 
 GILKAROV_STYLE = dict(color="#3C9F3C", linestyle=":", marker="None",
-                      linewidth=1.6, label="B1: Gilkarov et al.")
+                      label="B1: Gilkarov et al.")
 
 MALCONV_STYLE = dict(color="#1F78B4", linestyle="--", marker="x",
                      label="B3: MalConv-lite (raw bytes)")
