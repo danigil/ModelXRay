@@ -1,4 +1,4 @@
-"""Experiment 1: SCZ STL10 OML (fig:exp1).
+"""Experiment 1: SCZ STL10 OML (Figure 4).
 
 Trains the FSL detector (OSL CNN, centroid + 1-NN) on 6 randomly drawn SCZ
 STL10 models per repeat (3 benign + 3 attacked), and evaluates per-X test

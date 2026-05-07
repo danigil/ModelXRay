@@ -1,6 +1,6 @@
 """Synthetic float32 tensors used by the runtime/memory study (D6).
 
-The deployment-feasibility tables (tab:exp_time, tab:exp_memory) measure GF
+The deployment-feasibility tables (Table 4, Table 5) measure GF
 feature-extraction cost on synthetic random tensors at parameter-count ladder
 10**2, 10**3, ..., 10**8. No real model is needed — only the byte/bit
 distribution matters, and uniform random float32 drawn from N(0, 1) matches the

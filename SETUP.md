@@ -70,7 +70,7 @@ export MODELXRAY_RESNET_MZ_ROOT=/data/modelxray/resnet18
 export MODELXRAY_MALEFICNET_DIR=/data/modelxray/maleficnet_imgs
 ```
 
-## Smoke test
+## Quick test
 
 Plot-only path (no zoos required, ~30 seconds):
 
@@ -79,15 +79,8 @@ python scripts/plots/plot_all.py
 ls out/plots/
 ```
 
-End-to-end smoke test (~5 minutes on one GPU):
+End-to-end quick test (~5 minutes on one GPU):
 
 ```bash
 python scripts/experiments/run_exp1_scz_oml.py --quick
 ```
-
-## ZenML
-
-This repository previously used ZenML for pipeline orchestration. The public
-artifact dropped that dependency in favor of plain numbered Python scripts to
-keep the reproduction pipeline lean. The historical ZenML pipelines remain in
-the `zenml` branch of the upstream repository if needed for reference.

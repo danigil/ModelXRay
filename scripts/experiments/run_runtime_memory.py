@@ -1,4 +1,4 @@
-"""Runtime / memory study (tab:exp_time, tab:exp_memory).
+"""Runtime / memory study (Table 4, Table 5).
 
 Measures wall-clock and peak-memory cost of feature extraction across the
 parameter ladder (n_models, n_weights) in (10, 100, 1000, 10000) ** 2, for the

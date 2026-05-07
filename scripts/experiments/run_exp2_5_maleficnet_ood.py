@@ -1,4 +1,4 @@
-"""Experiment 2.5: MaleficNet OOD evaluation (tab:malefic).
+"""Experiment 2.5: MaleficNet OOD evaluation (Table 2).
 
 Reuses the FSL detectors trained in Experiment 2 (script run_exp2_famous_cnns.py)
 and evaluates them on the MaleficNet attacked-image dataset (D4) - a
@@ -10,7 +10,7 @@ Approach: rather than re-implementing Experiment 2's training, this script
 re-trains FSL on (small_train benign, small_train attacked at X=1) - the same
 recipe as Experiment 2 - because the trained Keras Siamese checkpoints are not
 checkpointed to disk in the public-artifact pipeline. The X=1 anchor is the
-top-row entry of tab:malefic (paper: WM 87, OOD acc 80, OSL CNN, centroid).
+top-row entry of Table 2 (paper: WM 87, OOD acc 80, OSL CNN, centroid).
 
 Inputs:
     $MODELXRAY_GHRP_DIR/famous_le_10m/mcwa.h5  (D2, for FSL training)

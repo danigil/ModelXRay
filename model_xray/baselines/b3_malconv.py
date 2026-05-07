@@ -5,7 +5,7 @@ embedding, gated 1D convolution, global temporal max-pool, binary head - sized
 small enough to fit on a single GPU at our sequence lengths (up to ~512 KB
 windows on ResNet18; ~10 KB on SCZ-STL10).
 
-Per Section sec:baselines_naive of the paper:
+Per Section 4.1 (Baseline) of the paper:
   - 8-d byte embedding
   - 2 parallel 1D convs of width 64, stride 16 (one ReLU feature, one sigmoid gate)
   - global temporal max-pool

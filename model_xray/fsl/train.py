@@ -5,7 +5,7 @@ already lives in `model_xray.models.siamese.Siamese`. This module is a thin,
 ZenML-free entrypoint with paper-aligned defaults so the per-experiment runners
 in scripts/experiments/ stay short.
 
-Hyperparameters follow Section sec:training_setup of the paper:
+Hyperparameters follow Section 4.3 (Training Setup and Hyperparameters) of the paper:
   - dist: l2 (default), lr: 6e-5
   - mode "ub" (upper-bound): up to 100 epochs with the threshold callback
   - mode "es" (early-stop): 1 epoch

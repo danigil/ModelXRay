@@ -1,6 +1,6 @@
 # Reproducing the paper
 
-This document maps every quantitative artifact in the paper *"Model X-Ray: Detection of Hidden Malware in AI Model Weights using Few Shot Learning"* (JISAS-D-25-03332) to the exact command that regenerates it.
+This document maps every quantitative artifact in the paper *"Model X-Ray: Detection of Hidden Malware in AI Model Weights using Few Shot Learning"* to the exact command that regenerates it.
 
 There are two reproduction modes:
 
@@ -20,14 +20,14 @@ This regenerates the five paper figures and prints the LaTeX source for both tim
 
 | Paper artifact | Plot/table command | End-to-end command |
 |---|---|---|
-| `fig:exp1` (`exp1_id_oml.png`) | `python scripts/plots/exp1_id_oml.py` | `python scripts/experiments/run_exp1_scz_oml.py` |
-| `fig:exp2_oml_id` (`exp2_id_oml.png`) | `python scripts/plots/exp2_oml.py` | `python scripts/experiments/run_exp2_famous_cnns.py` |
-| `fig:exp2` (`exp2_id_al.png`) | `python scripts/plots/exp2_al.py` | `python scripts/experiments/run_exp2_famous_cnns.py` |
-| `fig:exp2_oml` (`exp2_ood_oml.png`) | `python scripts/plots/exp2_oml.py` | `python scripts/experiments/run_exp2_famous_cnns.py` |
-| `fig:exp4` (`exp4_new.png`) | `python scripts/plots/exp4_new.py` | `python scripts/experiments/run_exp4_resnet18_yin.py` |
-| `tab:exp_time` | `python scripts/plots/tables_time_memory.py --table time` | `python scripts/experiments/run_runtime_memory.py` |
-| `tab:exp_memory` | `python scripts/plots/tables_time_memory.py --table memory` | `python scripts/experiments/run_runtime_memory.py` |
-| `tab:malefic` (Exp 2.5) | (printed by `run_exp2_5_maleficnet_ood.py`) | `python scripts/experiments/run_exp2_5_maleficnet_ood.py` |
+| `Figure 4` (`exp1_id_oml.png`) | `python scripts/plots/exp1_id_oml.py` | `python scripts/experiments/run_exp1_scz_oml.py` |
+| `Figure 5` (`exp2_id_oml.png`) | `python scripts/plots/exp2_oml.py` | `python scripts/experiments/run_exp2_famous_cnns.py` |
+| `Figure 6` (`exp2_id_al.png`) | `python scripts/plots/exp2_al.py` | `python scripts/experiments/run_exp2_famous_cnns.py` |
+| `Figure 7` (`exp2_ood_oml.png`) | `python scripts/plots/exp2_oml.py` | `python scripts/experiments/run_exp2_famous_cnns.py` |
+| `Figure 8` (`exp4_new.png`) | `python scripts/plots/exp4_new.py` | `python scripts/experiments/run_exp4_resnet18_yin.py` |
+| `Table 4` | `python scripts/plots/tables_time_memory.py --table time` | `python scripts/experiments/run_runtime_memory.py` |
+| `Table 5` | `python scripts/plots/tables_time_memory.py --table memory` | `python scripts/experiments/run_runtime_memory.py` |
+| `Table 2` (Exp 2.5) | (printed by `run_exp2_5_maleficnet_ood.py`) | `python scripts/experiments/run_exp2_5_maleficnet_ood.py` |
 
 Each end-to-end script supports `--quick` for a small smoke-test subset.
 
@@ -69,7 +69,7 @@ Datasets:
 - **D5** ResNet18-TinyImageNet GHRP zoo
 - **D6** Synthetic float32 tensors at sizes 10²-10⁸ (timing only)
 
-Baselines (`sec:baselines_academic`, `sec:baselines_naive`):
+Baselines (`Section 4.1 (Baseline)`):
 
 - **B1** Gilkarov et al. — XGBoost on flattened weights
 - **B2** Yin et al. — 92-dim NIST stats (φ₁-φ₄ × 23 bit positions) + XGBoost

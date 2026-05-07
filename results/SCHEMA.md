@@ -5,7 +5,7 @@ consumes to regenerate one paper figure or table. End-to-end re-runs in
 `scripts/experiments/` overwrite these files in place; the committed copies are
 what produced the figures in the published PDF.
 
-## `results/exp1/` — Experiment 1, SCZ STL10 OML (fig:exp1)
+## `results/exp1/` — Experiment 1, SCZ STL10 OML (Figure 4)
 
 | File | Producer | Schema |
 |---|---|---|
@@ -13,7 +13,7 @@ what produced the figures in the published PDF.
 | `b3_malconv.csv` | `run_exp1_scz_oml.py --methods b3` (legacy: `IngestModelZoo/baselines/malconv/run_scz_stl10_malconv_repeats.py`) | columns: `repeat, X, test_acc, ...` |
 | `b4_b7_threshold.csv` | `run_exp1_scz_oml.py --methods thresholds` (legacy: `IngestModelZoo/baselines/naive/run_scz_stl10_repeats.py`) | columns: `repeat, X, baseline, test_acc, ...` |
 
-B1 (Gilkarov) values for fig:exp1 are hardcoded in `scripts/plots/exp1_id_oml.py`
+B1 (Gilkarov) values for Figure 4 are hardcoded in `scripts/plots/exp1_id_oml.py`
 because the original Gilkarov paper only reported per-X point values, not raw
 prediction CSVs.
 
@@ -30,7 +30,7 @@ prediction CSVs.
 
 Schemas match the legacy `IngestModelZoo/baselines/{naive,malconv}/results/`.
 
-## `results/exp4/` — Experiment 4, ResNet18-TinyImageNet vs Yin (fig:exp4_new)
+## `results/exp4/` — Experiment 4, ResNet18-TinyImageNet vs Yin (Figure 8)
 
 | File | Method |
 |---|---|
@@ -43,14 +43,14 @@ Schemas match the legacy `IngestModelZoo/baselines/{naive,malconv}/results/`.
 CSVs contain one row per CV fold; `iid_test` rows are aggregated by the plot
 script using mean ± 95% CI bands.
 
-## `results/exp2_5/` — Experiment 2.5, MaleficNet OOD (tab:malefic)
+## `results/exp2_5/` — Experiment 2.5, MaleficNet OOD (Table 2)
 
 Populated only by `scripts/experiments/run_exp2_5_maleficnet_ood.py`. Not
 shipped pre-cached in this initial release because the table values are
-embedded directly in `latex_code/main.tex` and the experiment requires the
+embedded directly in the paper and the experiment requires the
 trained Exp 2 FSL detector + the MaleficNet image dataset (D4) to reproduce.
 
-## `results/runtime_memory/` — Deployment study (tab:exp_time, tab:exp_memory)
+## `results/runtime_memory/` — Deployment study (Table 4, Table 5)
 
 | File | Producer | Schema |
 |---|---|---|

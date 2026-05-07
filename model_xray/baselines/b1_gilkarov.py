@@ -4,7 +4,7 @@ Trains a supervised classifier directly on the flattened float32 weight vector
 of each model. The original Gilkarov code (github.com/ArielCyber/AI_Model_Steganalysis,
 classification.py) uses sklearn's `HistGradientBoostingClassifier` and
 `RandomForestClassifier` for the weights-feature path. The paper's reproduction
-swaps in XGBoost (Section sec:xgb_config) so the three XGBoost-based methods
+swaps in XGBoost (Section 4.1 (Baseline)) so the three XGBoost-based methods
 (B1, B2, GF + XGBoost) share an identical classifier configuration.
 
 `fit_predict` defaults to XGBoost (matches the paper's claim) but accepts

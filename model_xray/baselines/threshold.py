@@ -1,4 +1,4 @@
-"""B4-B7: threshold-based steganalysis detectors (Section sec:baselines_naive).
+"""B4-B7: threshold-based steganalysis detectors (Section 4.1 (Baseline)).
 
 Each detector:
   - operates on a flat float32 weight array,

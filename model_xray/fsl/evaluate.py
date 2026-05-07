@@ -2,8 +2,7 @@
 
 The Siamese model exposes `.test_all(X, y)` returning {'centroid', 'nn'} test
 accuracies via shared anchor embeddings. This module wraps that for use across
-multiple eval datasets and adds the paper's Weighted Metric (Section
-sec:weighted_metric):
+multiple eval datasets and adds the paper's Weighted Metric (Section 4.6 (Model Evaluation Metric)):
 
     WM = 0.5 * (a_0 + (1 / (s(s+1)/2)) * sum_{i=1..s} (s - i + 1) * a_i)
 
@@ -53,7 +52,7 @@ def evaluate_on_datasets(
 
 
 def weighted_metric(per_x_accuracies: Mapping[int, float], s: int = S_MANTISSA) -> float:
-    """Paper's Weighted Metric (Section sec:weighted_metric).
+    """Paper's Weighted Metric (Section 4.6 (Model Evaluation Metric)).
 
     `per_x_accuracies` must contain at minimum keys 0..s; missing entries
     default to 0.0 (treated as a complete miss for the missing severity).

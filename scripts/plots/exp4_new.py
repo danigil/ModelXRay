@@ -1,4 +1,4 @@
-"""Regenerate exp4_new.png — Experiment 4, ResNet18-TinyImageNet (paper fig:exp4_new)."""
+"""Regenerate exp4_new.png — Experiment 4, ResNet18-TinyImageNet (paper Figure 8)."""
 
 from __future__ import annotations
 

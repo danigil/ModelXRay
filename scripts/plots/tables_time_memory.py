@@ -1,8 +1,8 @@
-"""Render the deployment-feasibility tables (tab:exp_time, tab:exp_memory).
+"""Render the deployment-feasibility tables (Table 4, Table 5).
 
 Aggregates `results/runtime_memory/measure_time.csv` to mean ± std over the
 (image_rep, n_models, n_weights) grid and prints the LaTeX source for the two
-tables embedded in main.tex Section sec:deployment.
+tables embedded in the paper Section 7 (Practical Deployment Analysis).
 
 Usage:
     python scripts/plots/tables_time_memory.py --table time

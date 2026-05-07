@@ -1,4 +1,4 @@
-"""Shared XGBoost classifier configuration (Section sec:xgb_config).
+"""Shared XGBoost classifier configuration (Section 4.1 (Baseline)).
 
 All three XGBoost-based methods in the paper - B1 (Gilkarov), B2 (Yin), and the
 "Ours - GF + XGBoost" ablation in Experiment 4 - use the same classifier:

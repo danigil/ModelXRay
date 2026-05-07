@@ -29,7 +29,7 @@ SMALL_TEST = (
     "MobileNetV3Small",
 )
 
-# ConvNeXt is intentionally omitted to match main.tex line 4.7.4.
+# ConvNeXt is intentionally omitted to match the paper line 4.7.4.
 LARGE_TEST = (
     "DenseNet169",
     "DenseNet201",

@@ -1,6 +1,6 @@
-"""Regenerate exp2_id_al.png — Experiment 2 AL view (paper fig:exp2).
+"""Regenerate exp2_id_al.png — Experiment 2 AL view (paper Figure 6).
 
-The AL plot shows the Weighted Metric (Section sec:weighted_metric) per anchor
+The AL plot shows the Weighted Metric (Section 4.6 (Model Evaluation Metric)) per anchor
 X_hat:
     WM(X_hat) = 0.5 * (a_0 + sum_{i=1..23} (24 - i) * a_i / 276)
 

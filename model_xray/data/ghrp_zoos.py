@@ -80,12 +80,21 @@ def iter_resnet_mz_checkpoints(
     checkpoint_filename: str = "checkpoints",
     last_n_checkpoints: int = 1,
     resnet_mz_root: Optional[str] = None,
+    float32_only: bool = True,
 ):
-    """Yield flat-float32 numpy weight vectors for each model checkpoint.
+    """Yield flat numpy weight vectors for each model checkpoint.
 
     `root_dirs` are subdirectories under `MODELXRAY_RESNET_MZ_ROOT` (e.g.
     `tiny-imagenet_resnet18_kaiming_uniform_subset`). Each model directory
     underneath contains one or more `checkpoint_<N>/checkpoints` files.
+
+    With `float32_only=True` (default) the yielded vector contains only the
+    float32 leaves of the state dict -- this matches the paper's
+    cache_resnet18.py / extract_weights_pytorch protocol and is what the
+    threshold detectors B4-B7 expect. PyTorch BatchNorm modules also store
+    an int64 `num_batches_tracked` counter (values up to ~50k) as part of
+    the state dict; including those would poison the `max` / histogram
+    features of the WeightValueDistribution detector.
     """
     base = resnet_mz_root or _paths.get_resnet_mz_root()
     for root in root_dirs:
@@ -102,7 +111,10 @@ def iter_resnet_mz_checkpoints(
                 if not os.path.isfile(cp_file):
                     continue
                 sd = torch.load(cp_file, weights_only=True)
-                w = flatten_sd(sd).detach().cpu().numpy()
+                if float32_only:
+                    w = extract_weights_pytorch(sd)
+                else:
+                    w = flatten_sd(sd).detach().cpu().numpy()
                 yield w
                 del sd, w
                 gc.collect()

@@ -1,4 +1,4 @@
-"""Experiment 4: ResNet18-TinyImageNet, our methods vs B2/B3/B5/B7 (fig:exp4_new).
+"""Experiment 4: ResNet18-TinyImageNet, our methods vs B2/B3/B5/B7 (Figure 8).
 
 Six-way comparison on the homogeneous ResNet18-TinyImageNet zoo (D5) under
 matched 5-fold x 5-repeat stratified CV with random-bit payloads:
@@ -41,7 +41,10 @@ from model_xray.baselines.byte_attack import attacked_weights, float32_to_bytes
 from model_xray.baselines.shared import make_xgb
 from model_xray.baselines.threshold import ByteEntropyDetector, WeightValueDistributionDetector
 from model_xray.data import paths as _paths
-from model_xray.data.attack_pipeline import img_pp_xlsb_attack
+# `img_pp_xlsb_attack` is imported lazily inside `_gf_pixels` (the only function
+# that uses it). At top-level, it pulls model_xray.procedures.embedding_procs,
+# which in turn pulls model_xray.configs.types -> tensorflow.keras + transformers,
+# costing ~10s of TF init for runs that don't need any of it (thresholds, B2 Yin).
 
 
 X_RANGE = list(range(1, 24))
@@ -65,6 +68,7 @@ def _gf_pixels(weights: np.ndarray, x: int, imsize: int = 50, batch_size: int = 
     on ResNet18-TinyImageNet) fits in RAM. Without this, computing GF on the
     full (116, 11.28M) tensor at once blows >20 GB before the skimage resize.
     """
+    from model_xray.data.attack_pipeline import img_pp_xlsb_attack  # lazy: pulls TF
     n = weights.shape[0]
     outs = []
     for i in range(0, n, batch_size):
@@ -75,7 +79,7 @@ def _gf_pixels(weights: np.ndarray, x: int, imsize: int = 50, batch_size: int = 
 
 
 def _byte_window(weights: np.ndarray, x: int, window: int = MALCONV_BYTE_WINDOW) -> np.ndarray:
-    """Take a deterministic 512-KB byte window at offset 0 (paper Section sec:baselines_naive)."""
+    """Take a deterministic 512-KB byte window at offset 0 (paper Section 4.1 (Baseline))."""
     if x > 0:
         weights = _attack_block(weights, x)
     out = np.zeros((weights.shape[0], window), dtype=np.uint8)
@@ -144,22 +148,46 @@ def run_malconv(weights: np.ndarray, *, x_range, n_splits, n_repeats, seed) -> p
 
 
 def run_threshold_b5_b7(weights: np.ndarray, *, x_range, n_splits, n_repeats, seed) -> pd.DataFrame:
+    """Paper-faithful threshold-baseline CV (matches IngestModelZoo/baselines/naive/
+    run_experiment_resnet18_rand.py + the cached resnet18_naive_rand_per_x.csv).
+
+    Key protocol detail: KFold over n_models (NOT stratified-k-fold over the
+    doubled (benign, attacked) population). Each fold's `tr` indices are then
+    used in PAIRED fashion -- the same model index supplies both a train
+    benign sample and a train attacked sample. This:
+      (a) matches the paper's per-fold n_train ~ 0.8 * n_models,
+      (b) prevents the model-identity leakage that the prior independent-split
+          protocol allowed (train benign and train attacked drawn from
+          disjoint model subsets makes the threshold over-fit to model
+          identity rather than the attack signature, e.g. B7 hitting ~1.0
+          at X=16 instead of the paper's ~0.51).
+    """
+    from sklearn.model_selection import KFold, RepeatedKFold
+    n = len(weights)
+    if n_repeats <= 1:
+        kf = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
+        folds = list(kf.split(np.arange(n)))
+    else:
+        rkf = RepeatedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=seed)
+        folds = list(rkf.split(np.arange(n)))
+
     rows = []
     for x in x_range:
-        for fold_i, (tr, te) in enumerate(_cv_folds(2 * len(weights), n_splits, n_repeats, seed)):
-            tr_b = tr[tr < len(weights)]; tr_m = tr[tr >= len(weights)] - len(weights)
-            te_b = te[te < len(weights)]; te_m = te[te >= len(weights)] - len(weights)
+        attacked_cache = np.stack([attacked_weights(weights[i], x=x, malware_bits_or_path=None)
+                                    for i in range(n)])
+        for fold_i, (tr, te) in enumerate(folds):
             for cls, name in [(ByteEntropyDetector, "B5"), (WeightValueDistributionDetector, "B7")]:
                 det = cls()
-                det.fit([weights[i] for i in tr_b])
-                bs_tr = [det.score(weights[i]) for i in tr_b]
-                ms_tr = [det.score(attacked_weights(weights[i], x=x, malware_bits_or_path=None)) for i in tr_m]
+                det.fit([weights[i] for i in tr])
+                bs_tr = [det.score(weights[i]) for i in tr]
+                ms_tr = [det.score(attacked_cache[i]) for i in tr]
                 t, _ = det.find_threshold(bs_tr, ms_tr)
-                bs_te = [det.score(weights[i]) for i in te_b]
-                ms_te = [det.score(attacked_weights(weights[i], x=x, malware_bits_or_path=None)) for i in te_m]
+                bs_te = [det.score(weights[i]) for i in te]
+                ms_te = [det.score(attacked_cache[i]) for i in te]
                 tn = sum(1 for s in bs_te if s <= t); tp = sum(1 for s in ms_te if s > t)
                 acc = (tn + tp) / max(1, len(bs_te) + len(ms_te))
                 rows.append({"method": name, "X": x, "fold": fold_i, "test_acc": acc})
+        del attacked_cache
     return pd.DataFrame(rows)
 
 

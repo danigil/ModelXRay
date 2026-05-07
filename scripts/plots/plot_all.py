@@ -27,7 +27,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out-dir", default=default_out_dir())
     parser.add_argument("--skip-tables", action="store_true",
-                        help="Skip rendering the LaTeX tables for tab:exp_time / tab:exp_memory.")
+                        help="Skip rendering the LaTeX tables for Table 4 / Table 5.")
     args = parser.parse_args()
 
     os.makedirs(args.out_dir, exist_ok=True)
@@ -49,8 +49,8 @@ def main():
 
     if not args.skip_tables:
         print("\n--- LaTeX tables ---")
-        for table in ("time", "memory"):
-            print(f"\n[tab:exp_{table}]")
+        for table, paper_label in (("time", "Table 4"), ("memory", "Table 5")):
+            print(f"\n[{paper_label} ({table})]")
             subprocess.call([sys.executable,
                              os.path.join(plots_dir, "tables_time_memory.py"),
                              "--table", table])

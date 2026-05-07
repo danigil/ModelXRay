@@ -1,7 +1,7 @@
 """Regenerate exp2_id_oml.png + exp2_ood_oml.png — Experiment 2 OML view.
 
-ID  = Famous Small CNNs  (paper fig:exp2_oml_id)
-OOD = Famous Large CNNs  (paper fig:exp2_oml)
+ID  = Famous Small CNNs  (paper Figure 5)
+OOD = Famous Large CNNs  (paper Figure 7)
 """
 
 from __future__ import annotations

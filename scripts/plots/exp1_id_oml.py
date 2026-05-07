@@ -1,4 +1,4 @@
-"""Regenerate exp1_id_oml.png — Experiment 1, SCZ STL10 OML (paper fig:exp1)."""
+"""Regenerate exp1_id_oml.png — Experiment 1, SCZ STL10 OML (paper Figure 4)."""
 
 from __future__ import annotations
 

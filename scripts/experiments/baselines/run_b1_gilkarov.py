@@ -7,7 +7,7 @@ for each X in [1, 23], concatenate (benign weights, X-LSB-attacked weights),
 
 By default runs the THREE classifier variants the paper / original repo both
 mention so the comparison is honest:
-  - XGBoost  (the paper's reproduction; B1 column in main.tex)
+  - XGBoost  (the paper's reproduction; B1 column in the paper)
   - HistGradientBoosting (original ArielCyber default for weights features)
   - RandomForest (original ArielCyber alternate for weights features)
 
