@@ -1,17 +1,20 @@
 """Runtime / memory study (Table 4, Table 5).
 
 Measures wall-clock and peak-memory cost of feature extraction across the
-parameter ladder (n_models, n_weights) in (10, 100, 1000, 10000) ** 2, for the
-four image-representation backends used in the paper:
+parameter ladder (n_models, n_weights) in (10, 100, 1000, 10000) ** 2.
 
-    s       (straight bytes; cheap reference)
-    rgb     (3-byte RGB rep)
-    bb      (bitbytes rep)
-    phis    (Yin et al. 92-d feature vector — B2)
+Tables 4 and 5 in the paper compare the paper's contribution
+    gf      (Grayscale-Fourpart -- "Ours - GF")
+against the reproduced Yin et al. (2022) baseline
+    phis    (NIST randomness statistics phi_1..phi_4 across 23 mantissa bit positions)
+
+The other image reps (s, rgb, bb) are also available via --image-reps for
+ablation; they are byte-decomposition variants whose runtime is in the same
+order of magnitude as gf (the paper's published "Ours - GF" timing happens
+to coincide with rgb, since both do byte-decomp + reshape with similar work).
 
 Output: results/runtime_memory/measure_time.csv with columns
     image_rep, time, peak_memory, n_models, n_weights, run_i
-matching the original IngestModelZoo/results/time/measure_time.csv schema.
 
 Optional dependency: memory_profiler (pip install memory-profiler). If
 unavailable, peak memory column is filled with NaN.
@@ -73,7 +76,9 @@ def main():
                         help="n_models ladder (paper: 10..1e4).")
     parser.add_argument("--ms", type=int, nargs="+", default=[10, 100, 1000, 10000],
                         help="n_weights ladder per model (paper: 10..1e4).")
-    parser.add_argument("--image-reps", nargs="+", default=["s", "rgb", "bb", "phis"])
+    parser.add_argument("--image-reps", nargs="+", default=["gf", "phis"],
+                        help='Default ["gf", "phis"] reproduces Tables 4 + 5 directly. '
+                             'Add "s rgb bb" for the full ablation grid.')
     parser.add_argument("--out", default=os.path.join(results_dir(), "runtime_memory", "measure_time.csv"))
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
