@@ -81,6 +81,18 @@ def run_fsl(weights: np.ndarray, *, n_repeats: int, x_range: Sequence[int],
             except Exception as e:
                 print(f"[exp1 FSL] FAILED repeat={r} x={x}: {e!r}")
             finally:
+                # GPU memory hygiene: drop the Keras session and the trained
+                # Siamese weights so the next (X, repeat) iteration doesn't
+                # accumulate ResourceExhaustedError on small GPUs.
+                try:
+                    del model
+                except NameError:
+                    pass
+                try:
+                    import tensorflow as tf
+                    tf.keras.backend.clear_session()
+                except Exception:
+                    pass
                 gc.collect()
     return pd.DataFrame(rows)
 

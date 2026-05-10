@@ -24,6 +24,28 @@ If you need TF on GPU, replace `tensorflow==2.15.1` with
 extra pins `nvidia-cublas-cu12==12.2.5.6`, which conflicts with torch 2.4's
 `12.1.3.1`. To use both on GPU, install torch in a separate venv from TF.
 
+### Verified GPU recipe (TF on GPU + torch on CPU; no system-CUDA changes)
+
+This works on a host with system CUDA 11.8 because TF brings its own CUDA 12
+libs via `tensorflow[and-cuda]`:
+
+```bash
+python -m venv .venv-gpu && source .venv-gpu/bin/activate
+pip install --upgrade pip wheel
+pip install 'tensorflow[and-cuda]==2.15.1' keras==2.15.0
+pip install 'torch==2.4.0+cpu' 'torchvision==0.19.0+cpu' \
+            --index-url https://download.pytorch.org/whl/cpu
+pip install -r <(grep -v '^tensorflow\|^torch\|^keras' requirements.txt)
+pip install -e . -e external_code/ghrp/
+```
+
+Verify:
+
+```bash
+python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
+# -> [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+```
+
 **Optional**: `pip install memory-profiler` to populate the `peak_memory`
 column produced by `scripts/experiments/run_runtime_memory.py`.
 
