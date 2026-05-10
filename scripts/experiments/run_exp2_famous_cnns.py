@@ -83,32 +83,39 @@ def _stack_imgs(arch_w: Dict[str, np.ndarray], imsize: int, payload, x: int) -> 
 # -------------------- FSL --------------------
 
 def run_fsl(small_train, small_test, large_test, *, model_arch, imsize, mode, n_repeats, x_range,
-            payload, seed) -> pd.DataFrame:
-    rng = np.random.default_rng(seed)
+            payload, seed, crossx: bool = False) -> pd.DataFrame:
+    """Train + evaluate the FSL detector across X.
+
+    OML mode (`crossx=False`): each (repeat, X) trains one model at anchor X and
+    evaluates against ID + OOD at the same X (canonical schema rows have
+    `X_hat == X`).
+
+    AL mode (`crossx=True`): each (repeat, X_hat) trains one model at anchor
+    X_hat and evaluates against ID + OOD across *every* X in `x_range`
+    (cross-X sweep, used by the AL Figure 6 weighted-metric curve).
+    """
     rows = []
     for r in range(n_repeats):
-        for x in x_range:
-            print(f"[exp2 FSL/{model_arch}] repeat={r} x={x}")
+        for x_hat in x_range:
+            print(f"[exp2 FSL/{model_arch}] repeat={r} x_hat={x_hat} crossx={crossx}")
             X_train_b = _stack_imgs(small_train, imsize, payload, x=0)
-            X_train_m = _stack_imgs(small_train, imsize, payload, x=x)
+            X_train_m = _stack_imgs(small_train, imsize, payload, x=x_hat)
             X_train = np.concatenate([X_train_b, X_train_m])
             y_train = np.concatenate([np.zeros(len(X_train_b)), np.ones(len(X_train_m))])
             try:
                 model = train_fsl(X_train, y_train, model_arch=model_arch, imsize=imsize, mode=mode)
-                # ID test: small_test
-                X_id_b = _stack_imgs(small_test, imsize, payload, x=0)
-                X_id_m = _stack_imgs(small_test, imsize, payload, x=x)
-                id_res = evaluate_model(model, np.concatenate([X_id_b, X_id_m]),
-                                        np.concatenate([np.zeros(len(X_id_b)), np.ones(len(X_id_m))]))
-                # OOD test: large_test
-                X_oo_b = _stack_imgs(large_test, imsize, payload, x=0)
-                X_oo_m = _stack_imgs(large_test, imsize, payload, x=x)
-                oo_res = evaluate_model(model, np.concatenate([X_oo_b, X_oo_m]),
-                                        np.concatenate([np.zeros(len(X_oo_b)), np.ones(len(X_oo_m))]))
-                rows.append({"repeat": r, "X": x, "split": "id", **id_res})
-                rows.append({"repeat": r, "X": x, "split": "ood", **oo_res})
+                eval_xs = x_range if crossx else [x_hat]
+                for eval_x in eval_xs:
+                    for eval_set, test_dict in (("famous_le_10m", small_test),
+                                                ("famous_le_100m", large_test)):
+                        X_b = _stack_imgs(test_dict, imsize, payload, x=0)
+                        X_m = _stack_imgs(test_dict, imsize, payload, x=eval_x)
+                        res = evaluate_model(model, np.concatenate([X_b, X_m]),
+                                             np.concatenate([np.zeros(len(X_b)), np.ones(len(X_m))]))
+                        rows.append({"repeat": r, "X_hat": x_hat, "X": eval_x,
+                                     "eval_set": eval_set, **res})
             except Exception as e:
-                print(f"[exp2 FSL/{model_arch}] FAILED repeat={r} x={x}: {e!r}")
+                print(f"[exp2 FSL/{model_arch}] FAILED repeat={r} x_hat={x_hat}: {e!r}")
             finally:
                 gc.collect()
     return pd.DataFrame(rows)
@@ -116,23 +123,28 @@ def run_fsl(small_train, small_test, large_test, *, model_arch, imsize, mode, n_
 
 # -------------------- B3 / thresholds --------------------
 
-def run_b3(small_train, small_test, large_test, *, x_range, payload, seed) -> pd.DataFrame:
-    rng = np.random.default_rng(seed)
+def run_b3(small_train, small_test, large_test, *, x_range, payload, seed,
+           crossx: bool = False) -> pd.DataFrame:
     rows = []
     def _bytes_uint8(arr_dict, x):
         if x == 0:
             return np.stack([float32_to_bytes(w).reshape(-1) for w in arr_dict.values()]).astype(np.uint8)
         return np.stack([float32_to_bytes(attacked_weights(w, x=x, malware_bits_or_path=payload)).reshape(-1)
                          for w in arr_dict.values()]).astype(np.uint8)
-    for x in x_range:
-        print(f"[exp2 B3 MalConv] x={x}")
-        Xtr = np.concatenate([_bytes_uint8(small_train, 0), _bytes_uint8(small_train, x)])
+    for x_hat in x_range:
+        print(f"[exp2 B3 MalConv] x_hat={x_hat} crossx={crossx}")
+        Xtr = np.concatenate([_bytes_uint8(small_train, 0), _bytes_uint8(small_train, x_hat)])
         ytr = np.concatenate([np.zeros(len(small_train)), np.ones(len(small_train))]).astype(np.float32)
-        for split_name, test_dict in [("id", small_test), ("ood", large_test)]:
-            Xte = np.concatenate([_bytes_uint8(test_dict, 0), _bytes_uint8(test_dict, x)])
-            yte = np.concatenate([np.zeros(len(test_dict)), np.ones(len(test_dict))]).astype(np.float32)
-            res = malconv_train(Xtr, ytr, Xte, yte, MalConvCfg(seed=seed))
-            rows.append({"X": x, "split": split_name, "test_acc": res["test_acc"]})
+        eval_xs = x_range if crossx else [x_hat]
+        for eval_x in eval_xs:
+            for eval_set, test_dict in (("famous_le_10m", small_test),
+                                        ("famous_le_100m", large_test)):
+                Xte = np.concatenate([_bytes_uint8(test_dict, 0), _bytes_uint8(test_dict, eval_x)])
+                yte = np.concatenate([np.zeros(len(test_dict)), np.ones(len(test_dict))]).astype(np.float32)
+                res = malconv_train(Xtr, ytr, Xte, yte, MalConvCfg(seed=seed))
+                rows.append({"repeat": seed, "baseline": "malconv_lite",
+                             "X_hat": x_hat, "X": eval_x, "eval_set": eval_set,
+                             "accuracy": res["test_acc"]})
     return pd.DataFrame(rows)
 
 
@@ -149,7 +161,8 @@ def run_thresholds(small_train, small_test, large_test, *, x_range, payload) -> 
             bs_tr = [det.score(w) for w in train_b]
             ms_tr = [det.score(w) for w in train_m]
             t, _ = det.find_threshold(bs_tr, ms_tr)
-            for split_name, test_dict in [("id", small_test), ("ood", large_test)]:
+            for eval_set, test_dict in (("famous_le_10m", small_test),
+                                        ("famous_le_100m", large_test)):
                 test_b = list(test_dict.values())
                 test_m = [attacked_weights(w, x=x, malware_bits_or_path=payload) for w in test_dict.values()]
                 bs_te = [det.score(w) for w in test_b]
@@ -157,7 +170,8 @@ def run_thresholds(small_train, small_test, large_test, *, x_range, payload) -> 
                 tn = sum(1 for s in bs_te if s <= t)
                 tp = sum(1 for s in ms_te if s > t)
                 acc = (tn + tp) / (len(bs_te) + len(ms_te))
-                rows.append({"X": x, "split": split_name, "baseline": det.name, "test_acc": acc})
+                rows.append({"repeat": 0, "baseline": det.name, "X": x,
+                             "eval_set": eval_set, "accuracy": acc})
     return pd.DataFrame(rows)
 
 
@@ -179,6 +193,15 @@ def main():
     parser.add_argument("--payload-file", default=None)
     parser.add_argument("--mode", default="ub")
     parser.add_argument("--methods", nargs="+", default=["fsl_osl", "fsl_srnet", "b3", "thresholds"])
+    parser.add_argument("--train-set", choices=["small", "large"], default="small",
+                        help="Training set tag — controls output filename suffix and which arch list "
+                             "is used to train the FSL detector. Default `small` reproduces paper "
+                             "Figures 5/7 (small-CNN training). `large` is for Exp 2's secondary "
+                             "large-train configuration.")
+    parser.add_argument("--crossx", action="store_true",
+                        help="AL Figure 6: also evaluate trained model across every X in --x-range "
+                             "(produces extra rows with X_hat != X). Output filename suffix becomes "
+                             "fsl_*_crossx_<train_set>.csv.")
     parser.add_argument("--quick", action="store_true",
                         help="Smoke test: 2 repeats, x in [1, 8, 16, 23].")
     parser.add_argument("--seed", type=int, default=0)
@@ -202,22 +225,25 @@ def main():
     print(f"Train(small)={len(small_train)}  test(small)={len(small_test)}  test(large)={len(large_test)}")
     os.makedirs(args.out_dir, exist_ok=True)
 
+    crossx_tag = "_crossx" if args.crossx else ""
+    suf = args.train_set
     if "fsl_osl" in args.methods:
         df = run_fsl(small_train, small_test, large_test, model_arch="osl_siamese_cnn",
                      imsize=100, mode=args.mode, n_repeats=args.n_repeats, x_range=args.x_range,
-                     payload=payload, seed=args.seed)
-        df.to_csv(os.path.join(args.out_dir, "fsl_osl_per_x.csv"), index=False)
+                     payload=payload, seed=args.seed, crossx=args.crossx)
+        df.to_csv(os.path.join(args.out_dir, f"fsl_osl{crossx_tag}_{suf}.csv"), index=False)
     if "fsl_srnet" in args.methods:
         df = run_fsl(small_train, small_test, large_test, model_arch="srnet",
                      imsize=256, mode=args.mode, n_repeats=args.n_repeats, x_range=args.x_range,
-                     payload=payload, seed=args.seed)
-        df.to_csv(os.path.join(args.out_dir, "fsl_srnet_per_x.csv"), index=False)
+                     payload=payload, seed=args.seed, crossx=args.crossx)
+        df.to_csv(os.path.join(args.out_dir, f"fsl_srnet{crossx_tag}_{suf}.csv"), index=False)
     if "b3" in args.methods:
-        df = run_b3(small_train, small_test, large_test, x_range=args.x_range, payload=payload, seed=args.seed)
-        df.to_csv(os.path.join(args.out_dir, "b3_malconv_per_x.csv"), index=False)
+        df = run_b3(small_train, small_test, large_test, x_range=args.x_range,
+                    payload=payload, seed=args.seed, crossx=args.crossx)
+        df.to_csv(os.path.join(args.out_dir, f"b3_malconv{crossx_tag}_{suf}.csv"), index=False)
     if "thresholds" in args.methods:
         df = run_thresholds(small_train, small_test, large_test, x_range=args.x_range, payload=payload)
-        df.to_csv(os.path.join(args.out_dir, "b4_b7_threshold_per_x.csv"), index=False)
+        df.to_csv(os.path.join(args.out_dir, f"b4_b7_threshold_{suf}.csv"), index=False)
     print(f"All requested methods complete; CSVs under {args.out_dir}")
 
 

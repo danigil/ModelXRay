@@ -14,32 +14,24 @@ from model_xray.plots._style import (
 
 
 RESULTS_DIR = os.path.join(repo_root(), "results", "exp4")
-B2_DIR = os.path.join(RESULTS_DIR, "b2_yin_per_x")
 
 
 def _clf_curve(name: str) -> pd.DataFrame:
     df = pd.read_csv(os.path.join(RESULTS_DIR, name))
-    df = df[df["ds_name"] == "iid_test"]
-    return agg_with_ci(df.rename(columns={"x": "X"}), "X", "acc")
+    return agg_with_ci(df, "X", "accuracy")
 
 
 def _yin_curve() -> pd.DataFrame:
-    rows = []
-    for x in range(1, 24):
-        p = os.path.join(B2_DIR, f"{x}.csv")
-        if not os.path.exists(p):
-            continue
-        df = pd.read_csv(p)
-        df = df[df["ds_name"] == "iid_test"]
-        for _, r in df.iterrows():
-            rows.append({"X": x, "acc": float(r["acc"])})
-    return agg_with_ci(pd.DataFrame(rows), "X", "acc")
+    p = os.path.join(RESULTS_DIR, "b2_yin.csv")
+    if not os.path.exists(p):
+        return pd.DataFrame()
+    return agg_with_ci(pd.read_csv(p), "X", "accuracy")
 
 
 def _naive_curve(baseline_name: str) -> pd.DataFrame:
     df = pd.read_csv(os.path.join(RESULTS_DIR, "b5_b7_threshold.csv"))
-    df = df[df["baseline"] == baseline_name].rename(columns={"acc_mean_test": "acc"})
-    return agg_with_ci(df, "X", "acc")
+    df = df[df["baseline"] == baseline_name]
+    return agg_with_ci(df, "X", "accuracy")
 
 
 def main():

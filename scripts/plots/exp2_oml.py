@@ -27,19 +27,20 @@ DATASETS = {
 }
 
 
-def _fsl_curve(csv_path: str, mc: str, eval_col: str) -> pd.DataFrame:
+def _fsl_curve(csv_path: str, eval_set: str, eval_col: str) -> pd.DataFrame:
     df = pd.read_csv(csv_path)
-    df = df[df["mc"] == mc]
-    diag = df[df["lsb"] == df["model_lsb"]]
-    per_run = diag.groupby(["run num", "model_lsb"])[eval_col].mean().reset_index()
-    return agg_with_ci(per_run, "model_lsb", eval_col).rename(columns={"model_lsb": "X"})
+    if "eval_set" in df.columns:
+        df = df[df["eval_set"] == eval_set]
+    diag = df[df["X_hat"] == df["X"]]
+    per_run = diag.groupby(["repeat", "X"])[eval_col].mean().reset_index()
+    return agg_with_ci(per_run, "X", eval_col)
 
 
 def _malconv_curve(suffix: str) -> pd.DataFrame:
     p = os.path.join(RESULTS_DIR, f"b3_malconv_{suffix}.csv")
     if not os.path.exists(p):
         return pd.DataFrame()
-    return agg_with_ci(pd.read_csv(p), "X", "acc_mean_test")
+    return agg_with_ci(pd.read_csv(p), "X", "accuracy")
 
 
 def _naive_groups(suffix: str) -> pd.DataFrame:
@@ -55,8 +56,8 @@ def plot_one(dataset_key: str, dataset_label: str, suffix: str, out_path: str, y
         if not os.path.exists(path):
             print(f"  skip missing FSL {path}")
             continue
-        for eval_label, col in (("Centroid", "test_acc_centroid"), ("1NN", "test_acc_nn")):
-            c = _fsl_curve(path, mc=dataset_key, eval_col=col)
+        for eval_label, col in (("Centroid", "centroid"), ("1NN", "nn")):
+            c = _fsl_curve(path, eval_set=dataset_key, eval_col=col)
             plot_band(ax, c, FSL_STYLES_EXP2[f"{arch_label} ({eval_label})"], linewidth=2.0, alpha=0.10)
 
     mc = _malconv_curve(suffix)
@@ -69,7 +70,7 @@ def plot_one(dataset_key: str, dataset_label: str, suffix: str, out_path: str, y
         sub = nv[nv["baseline"] == baseline_name]
         if sub.empty:
             continue
-        c = agg_with_ci(sub, "X", "acc_mean_test").sort_values("X")
+        c = agg_with_ci(sub, "X", "accuracy").sort_values("X")
         plot_band(ax, c, style, linewidth=1.3, alpha=0.12, marker_size=4)
 
     finalize(ax, title=f"Model Collection = {dataset_label}",

@@ -28,30 +28,24 @@ GILKAROV_PIECEWISE = {
 }
 
 
-def _b1_curve_from_csv(classifier: str = "xgboost") -> pd.DataFrame:
+def _b1_curve_from_csv(baseline: str = "xgboost") -> pd.DataFrame:
     df = pd.read_csv(B1_CSV)
-    df = df[df["classifier"] == classifier]
+    df = df[df["baseline"] == baseline]
     return agg_with_ci(df, "X", "accuracy")
 
 
 def _fsl_curve(eval_col: str) -> pd.DataFrame:
     df = pd.read_csv(os.path.join(RESULTS_DIR, "fsl_osl.csv"))
-    df = df[df["mc"] == "ghrp_stl10"]
-    diag = df[df["lsb"] == df["model_lsb"]]
-    per_run = diag.groupby(["run num", "model_lsb"])[eval_col].mean().reset_index()
-    return agg_with_ci(per_run, "model_lsb", eval_col).rename(columns={"model_lsb": "X"})
-
-
-def _naive_curve() -> pd.DataFrame:
-    df = pd.read_csv(os.path.join(RESULTS_DIR, "b4_b7_threshold.csv"))
-    return agg_with_ci(df.assign(_x=df["X"]).rename(columns={}), "X", "acc_mean_test")
+    diag = df[df["X_hat"] == df["X"]]
+    per_run = diag.groupby(["repeat", "X"])[eval_col].mean().reset_index()
+    return agg_with_ci(per_run, "X", eval_col)
 
 
 def _malconv_curve() -> pd.DataFrame:
     p = os.path.join(RESULTS_DIR, "b3_malconv.csv")
     if not os.path.exists(p):
         return pd.DataFrame()
-    return agg_with_ci(pd.read_csv(p), "X", "acc_mean_test")
+    return agg_with_ci(pd.read_csv(p), "X", "accuracy")
 
 
 def main():
@@ -61,8 +55,8 @@ def main():
 
     fig, ax = init_axes()
 
-    for label, col in (("OSL CNN (Centroid)", "test_acc_centroid"),
-                       ("OSL CNN (1NN)", "test_acc_nn")):
+    for label, col in (("OSL CNN (Centroid)", "centroid"),
+                       ("OSL CNN (1NN)", "nn")):
         c = _fsl_curve(col)
         plot_band(ax, c, FSL_STYLES[label], linewidth=2.0, alpha=0.15)
 
@@ -83,7 +77,7 @@ def main():
         sub = naive_groups[naive_groups["baseline"] == baseline_name]
         if sub.empty:
             continue
-        c = agg_with_ci(sub, "X", "acc_mean_test").sort_values("X")
+        c = agg_with_ci(sub, "X", "accuracy").sort_values("X")
         plot_band(ax, c, style, linewidth=1.3, alpha=0.12, marker_size=4)
 
     finalize(ax, title="Model Collection = SCZ (STL-10)",

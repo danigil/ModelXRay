@@ -113,17 +113,18 @@ def _naive_al_curve(dataset_key: str) -> pd.DataFrame:
     return add_ci(df)
 
 
-def _fsl_al_curve(csv_path: str, mc: str, eval_col: str) -> pd.DataFrame:
+def _fsl_al_curve(csv_path: str, eval_set: str, eval_col: str) -> pd.DataFrame:
     df = pd.read_csv(csv_path)
-    df = df[df["mc"] == mc]
+    if "eval_set" in df.columns:
+        df = df[df["eval_set"] == eval_set]
     weights = np.arange(S_MANTISSA, 0, -1)
     rows = []
-    for run in df["run num"].unique():
-        sub = df[df["run num"] == run]
-        for train_x in sorted(sub["model_lsb"].unique()):
+    for run in df["repeat"].unique():
+        sub = df[df["repeat"] == run]
+        for train_x in sorted(sub["X_hat"].unique()):
             if train_x < 1 or train_x > 23:
                 continue
-            block = sub[sub["model_lsb"] == train_x].set_index("lsb")
+            block = sub[sub["X_hat"] == train_x].set_index("X")
             a0 = float(block.loc[0, eval_col]) if 0 in block.index else 1.0
             a_x = np.array([float(block.loc[x, eval_col]) if x in block.index else 0.0 for x in X_RANGE])
             rows.append({"run": run, "X_hat": int(train_x),
@@ -140,10 +141,10 @@ def _malconv_al_curve(suffix: str) -> pd.DataFrame:
     df = pd.read_csv(p)
     weights = np.arange(S_MANTISSA, 0, -1)
     rows = []
-    for (seed, x_hat), grp in df.groupby(["seed", "X_hat"]):
-        block = grp.set_index("lsb")
-        a0 = float(block.loc[0, "acc"]) if 0 in block.index else 1.0
-        a_x = np.array([float(block.loc[x, "acc"]) if x in block.index else 0.0 for x in X_RANGE])
+    for (seed, x_hat), grp in df.groupby(["repeat", "X_hat"]):
+        block = grp.set_index("X")
+        a0 = float(block.loc[0, "accuracy"]) if 0 in block.index else 1.0
+        a_x = np.array([float(block.loc[x, "accuracy"]) if x in block.index else 0.0 for x in X_RANGE])
         rows.append({"seed": seed, "X_hat": int(x_hat),
                      "WM": 0.5 * (a0 + (weights * a_x).sum() / WM_DENOM)})
     out = (pd.DataFrame(rows).groupby("X_hat")["WM"]
@@ -169,8 +170,8 @@ def plot_one(dataset_key: str, dataset_label: str, suffix: str, out_path: str):
         if not os.path.exists(path):
             print(f"  skip missing FSL {path}")
             continue
-        for eval_label, col in (("Centroid", "test_acc_centroid"), ("1NN", "test_acc_nn")):
-            curve = _fsl_al_curve(path, mc=dataset_key, eval_col=col)
+        for eval_label, col in (("Centroid", "centroid"), ("1NN", "nn")):
+            curve = _fsl_al_curve(path, eval_set=dataset_key, eval_col=col)
             _plot_curve(ax, "X_hat", curve, FSL_STYLES_EXP2[f"{arch_label} ({eval_label})"], lw=2.0, alpha=0.10)
 
     mc = _malconv_al_curve(suffix)

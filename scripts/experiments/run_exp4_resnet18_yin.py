@@ -144,8 +144,8 @@ def run_xgb_on_features(weights: np.ndarray, *, x_range, n_splits, n_repeats, se
             clf.fit(X[tr], y[tr])
             test_acc = float((clf.predict(X[te]) == y[te]).mean())
             train_acc = float((clf.predict(X[tr]) == y[tr]).mean())
-            rows.append({"method": label, "X": x, "fold": fold_i,
-                         "test_acc": test_acc, "train_acc": train_acc})
+            rows.append({"repeat": fold_i, "baseline": label, "X": x, "fold": fold_i,
+                         "accuracy": test_acc})
     return pd.DataFrame(rows)
 
 
@@ -161,8 +161,8 @@ def run_1nn_on_gf(weights: np.ndarray, *, x_range, n_splits, n_repeats, seed) ->
             knn.fit(X[tr], y[tr])
             test_acc = float((knn.predict(X[te]) == y[te]).mean())
             train_acc = float((knn.predict(X[tr]) == y[tr]).mean())
-            rows.append({"method": "GF+1NN", "X": x, "fold": fold_i,
-                         "test_acc": test_acc, "train_acc": train_acc})
+            rows.append({"repeat": fold_i, "baseline": "GF+1NN", "X": x, "fold": fold_i,
+                         "accuracy": test_acc})
     return pd.DataFrame(rows)
 
 
@@ -175,8 +175,8 @@ def run_malconv(weights: np.ndarray, *, x_range, n_splits, n_repeats, seed) -> p
         for fold_i, (tr, te) in enumerate(_cv_folds(len(X), n_splits, n_repeats, seed)):
             print(f"[exp4 MalConv] x={x} fold={fold_i}")
             res = malconv_train(X[tr], y[tr], X[te], y[te], MalConvCfg(seed=fold_i))
-            rows.append({"method": "B3-MalConv", "X": x, "fold": fold_i,
-                         "test_acc": res["test_acc"], "train_acc": res["train_acc"]})
+            rows.append({"repeat": fold_i, "baseline": "B3-MalConv", "X": x, "fold": fold_i,
+                         "accuracy": res["test_acc"]})
     return pd.DataFrame(rows)
 
 
@@ -209,7 +209,8 @@ def run_threshold_b5_b7(weights: np.ndarray, *, x_range, n_splits, n_repeats, se
         attacked_cache = np.stack([attacked_weights(weights[i], x=x, malware_bits_or_path=None)
                                     for i in range(n)])
         for fold_i, (tr, te) in enumerate(folds):
-            for cls, name in [(ByteEntropyDetector, "B5"), (WeightValueDistributionDetector, "B7")]:
+            for cls, name in [(ByteEntropyDetector, "byte_entropy"),
+                              (WeightValueDistributionDetector, "weight_value_dist")]:
                 det = cls()
                 det.fit([weights[i] for i in tr])
                 bs_tr = [det.score(weights[i]) for i in tr]
@@ -219,7 +220,8 @@ def run_threshold_b5_b7(weights: np.ndarray, *, x_range, n_splits, n_repeats, se
                 ms_te = [det.score(attacked_cache[i]) for i in te]
                 tn = sum(1 for s in bs_te if s <= t); tp = sum(1 for s in ms_te if s > t)
                 acc = (tn + tp) / max(1, len(bs_te) + len(ms_te))
-                rows.append({"method": name, "X": x, "fold": fold_i, "test_acc": acc})
+                rows.append({"repeat": fold_i, "baseline": name, "X": x, "fold": fold_i,
+                             "accuracy": acc})
         del attacked_cache
     return pd.DataFrame(rows)
 
@@ -256,25 +258,25 @@ def main():
         df = run_xgb_on_features(weights, x_range=args.x_range, n_splits=args.n_splits,
                                  n_repeats=args.n_repeats, seed=args.seed,
                                  feature_fn=_gf_pixels, label="GF+XGBoost")
-        df.to_csv(os.path.join(args.out_dir, "resnet18_gf_xgboost_per_x.csv"), index=False)
+        df.to_csv(os.path.join(args.out_dir, "gf_xgboost.csv"), index=False)
     if "gf_1nn" in args.methods:
         df = run_1nn_on_gf(weights, x_range=args.x_range, n_splits=args.n_splits,
                            n_repeats=args.n_repeats, seed=args.seed)
-        df.to_csv(os.path.join(args.out_dir, "resnet18_gf_1nn_per_x.csv"), index=False)
+        df.to_csv(os.path.join(args.out_dir, "gf_1nn.csv"), index=False)
     if "b2_yin" in args.methods:
         df = run_xgb_on_features(weights, x_range=args.x_range, n_splits=args.n_splits,
                                  n_repeats=args.n_repeats, seed=args.seed,
                                  feature_fn=_b2_yin_features,
                                  label="B2-Yin")
-        df.to_csv(os.path.join(args.out_dir, "resnet18_b2_yin_per_x.csv"), index=False)
+        df.to_csv(os.path.join(args.out_dir, "b2_yin.csv"), index=False)
     if "b3_malconv" in args.methods:
         df = run_malconv(weights, x_range=args.x_range, n_splits=args.n_splits,
                          n_repeats=args.n_repeats, seed=args.seed)
-        df.to_csv(os.path.join(args.out_dir, "resnet18_b3_malconv_per_x.csv"), index=False)
+        df.to_csv(os.path.join(args.out_dir, "b3_malconv.csv"), index=False)
     if "thresholds" in args.methods:
         df = run_threshold_b5_b7(weights, x_range=args.x_range, n_splits=args.n_splits,
                                  n_repeats=args.n_repeats, seed=args.seed)
-        df.to_csv(os.path.join(args.out_dir, "resnet18_b5_b7_threshold_per_x.csv"), index=False)
+        df.to_csv(os.path.join(args.out_dir, "b5_b7_threshold.csv"), index=False)
     print(f"All requested methods complete; CSVs under {args.out_dir}")
 
 

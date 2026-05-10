@@ -77,7 +77,8 @@ def run_fsl(weights: np.ndarray, *, n_repeats: int, x_range: Sequence[int],
                 model = train_fsl(X_train, y_train, model_arch="osl_siamese_cnn",
                                   imsize=imsize, mode=mode)
                 res = evaluate_model(model, X_test, y_test)
-                rows.append({"repeat": r, "X": x, "centroid": res["centroid"], "nn": res["nn"]})
+                rows.append({"repeat": r, "X_hat": x, "X": x,
+                             "centroid": res["centroid"], "nn": res["nn"]})
             except Exception as e:
                 print(f"[exp1 FSL] FAILED repeat={r} x={x}: {e!r}")
             finally:
@@ -123,7 +124,7 @@ def run_b1_xgb(weights: np.ndarray, *, x_range, payload_filepath, n_train, n_tes
             _, y_pred = b1_fit_predict(X_tr.astype(np.float32), y_tr.astype(int),
                                        X_te.astype(np.float32))
             acc = float((y_pred == y_te).mean())
-            rows.append({"repeat": r, "X": x, "test_acc": acc})
+            rows.append({"repeat": r, "baseline": "xgboost", "X": x, "accuracy": acc})
     return pd.DataFrame(rows)
 
 
@@ -145,7 +146,7 @@ def run_b3_malconv(weights: np.ndarray, *, x_range, payload_filepath, n_train, n
             X_te = np.concatenate([X_te_b, X_te_m]); y_te = np.concatenate([np.zeros(len(te)), np.ones(len(te))])
             res = malconv_train(X_tr, y_tr.astype(np.float32), X_te, y_te.astype(np.float32),
                                 MalConvCfg(seed=r))
-            rows.append({"repeat": r, "X": x, "test_acc": res["test_acc"]})
+            rows.append({"repeat": r, "baseline": "malconv_lite", "X": x, "accuracy": res["test_acc"]})
     return pd.DataFrame(rows)
 
 
@@ -171,7 +172,7 @@ def run_thresholds(weights: np.ndarray, *, x_range, payload_filepath, n_train, n
                 tn = sum(1 for s in bs_te if s <= t)
                 tp = sum(1 for s in ms_te if s > t)
                 acc = (tn + tp) / (len(bs_te) + len(ms_te))
-                rows.append({"repeat": r, "X": x, "baseline": det.name, "test_acc": acc})
+                rows.append({"repeat": r, "baseline": det.name, "X": x, "accuracy": acc})
     return pd.DataFrame(rows)
 
 
@@ -209,22 +210,22 @@ def main():
     if "fsl" in args.methods:
         df = run_fsl(weights, n_repeats=args.n_repeats, x_range=args.x_range,
                      payload_filepath=payload, imsize=args.imsize, mode=args.mode, seed=args.seed)
-        df.to_csv(os.path.join(args.out_dir, "fsl_per_x.csv"), index=False)
+        df.to_csv(os.path.join(args.out_dir, "fsl_osl.csv"), index=False)
     if "b1" in args.methods:
         df = run_b1_xgb(weights, x_range=args.x_range, payload_filepath=payload,
                         n_train=args.n_train_baselines, n_test=args.n_test_baselines,
                         n_repeats=args.n_repeats, seed=args.seed)
-        df.to_csv(os.path.join(args.out_dir, "b1_xgb_per_x.csv"), index=False)
+        df.to_csv(os.path.join(args.out_dir, "b1_gilkarov_per_x.csv"), index=False)
     if "b3" in args.methods:
         df = run_b3_malconv(weights, x_range=args.x_range, payload_filepath=payload,
                             n_train=args.n_train_baselines, n_test=args.n_test_baselines,
                             n_repeats=args.n_repeats, seed=args.seed)
-        df.to_csv(os.path.join(args.out_dir, "b3_malconv_per_x.csv"), index=False)
+        df.to_csv(os.path.join(args.out_dir, "b3_malconv.csv"), index=False)
     if "thresholds" in args.methods:
         df = run_thresholds(weights, x_range=args.x_range, payload_filepath=payload,
                             n_train=args.n_train_baselines, n_test=args.n_test_baselines,
                             n_repeats=args.n_repeats, seed=args.seed)
-        df.to_csv(os.path.join(args.out_dir, "b4_b7_threshold_per_x.csv"), index=False)
+        df.to_csv(os.path.join(args.out_dir, "b4_b7_threshold.csv"), index=False)
     print(f"All requested methods complete; CSVs under {args.out_dir}")
 
 

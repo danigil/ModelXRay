@@ -81,7 +81,14 @@ Baselines (`Section 4.1 (Baseline)`):
 
 ## Result CSV schema
 
-See `results/SCHEMA.md` for the column conventions of each cached CSV.
+Every CSV under `results/` follows the canonical schema documented in
+[`model_xray/data/_schemas.py`](model_xray/data/_schemas.py). The contract:
+runner outputs and plot inputs share that schema, so you can rerun any
+experiment and replot from the freshly produced CSV without translation.
+
+The cached paper CSVs were one-shot converted from the historical
+IngestModelZoo schema by `scripts/data_creation/convert_cached_csvs.py`
+(idempotent — safe to re-run).
 
 ## Hardware notes
 
