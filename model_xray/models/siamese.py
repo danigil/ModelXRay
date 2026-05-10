@@ -242,6 +242,7 @@ def reset_weights(model):
 def ret_initializer_weights_rand():
     return tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.01)
 
+
 def ret_initializer_bias_rand():
     return tf.keras.initializers.RandomNormal(mean=0.5, stddev=0.01)
 
@@ -350,9 +351,16 @@ class Siamese(Model):
                     model.add(Dropout(dropout_rate))
                 
                 model.add(Flatten())
+                # Note: kernel_initializer was previously set to ret_initializer_bias_rand
+                # (mean=0.5, stddev=0.01), which made every kernel weight ~0.5 and
+                # collapsed the Dense output to a near-constant vector for any input.
+                # After L2-normalize on the embedding head this gave triplet loss
+                # = margin (0.5) for the entire 100-epoch run. Use the weights
+                # initializer for the kernel.
                 model.add(Dense(4096, activation=None,
                     kernel_regularizer=l2(1e-3),
-                    kernel_initializer=ret_initializer_bias_rand(),bias_initializer=ret_initializer_bias_rand()))
+                    kernel_initializer=ret_initializer_weights_rand(),
+                    bias_initializer=ret_initializer_bias_rand()))
             elif model_arch == 'srnet':
                 # assert img_input_shape == (256,256,1), "srnet only supports 256x256x1 images"
                 model = SRNet(include_top=False)
@@ -1393,7 +1401,12 @@ class Siamese(Model):
         if x.dtype == np.uint8:
             x = x.astype(np.float32) / 255.0
 
-        # x = self.normalization_layer(x)
+        # Apply the same Keras Normalization layer that fit_and_keep_refs adapted on
+        # the training data. Without this, test embeddings live in a different
+        # input distribution than training and centroid/NN classification collapses
+        # to chance even when the model trained correctly.
+        if hasattr(self, 'normalization_layer') and self.normalization_layer is not None:
+            x = self.normalization_layer(x)
         return self.embedding.predict(x)
 
     # def visualize_learned_embedding(self, )
