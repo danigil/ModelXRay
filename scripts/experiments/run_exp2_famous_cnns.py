@@ -59,9 +59,25 @@ def _attack_dict(arch_w: Dict[str, np.ndarray], x: int, payload) -> Dict[str, np
 
 
 def _stack_imgs(arch_w: Dict[str, np.ndarray], imsize: int, payload, x: int) -> np.ndarray:
-    """Stack per-arch GF images at given X (X=0 means benign)."""
-    return np.stack([img_pp_xlsb_attack(w[np.newaxis, :], imsize=imsize, x=x, payload_filepath=payload)[0]
-                     for w in arch_w.values()])
+    """Stack per-arch GF images at given X (X=0 means benign).
+
+    Uses PIL Image.BOX for the (huge GF intermediate) -> (imsize, imsize)
+    downsample. Famous large CNNs reach ~89M params (NASNetLarge), whose GF
+    intermediate is ~9450x9450 -- the canonical img_pp_xlsb_attack path goes
+    through skimage_resize(anti_aliasing=True) which takes minutes per arch.
+    PIL Image.BOX area-resampling matches the paper's run_gf_xgboost_resnet18.py
+    fast-path: ~0.05 s per 89M-param model.
+    """
+    from PIL import Image
+    from model_xray.baselines.byte_attack import attacked_weights
+    from model_xray.procedures.image_rep_procs import _grayscale_fourpart
+    out = []
+    for w in arch_w.values():
+        ws = w if x == 0 else attacked_weights(w, x=x, malware_bits_or_path=payload)
+        img = _grayscale_fourpart(ws.reshape(1, -1))[0]  # (H, W) uint8
+        img = Image.fromarray(img).resize((imsize, imsize), Image.BOX)
+        out.append(np.asarray(img, dtype=np.float32))
+    return np.stack(out)
 
 
 # -------------------- FSL --------------------

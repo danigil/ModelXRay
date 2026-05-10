@@ -82,3 +82,12 @@ Baselines (`Section 4.1 (Baseline)`):
 ## Result CSV schema
 
 See `results/SCHEMA.md` for the column conventions of each cached CSV.
+
+## Hardware notes
+
+- **OSL CNN** (default; `--model-arch osl_siamese_cnn`) trains and infers comfortably on a single 8 GB GPU. All paper figures and `Table 2` reproduce on this path.
+- **SRNet** (`--model-arch srnet`) needs ≈16 GB of GPU memory at the paper's 256x256 input — its intermediate fused-batchnorm activations (e.g. `[18, 64, 128, 128]`) do not fit on a 10 GB RTX 3080 even with `tf.config.experimental.set_memory_growth`. Use a larger card (e.g. A6000 / V100 32 GB) or reduce `--imsize` to 128 to trade reproducibility for memory.
+
+## Reproduced result CSVs
+
+CSVs ending in `_repro.csv` (in `results/exp1/`, `results/exp2/`, `results/exp2_5/`) are end-to-end reruns from this codebase, kept alongside the paper-cached CSVs for direct comparison. They were produced with `--n-repeats 1` (Exp 1, Exp 2) or `--n-repeats 10` (Exp 2.5) and use a real malware payload (per the paper's protocol) at `$MODELXRAY_PAYLOAD_FILE`.

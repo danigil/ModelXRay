@@ -52,6 +52,17 @@ def train_fsl(
     Returns a `Siamese` instance whose `.test_all(X, y)` returns {'centroid': acc, 'nn': acc}.
     """
     # Lazy imports keep this module importable without TF when only the API is needed.
+    import tensorflow as tf
+    # Enable memory growth: TF otherwise pre-allocates the entire GPU memory at
+    # first op, which blocks SRNet at 256x256 (intermediate (n, 16, 256, 256)
+    # activation tensors don't fit alongside TF's pre-allocated chunk on a
+    # 9.8 GB RTX 3080). With memory_growth, TF allocates lazily and lets us
+    # use the full physical memory.
+    for gpu in tf.config.list_physical_devices('GPU'):
+        try:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        except RuntimeError:
+            pass  # Already initialized; safe to ignore.
     from model_xray.models.siamese import MyThresholdCallback, Siamese
 
     if epochs is None:
