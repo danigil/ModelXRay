@@ -62,6 +62,28 @@ def _attack_block(weights: np.ndarray, x: int) -> np.ndarray:
 
 
 _GF_FEATURE_CACHE: dict[int, np.ndarray] = {}
+_B2_FEATURE_CACHE: dict[int, np.ndarray] = {}
+
+
+def _b2_yin_features(weights: np.ndarray, x: int) -> np.ndarray:
+    """(n_models, 92) Yin et al. NIST phi_1..phi_4 features per model.
+
+    Per-model processing -- avoids the prior `_attack_block` path that built a
+    (n_models, n_weights) attacked tensor in one shot (5+ GB on ResNet18,
+    the bit-unpacking inside calc_phis_all then doubled it -> OOM-killed).
+
+    Cached per X, like the GF cache, so multiple downstream consumers share
+    one feature computation per attack severity.
+    """
+    if x in _B2_FEATURE_CACHE:
+        return _B2_FEATURE_CACHE[x]
+    n = weights.shape[0]
+    out = np.zeros((n, 92), dtype=np.float64)
+    for i in range(n):
+        ws_i = weights[i] if x == 0 else attacked_weights(weights[i], x=x, malware_bits_or_path=None)
+        out[i] = calc_phis_all(ws_i.reshape(1, -1))[0]
+    _B2_FEATURE_CACHE[x] = out
+    return out
 
 
 def _gf_pixels(weights: np.ndarray, x: int, imsize: int = 50) -> np.ndarray:
@@ -242,7 +264,7 @@ def main():
     if "b2_yin" in args.methods:
         df = run_xgb_on_features(weights, x_range=args.x_range, n_splits=args.n_splits,
                                  n_repeats=args.n_repeats, seed=args.seed,
-                                 feature_fn=lambda w, x: calc_phis_all(_attack_block(w, x) if x else w),
+                                 feature_fn=_b2_yin_features,
                                  label="B2-Yin")
         df.to_csv(os.path.join(args.out_dir, "resnet18_b2_yin_per_x.csv"), index=False)
     if "b3_malconv" in args.methods:
