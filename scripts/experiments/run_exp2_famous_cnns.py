@@ -125,12 +125,29 @@ def run_fsl(small_train, small_test, large_test, *, model_arch, imsize, mode, n_
 
 def run_b3(small_train, small_test, large_test, *, x_range, payload, seed,
            crossx: bool = False) -> pd.DataFrame:
+    """B3 (MalConv-lite) baseline.
+
+    Architectures in `small_*` / `large_*` have wildly different parameter
+    counts (MobileNetV2 ~3.5M floats vs VGG16 ~138M), so the raw byte
+    sequences cannot be stacked. Match the cached IngestModelZoo runner by
+    extracting a fixed 512 KB byte window (= the first 131072 floats) from
+    each model. All architectures used in Exp 2 have at least that many
+    parameters.
+    """
     rows = []
+    WINDOW_BYTES = 512 * 1024
+    floats_per_window = WINDOW_BYTES // 4
+
     def _bytes_uint8(arr_dict, x):
-        if x == 0:
-            return np.stack([float32_to_bytes(w).reshape(-1) for w in arr_dict.values()]).astype(np.uint8)
-        return np.stack([float32_to_bytes(attacked_weights(w, x=x, malware_bits_or_path=payload)).reshape(-1)
-                         for w in arr_dict.values()]).astype(np.uint8)
+        out = np.empty((len(arr_dict), WINDOW_BYTES), dtype=np.uint8)
+        for i, w in enumerate(arr_dict.values()):
+            if w.shape[0] < floats_per_window:
+                raise ValueError(f"arch with only {w.shape[0]} floats < window {floats_per_window}")
+            ws_window = w[:floats_per_window].astype(np.float32, copy=False)
+            if x > 0:
+                ws_window = attacked_weights(ws_window, x=x, malware_bits_or_path=payload)
+            out[i] = float32_to_bytes(ws_window).reshape(-1)
+        return out
     for x_hat in x_range:
         print(f"[exp2 B3 MalConv] x_hat={x_hat} crossx={crossx}")
         Xtr = np.concatenate([_bytes_uint8(small_train, 0), _bytes_uint8(small_train, x_hat)])

@@ -38,8 +38,14 @@ def ret_maleficnet_data(
     image_rep: Optional[Literal["gf", "rgb", "s"]] = "gf",
     split_benign_mal: bool = False,
     flatten_imgs: bool = False,
+    return_metadata: bool = False,
 ):
-    """Load the cached MaleficNet image dataset and binary labels."""
+    """Load the cached MaleficNet image dataset and binary labels.
+
+    With `return_metadata=True`, also return the per-row metadata array
+    (cols `model_name, dataset, payload_name, imsize, image_rep`) so callers
+    can group by (architecture, payload) for paper Table 2.
+    """
     imgs = np.load(_paths.maleficnet_imgs_path(imsize=imsize, image_rep=image_rep))
     metadata = np.load(_paths.maleficnet_metadata_path(imsize=imsize, image_rep=image_rep), allow_pickle=True)
 
@@ -53,7 +59,11 @@ def ret_maleficnet_data(
     if split_benign_mal:
         b = np.where(y == 0)[0]
         m = np.where(y == 1)[0]
+        if return_metadata:
+            return imgs[b], y[b], imgs[m], y[m], metadata[b], metadata[m]
         return imgs[b], y[b], imgs[m], y[m]
+    if return_metadata:
+        return imgs, y, metadata
     return imgs, y
 
 

@@ -83,8 +83,11 @@ def main():
     print(f"Loading FSL training set from {args.small_h5} ...")
     small_train = _load_archs(args.small_h5, SMALL_TRAIN)
     print(f"Loading MaleficNet OOD test set (imsize={args.mz_imsize}) ...")
-    X_oo, y_oo = ret_maleficnet_data(imsize=args.mz_imsize, image_rep=args.mz_image_rep,
-                                     split_benign_mal=False, flatten_imgs=False)
+    X_oo, y_oo, meta_oo = ret_maleficnet_data(imsize=args.mz_imsize, image_rep=args.mz_image_rep,
+                                              split_benign_mal=False, flatten_imgs=False,
+                                              return_metadata=True)
+    archs_oo = np.array([m["model_name"] for m in meta_oo])
+    payloads_oo = np.array([m["payload_name"] for m in meta_oo])
     # The FSL detector was trained on (n, fsl_imsize, fsl_imsize, 1) grayscale
     # GF images. Coerce the cached MaleficNet test set to that shape:
     #   - if it is RGB (n, h, w, 3), collapse channels by mean-averaging,
@@ -109,9 +112,34 @@ def main():
             y_train = np.concatenate([np.zeros(len(X_train_b)), np.ones(len(X_train_m))])
             model = train_fsl(X_train, y_train, model_arch=args.model_arch,
                               imsize=args.fsl_imsize, mode=args.mode)
+            # Per-(arch, payload) cells for paper Table 2. The benign rows
+            # ("pre" payload) are included once per arch and shared across
+            # malware-payload cells: each (arch, mal_payload) cell evaluates
+            # against benign(arch) + that arch's checkpoint with mal_payload.
+            seen = set()
+            for arch in sorted(set(archs_oo)):
+                arch_mask = archs_oo == arch
+                # Benign rows for this arch:
+                ben_idx = np.where(arch_mask & (payloads_oo == "pre"))[0]
+                # Each malware payload available for this arch:
+                for pl in sorted(set(payloads_oo[arch_mask])):
+                    if pl == "pre":
+                        continue
+                    mal_idx = np.where(arch_mask & (payloads_oo == pl))[0]
+                    if len(mal_idx) == 0 or len(ben_idx) == 0:
+                        continue
+                    cell_idx = np.concatenate([ben_idx, mal_idx])
+                    cell_y = np.concatenate([np.zeros(len(ben_idx)), np.ones(len(mal_idx))])
+                    res = evaluate_model(model, X_oo[cell_idx], cell_y)
+                    rows.append({"repeat": r, "X_anchor": x_anchor,
+                                 "model_arch": args.model_arch,
+                                 "arch": arch, "payload": pl, **res})
+                    seen.add((arch, pl))
+            # Also keep the headline avg-across-everything row for back-compat:
             ood_res = evaluate_model(model, X_oo, y_oo)
-            rows.append({"X_anchor": x_anchor, "repeat": r,
-                         "model_arch": args.model_arch, **ood_res})
+            rows.append({"repeat": r, "X_anchor": x_anchor,
+                         "model_arch": args.model_arch,
+                         "arch": "AVG", "payload": "AVG", **ood_res})
 
     os.makedirs(args.out_dir, exist_ok=True)
     df = pd.DataFrame(rows)
