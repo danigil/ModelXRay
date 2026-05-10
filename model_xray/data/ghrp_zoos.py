@@ -47,7 +47,7 @@ def compile_mz_weights(mz_name: str, ghrp_dir: Optional[str] = None) -> np.ndarr
     dataset_path = os.path.join(zoo_dir, "dataset.pt")
     if not os.path.exists(dataset_path):
         raise FileNotFoundError(f"GHRP dataset.pt not found: {dataset_path}")
-    dataset = torch.load(dataset_path)
+    dataset = torch.load(dataset_path, map_location="cpu")
     parts = [
         dataset["trainset"].__get_weights__(),
         dataset["testset"].__get_weights__(),
@@ -110,7 +110,10 @@ def iter_resnet_mz_checkpoints(
                 cp_file = os.path.join(model_path, cp, checkpoint_filename)
                 if not os.path.isfile(cp_file):
                     continue
-                sd = torch.load(cp_file, weights_only=True)
+                # Checkpoints were saved with CUDA tensors; map to CPU so this
+                # loader works in a CPU-only torch venv (the primary GPU env
+                # uses tensorflow[and-cuda] + torch+cpu — TF holds the GPU).
+                sd = torch.load(cp_file, weights_only=True, map_location="cpu")
                 if float32_only:
                     w = extract_weights_pytorch(sd)
                 else:

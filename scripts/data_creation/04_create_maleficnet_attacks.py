@@ -37,7 +37,7 @@ def _ingest_one(model_name: str, dataset: str, payload_name: str,
     from model_xray.data.ghrp_zoos import extract_weights_pytorch
 
     cp_path = os.path.join(checkpoints_dir, f"{model_name}_{dataset}_{payload_name}_model.pt")
-    sd = torch.load(cp_path, weights_only=True)
+    sd = torch.load(cp_path, weights_only=True, map_location="cpu")
     ws = extract_weights_pytorch(sd)
     imgs = image_rep_ws(np.expand_dims(ws, 0) if ws.ndim == 1 else ws,
                         imsize=imsize, image_rep=image_rep)
