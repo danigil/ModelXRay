@@ -33,9 +33,9 @@ PAPER_LABELS = {
     "gf":   "Ours - GF",
     "phis": "Baseline Yin et al. (2022) (Reproduction)",
 }
-# When the cached CSV does not include `gf` (older runs used the byte-decomp
-# `rgb` rep as the GF stand-in -- see the IngestModelZoo measure_time.py),
-# fall back to `rgb` and warn.
+# When the cached CSV does not include `gf` (older measurement runs used the
+# byte-decomp `rgb` representation as the GF stand-in), fall back to `rgb`
+# and warn.
 GF_FALLBACK = "rgb"
 
 

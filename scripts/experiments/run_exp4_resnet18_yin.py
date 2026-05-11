@@ -181,8 +181,7 @@ def run_malconv(weights: np.ndarray, *, x_range, n_splits, n_repeats, seed) -> p
 
 
 def run_threshold_b5_b7(weights: np.ndarray, *, x_range, n_splits, n_repeats, seed) -> pd.DataFrame:
-    """Paper-faithful threshold-baseline CV (matches IngestModelZoo/baselines/naive/
-    run_experiment_resnet18_rand.py + the cached resnet18_naive_rand_per_x.csv).
+    """Paper-faithful threshold-baseline CV.
 
     Key protocol detail: KFold over n_models (NOT stratified-k-fold over the
     doubled (benign, attacked) population). Each fold's `tr` indices are then

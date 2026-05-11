@@ -92,8 +92,7 @@ def _fsl_one_xhat_subproc(q, small_train, small_test, large_test, *,
     is reclaimed when the process exits — calling tf.keras.backend.clear_session()
     + gc.collect() between trainings does not actually return GPU memory to
     the OS, leading to ResourceExhaustedError after ~20 trainings (verified
-    overnight on the 23-X_hat crossx sweep). Mirrors the proven pattern in
-    the legacy scripts/classification/siamese/siamese_repeated_train.py.
+    overnight on the 23-X_hat crossx sweep).
     """
     rows: list[dict] = []
     try:
@@ -180,10 +179,10 @@ def run_b3(small_train, small_test, large_test, *, x_range, payload, seed,
 
     Architectures in `small_*` / `large_*` have wildly different parameter
     counts (MobileNetV2 ~3.5M floats vs VGG16 ~138M), so the raw byte
-    sequences cannot be stacked. Match the cached IngestModelZoo runner by
-    extracting a fixed 512 KB byte window (= the first 131072 floats) from
-    each model. All architectures used in Exp 2 have at least that many
-    parameters.
+    sequences cannot be stacked. Extract a fixed 512 KB byte window
+    (= the first 131072 floats) from each model so all per-arch byte
+    sequences share a common length; all architectures used in Exp 2 have
+    at least that many parameters.
     """
     rows = []
     WINDOW_BYTES = 512 * 1024

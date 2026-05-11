@@ -86,9 +86,9 @@ Every CSV under `results/` follows the canonical schema documented in
 runner outputs and plot inputs share that schema, so you can rerun any
 experiment and replot from the freshly produced CSV without translation.
 
-The cached paper CSVs were one-shot converted from the historical
-IngestModelZoo schema by `scripts/data_creation/convert_cached_csvs.py`
-(idempotent — safe to re-run).
+The cached paper CSVs were one-shot converted from a legacy schema by
+`scripts/data_creation/convert_cached_csvs.py` (idempotent — safe to re-run
+on already-canonical files).
 
 ## Hardware notes
 

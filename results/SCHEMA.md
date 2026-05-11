@@ -5,17 +5,18 @@ consumes to regenerate one paper figure or table. End-to-end re-runs in
 `scripts/experiments/` overwrite these files in place; the committed copies are
 what produced the figures in the published PDF.
 
+The column conventions for every CSV below are the canonical schema documented
+in [`model_xray/data/_schemas.py`](../model_xray/data/_schemas.py); runner
+outputs and plot inputs share that schema, so reruns plot without translation.
+
 ## `results/exp1/` — Experiment 1, SCZ STL10 OML (Figure 4)
 
-| File | Producer | Schema |
-|---|---|---|
-| `fsl_osl.csv` | `scripts/experiments/run_exp1_scz_oml.py --methods fsl` (legacy: `siamese_repeated_train.py`) | columns: `mc, lsb, test_acc_centroid, test_acc_nn, run num, model_lsb, model_arch` (one row per (run, attack severity)). |
-| `b3_malconv.csv` | `run_exp1_scz_oml.py --methods b3` (legacy: `IngestModelZoo/baselines/malconv/run_scz_stl10_malconv_repeats.py`) | columns: `repeat, X, test_acc, ...` |
-| `b4_b7_threshold.csv` | `run_exp1_scz_oml.py --methods thresholds` (legacy: `IngestModelZoo/baselines/naive/run_scz_stl10_repeats.py`) | columns: `repeat, X, baseline, test_acc, ...` |
-
-B1 (Gilkarov) values for Figure 4 are hardcoded in `scripts/plots/exp1_id_oml.py`
-because the original Gilkarov paper only reported per-X point values, not raw
-prediction CSVs.
+| File | Producer |
+|---|---|
+| `fsl_osl.csv` | `scripts/experiments/run_exp1_scz_oml.py --methods fsl` |
+| `b1_gilkarov_per_x.csv` | `scripts/experiments/run_exp1_scz_oml.py --methods b1` |
+| `b3_malconv.csv` | `scripts/experiments/run_exp1_scz_oml.py --methods b3` |
+| `b4_b7_threshold.csv` | `scripts/experiments/run_exp1_scz_oml.py --methods thresholds` |
 
 ## `results/exp2/` — Experiment 2, Famous Small + Large CNNs (figs:exp2_*)
 
@@ -24,11 +25,9 @@ prediction CSVs.
 | `fsl_osl_small.csv`, `fsl_osl_large.csv` | OSL CNN (100x100), Section 4.7.1 / 4.7.4 |
 | `fsl_srnet_small.csv`, `fsl_srnet_large.csv` | SRNet (256x256) |
 | `b3_malconv_small.csv`, `b3_malconv_large.csv` | MalConv-lite per-X repeats |
-| `b3_malconv_crossx_small.csv`, `b3_malconv_crossx_large.csv` | MalConv-lite cross-X (anchor X_hat, evaluate at all X), used for the AL plot |
+| `b3_malconv_crossx_small.csv`, `b3_malconv_crossx_large.csv` | MalConv-lite cross-X (anchor `X_hat`, evaluate at all `X`); feeds the AL plot |
 | `b4_b7_threshold_small.csv`, `b4_b7_threshold_large.csv` | naive baseline per-X repeats |
 | `threshold_features_small.npz`, `threshold_features_large.npz` | cached per-X feature scores feeding the AL plot reuse |
-
-Schemas match the legacy `IngestModelZoo/baselines/{naive,malconv}/results/`.
 
 ## `results/exp4/` — Experiment 4, ResNet18-TinyImageNet vs Yin (Figure 8)
 
@@ -36,12 +35,12 @@ Schemas match the legacy `IngestModelZoo/baselines/{naive,malconv}/results/`.
 |---|---|
 | `gf_xgboost.csv` | "Ours - GF + XGBoost" (XGBoost on GF pixels, 5-fold x 5-rep CV) |
 | `gf_1nn.csv` | "Ours - GF + 1NN" (1-NN on GF pixels, same protocol) |
-| `b2_yin_per_x/<X>.csv` | B2 Yin XGBoost; one CSV per attack severity X in [1, 23] |
+| `b2_yin.csv` | B2 Yin XGBoost on the 92-d feature vector, all `X` in one CSV |
 | `b3_malconv.csv` | B3 MalConv-lite (raw bytes, 512KB window) |
-| `b5_b7_threshold.csv` | B5 (Byte Entropy) and B7 (Weight-Value Distribution); columns include `baseline`, `acc_mean_test` |
+| `b5_b7_threshold.csv` | B5 (Byte Entropy) and B7 (Weight-Value Distribution) |
 
-CSVs contain one row per CV fold; `iid_test` rows are aggregated by the plot
-script using mean ± 95% CI bands.
+CSVs contain one row per CV fold; the plot script aggregates by `X` with
+mean ± 95% CI bands.
 
 ## `results/exp2_5/` — Experiment 2.5, MaleficNet OOD (Table 2)
 
@@ -52,6 +51,6 @@ trained Exp 2 FSL detector + the MaleficNet image dataset (D4) to reproduce.
 
 ## `results/runtime_memory/` — Deployment study (Table 4, Table 5)
 
-| File | Producer | Schema |
-|---|---|---|
-| `measure_time.csv` | `scripts/experiments/run_runtime_memory.py` (legacy: `IngestModelZoo/measure_time.py`) | columns: `image_rep, time, peak_memory, n_models, n_weights, run_i` (one row per (n_models, n_weights, image_rep, repeat)) |
+| File | Producer |
+|---|---|
+| `measure_time.csv` | `scripts/experiments/run_runtime_memory.py` |
