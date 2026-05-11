@@ -33,7 +33,18 @@ import pandas as pd
 from model_xray.data import paths as _paths
 from model_xray.data.attack_pipeline import img_pp_xlsb_attack
 from model_xray.data.maleficnet import ret_maleficnet_data
-from model_xray.data.pretrained_models import SMALL_TRAIN
+from model_xray.data.pretrained_models import SMALL_TEST, SMALL_TRAIN
+
+# Weighted-Metric mantissa weights — paper Section 4.6 (Model Evaluation Metric):
+#   WM(X_hat) = 0.5 * (a_0 + sum_{i=1..23} (24 - i) * a_i / 276)
+S_MANTISSA = 23
+WM_DENOM = S_MANTISSA * (S_MANTISSA + 1) // 2  # 276
+X_EVAL_RANGE = list(range(1, S_MANTISSA + 1))
+
+
+def _wm(a0: float, a_x: np.ndarray) -> float:
+    weights = np.arange(S_MANTISSA, 0, -1)
+    return 0.5 * (a0 + float((weights * a_x).sum()) / WM_DENOM)
 from model_xray.fsl.train import train_fsl
 from model_xray.fsl.evaluate import evaluate_model
 
@@ -82,6 +93,8 @@ def main():
     payload = args.payload_file or _paths.get_payload_file()
     print(f"Loading FSL training set from {args.small_h5} ...")
     small_train = _load_archs(args.small_h5, SMALL_TRAIN)
+    print(f"Loading FSL ID test set (SMALL_TEST archs) for WM computation ...")
+    small_test = _load_archs(args.small_h5, SMALL_TEST)
     print(f"Loading MaleficNet OOD test set (imsize={args.mz_imsize}) ...")
     X_oo, y_oo, meta_oo = ret_maleficnet_data(imsize=args.mz_imsize, image_rep=args.mz_image_rep,
                                               split_benign_mal=False, flatten_imgs=False,
@@ -112,6 +125,28 @@ def main():
             y_train = np.concatenate([np.zeros(len(X_train_b)), np.ones(len(X_train_m))])
             model = train_fsl(X_train, y_train, model_arch=args.model_arch,
                               imsize=args.fsl_imsize, mode=args.mode)
+
+            # ID Weighted-Metric on SMALL_TEST: evaluate the trained model at
+            # eval_x ∈ {0..23} on the SMALL_TEST architectures so we can compute
+            # paper Table 2's WM column. WM(X_hat) = 0.5 * (a_0 + Σ (24-i) a_i / 276)
+            # where a_0 is TNR on benign-only and a_i is binary accuracy on the
+            # benign+attacked-at-X=i mixed eval set.
+            X_id_b = _stack_imgs(small_test, args.fsl_imsize, payload, x=0)
+            id_a0 = evaluate_model(model, X_id_b, np.zeros(len(X_id_b)))
+            id_a_x_centroid = np.zeros(S_MANTISSA, dtype=np.float64)
+            id_a_x_nn = np.zeros(S_MANTISSA, dtype=np.float64)
+            for i, eval_x in enumerate(X_EVAL_RANGE):
+                X_id_m = _stack_imgs(small_test, args.fsl_imsize, payload, x=eval_x)
+                res_x = evaluate_model(
+                    model, np.concatenate([X_id_b, X_id_m]),
+                    np.concatenate([np.zeros(len(X_id_b)), np.ones(len(X_id_m))]),
+                )
+                id_a_x_centroid[i] = res_x["centroid"]
+                id_a_x_nn[i] = res_x["nn"]
+            wm_centroid = _wm(id_a0["centroid"], id_a_x_centroid)
+            wm_nn = _wm(id_a0["nn"], id_a_x_nn)
+            print(f"[exp2.5] anchor X={x_anchor} repeat={r}  WM_centroid={wm_centroid:.3f} WM_nn={wm_nn:.3f}")
+
             # Per-(arch, payload) cells for paper Table 2. The benign rows
             # ("pre" payload) are included once per arch and shared across
             # malware-payload cells: each (arch, mal_payload) cell evaluates
@@ -133,13 +168,17 @@ def main():
                     res = evaluate_model(model, X_oo[cell_idx], cell_y)
                     rows.append({"repeat": r, "X_anchor": x_anchor,
                                  "model_arch": args.model_arch,
-                                 "arch": arch, "payload": pl, **res})
+                                 "arch": arch, "payload": pl,
+                                 "wm_id_centroid": wm_centroid, "wm_id_nn": wm_nn,
+                                 **res})
                     seen.add((arch, pl))
             # Also keep the headline avg-across-everything row for back-compat:
             ood_res = evaluate_model(model, X_oo, y_oo)
             rows.append({"repeat": r, "X_anchor": x_anchor,
                          "model_arch": args.model_arch,
-                         "arch": "AVG", "payload": "AVG", **ood_res})
+                         "arch": "AVG", "payload": "AVG",
+                         "wm_id_centroid": wm_centroid, "wm_id_nn": wm_nn,
+                         **ood_res})
 
     os.makedirs(args.out_dir, exist_ok=True)
     df = pd.DataFrame(rows)

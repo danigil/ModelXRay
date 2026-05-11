@@ -60,6 +60,18 @@ class MalBytes:
 
             ret_bytes = rng.bytes(n_bytes)
 
+        # Per the paper (X-LSB-Attack-Fill): "fills the whole cover data by
+        # repeating m or using the largest prefix of it that fits in the X
+        # least significant bits of all parameters". Tile the payload bytes
+        # if the requested capacity exceeds the file size (otherwise the
+        # caller's reshape((n_m, byte_capacity_single)) will fail with
+        # `cannot reshape array of size <file> into shape <capacity>`).
+        # Verified by `_x_lsb_attack_numpy_bin` slicing `[:byte_capacity]`
+        # afterwards — tiling here is therefore safe.
+        if n_bytes is not None and len(ret_bytes) < n_bytes:
+            reps = (n_bytes // len(ret_bytes)) + 1
+            ret_bytes = (ret_bytes * reps)[:n_bytes]
+
         self.embed_payload_config.embed_payload_metadata.payload_bytes_md5 = self.ret_md5(ret_bytes)
 
         return ret_bytes
