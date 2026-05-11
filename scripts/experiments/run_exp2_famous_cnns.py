@@ -82,9 +82,50 @@ def _stack_imgs(arch_w: Dict[str, np.ndarray], imsize: int, payload, x: int) -> 
 
 # -------------------- FSL --------------------
 
+def _fsl_one_xhat_subproc(q, small_train, small_test, large_test, *,
+                          model_arch, imsize, mode, x_hat, x_range, payload,
+                          crossx, repeat):
+    """Train the FSL model and evaluate ONE x_hat anchor across requested
+    eval Xs and eval sets, push the resulting rows back via `q`.
+
+    Lives in its own process so that TF's accumulating session/graph state
+    is reclaimed when the process exits — calling tf.keras.backend.clear_session()
+    + gc.collect() between trainings does not actually return GPU memory to
+    the OS, leading to ResourceExhaustedError after ~20 trainings (verified
+    overnight on the 23-X_hat crossx sweep). Mirrors the proven pattern in
+    the legacy scripts/classification/siamese/siamese_repeated_train.py.
+    """
+    rows: list[dict] = []
+    try:
+        from model_xray.fsl.train import train_fsl
+        from model_xray.fsl.evaluate import evaluate_model
+
+        X_train_b = _stack_imgs(small_train, imsize, payload, x=0)
+        X_train_m = _stack_imgs(small_train, imsize, payload, x=x_hat)
+        X_train = np.concatenate([X_train_b, X_train_m])
+        y_train = np.concatenate([np.zeros(len(X_train_b)), np.ones(len(X_train_m))])
+
+        model = train_fsl(X_train, y_train, model_arch=model_arch, imsize=imsize, mode=mode)
+
+        eval_xs = list(x_range) if crossx else [x_hat]
+        for eval_x in eval_xs:
+            for eval_set, test_dict in (("famous_le_10m", small_test),
+                                        ("famous_le_100m", large_test)):
+                X_b = _stack_imgs(test_dict, imsize, payload, x=0)
+                X_m = _stack_imgs(test_dict, imsize, payload, x=eval_x)
+                res = evaluate_model(model, np.concatenate([X_b, X_m]),
+                                     np.concatenate([np.zeros(len(X_b)), np.ones(len(X_m))]))
+                rows.append({"repeat": repeat, "X_hat": x_hat, "X": eval_x,
+                             "eval_set": eval_set, **res})
+    except Exception as e:
+        print(f"[exp2 FSL/{model_arch} subproc] FAILED repeat={repeat} x_hat={x_hat}: {e!r}")
+    finally:
+        q.put(rows)
+
+
 def run_fsl(small_train, small_test, large_test, *, model_arch, imsize, mode, n_repeats, x_range,
-            payload, seed, crossx: bool = False) -> pd.DataFrame:
-    """Train + evaluate the FSL detector across X.
+            payload, seed, crossx: bool = False, x_hat_range=None) -> pd.DataFrame:
+    """Train + evaluate the FSL detector across X (per-x_hat in a fresh subprocess).
 
     OML mode (`crossx=False`): each (repeat, X) trains one model at anchor X and
     evaluates against ID + OOD at the same X (canonical schema rows have
@@ -93,31 +134,41 @@ def run_fsl(small_train, small_test, large_test, *, model_arch, imsize, mode, n_
     AL mode (`crossx=True`): each (repeat, X_hat) trains one model at anchor
     X_hat and evaluates against ID + OOD across *every* X in `x_range`
     (cross-X sweep, used by the AL Figure 6 weighted-metric curve).
+
+    `x_hat_range` (optional): restrict the training-anchor sweep to a subset
+    of `x_range`. Used for resuming a partial crossx run (e.g. retry only
+    X_hat ∈ {20,21,22,23} after an OOM at the high end). When None, use
+    `x_range` for both anchor and eval.
+
+    Each x_hat is run in its own multiprocessing.Process so that TF's
+    accumulating GPU session state is reclaimed by the OS at process exit
+    (clear_session + gc are not sufficient for long sweeps).
     """
-    rows = []
+    import multiprocessing as mp
+
+    # Use spawn to ensure each child gets a fresh interpreter (the parent has
+    # already imported TF for compute-graph construction in earlier x_hats
+    # of a re-run; spawn avoids inheriting any stale CUDA state).
+    ctx = mp.get_context("spawn")
+    rows: list[dict] = []
+    anchor_xs = list(x_hat_range) if x_hat_range is not None else list(x_range)
     for r in range(n_repeats):
-        for x_hat in x_range:
-            print(f"[exp2 FSL/{model_arch}] repeat={r} x_hat={x_hat} crossx={crossx}")
-            X_train_b = _stack_imgs(small_train, imsize, payload, x=0)
-            X_train_m = _stack_imgs(small_train, imsize, payload, x=x_hat)
-            X_train = np.concatenate([X_train_b, X_train_m])
-            y_train = np.concatenate([np.zeros(len(X_train_b)), np.ones(len(X_train_m))])
+        for x_hat in anchor_xs:
+            print(f"[exp2 FSL/{model_arch}] repeat={r} x_hat={x_hat} crossx={crossx} (subproc)")
+            q = ctx.Queue()
+            p = ctx.Process(
+                target=_fsl_one_xhat_subproc,
+                args=(q, small_train, small_test, large_test),
+                kwargs=dict(model_arch=model_arch, imsize=imsize, mode=mode,
+                            x_hat=x_hat, x_range=list(x_range), payload=payload,
+                            crossx=crossx, repeat=r),
+            )
+            p.start()
             try:
-                model = train_fsl(X_train, y_train, model_arch=model_arch, imsize=imsize, mode=mode)
-                eval_xs = x_range if crossx else [x_hat]
-                for eval_x in eval_xs:
-                    for eval_set, test_dict in (("famous_le_10m", small_test),
-                                                ("famous_le_100m", large_test)):
-                        X_b = _stack_imgs(test_dict, imsize, payload, x=0)
-                        X_m = _stack_imgs(test_dict, imsize, payload, x=eval_x)
-                        res = evaluate_model(model, np.concatenate([X_b, X_m]),
-                                             np.concatenate([np.zeros(len(X_b)), np.ones(len(X_m))]))
-                        rows.append({"repeat": r, "X_hat": x_hat, "X": eval_x,
-                                     "eval_set": eval_set, **res})
-            except Exception as e:
-                print(f"[exp2 FSL/{model_arch}] FAILED repeat={r} x_hat={x_hat}: {e!r}")
+                xhat_rows = q.get()  # block until subprocess has put something
+                rows.extend(xhat_rows)
             finally:
-                gc.collect()
+                p.join()
     return pd.DataFrame(rows)
 
 
@@ -207,6 +258,11 @@ def main():
                         help="Override OOD test arch list (default: paper's 16 large CNNs).")
     parser.add_argument("--n-repeats", type=int, default=30)
     parser.add_argument("--x-range", type=int, nargs="+", default=X_RANGE)
+    parser.add_argument("--x-hat-range", type=int, nargs="+", default=None,
+                        help="FSL-only: restrict training-anchor X to this subset "
+                             "of --x-range. Default: same as --x-range. Useful for "
+                             "resuming a partial crossx sweep without re-running "
+                             "anchors that already succeeded.")
     parser.add_argument("--payload-file", default=None)
     parser.add_argument("--mode", default="ub")
     parser.add_argument("--methods", nargs="+", default=["fsl_osl", "fsl_srnet", "b3", "thresholds"])
@@ -247,12 +303,14 @@ def main():
     if "fsl_osl" in args.methods:
         df = run_fsl(small_train, small_test, large_test, model_arch="osl_siamese_cnn",
                      imsize=100, mode=args.mode, n_repeats=args.n_repeats, x_range=args.x_range,
-                     payload=payload, seed=args.seed, crossx=args.crossx)
+                     payload=payload, seed=args.seed, crossx=args.crossx,
+                     x_hat_range=args.x_hat_range)
         df.to_csv(os.path.join(args.out_dir, f"fsl_osl{crossx_tag}_{suf}.csv"), index=False)
     if "fsl_srnet" in args.methods:
         df = run_fsl(small_train, small_test, large_test, model_arch="srnet",
                      imsize=256, mode=args.mode, n_repeats=args.n_repeats, x_range=args.x_range,
-                     payload=payload, seed=args.seed, crossx=args.crossx)
+                     payload=payload, seed=args.seed, crossx=args.crossx,
+                     x_hat_range=args.x_hat_range)
         df.to_csv(os.path.join(args.out_dir, f"fsl_srnet{crossx_tag}_{suf}.csv"), index=False)
     if "b3" in args.methods:
         df = run_b3(small_train, small_test, large_test, x_range=args.x_range,
