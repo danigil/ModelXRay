@@ -1,25 +1,10 @@
-# ModelXRay
+# [ModelXRay](https://doi.org/10.1016/j.jisa.2026.104517)
 
 Reproducibility artifact for the paper
 
-> **Model X-Ray: Detection of Hidden Malware in AI Model Weights using Few Shot Learning**
+> **[Model X-Ray: Detection of hidden malware in AI model weights using few shot learning](https://doi.org/10.1016/j.jisa.2026.104517)**
 
-Abstract: AI model repositories such as Hugging Face and TensorFlow Hub have become an attractive surface
-for steganographic malware: attackers exploit the redundancy in float32 weights to embed payloads
-while preserving model accuracy. Existing AI-model steganalysis methods require tens of thousands
-of labeled training samples and only detect attacks at high embedding rates (≥50%), limiting their
-practical utility. We address both gaps with a few-shot learning approach. We propose a novel parameter-
-position-stable image representation, Grayscale-Fourpart (GF), that maps float32 weights to a square
-grayscale image, and pair it with a metric-learning few-shot CNN detector. The detector trains from as
-few as 6 model files and consistently flags attacks down to 25% embedding rate, with 6% in some cases.
-We benchmark against a seven-baseline matrix spanning two prior academic method, the canonical
-raw-byte 1D-CNN paradigm, and four threshold-based statistics, and identify the conjoint conditions
-under which the simpler baselines collapse and ours retains accuracy. The trained detectors transfer
-to novel out-of-distribution spread-spectrum attacks despite training only on LSB perturbations. A
-deployment-feasibility study shows that GF feature extraction scales linearly to 108 parameters at
-≈ 0.49 s and ∼1.77 GiB peak memory, ∼352× faster than the strongest prior baseline at the same scale,
-making this, to our knowledge, the first AI-model steganalysis pipeline practical for repository-scale
-deployment. The full code framework, including baseline reproductions, is released as open-source
+Abstract: AI model repositories such as Hugging Face and TensorFlow Hub have become an attractive surface for steganographic malware: attackers exploit the redundancy in float32 weights to embed payloads while preserving model accuracy. Existing AI-model steganalysis methods require tens of thousands of labeled training samples and only detect attacks at high embedding rates ( ≥ 50%), limiting their practical utility. We address both gaps with a few-shot learning approach. We propose a novel parameter-position-stable image representation, Grayscale-Fourpart (GF), that maps float32 weights to a square grayscale image, and pair it with a metric-learning few-shot CNN detector. The detector trains from as few as 6 model files and consistently flags attacks down to 25% embedding rate, with 6% in some cases. We benchmark against a seven-baseline matrix spanning two prior academic method, the canonical raw-byte 1D-CNN paradigm, and four threshold-based statistics, and identify the conjoint conditions under which the simpler baselines collapse and ours retains accuracy. The trained detectors transfer to novel out-of-distribution spread-spectrum attacks despite training only on LSB perturbations. A deployment-feasibility study shows that GF feature extraction scales linearly to 108 parameters at  ≈ 0.49 s and  ∼ 1.77 GiB peak memory,  ∼ 352 ×  faster than the strongest prior baseline at the same scale, making this, to our knowledge, the first AI-model steganalysis pipeline practical for repository-scale deployment. The full code framework, including baseline reproductions, is released as open-source.
 
 This repository contains the full software framework:
 
